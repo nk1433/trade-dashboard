@@ -43,7 +43,7 @@ const calculateAllocationIntent = (
     allocationPercentage = parseFloat(((investmentAmount / capital) * 100).toFixed(2));
   }
 
-    return {
+  return {
     percentage: allocationSize,
     sharesToBuy,
     allocation: investmentAmount.toFixed(2),
@@ -107,18 +107,18 @@ function AllocationTable({ scripts, accessToken }) {
               scriptname,
               ltp: ltp.toFixed(2),
               sl: allocation10.sl,
-              tenPercent: allocation10,
-              twentyFivePercent: allocation25,
-              fortyPercent: allocation40,
+              allocations: {
+                10: allocation10,
+                25: allocation25,
+                40: allocation40,
+              }
             };
           } else {
             return {
               scriptname,
               ltp: 'Error',
               sl: 'Error',
-              tenPercent: {},
-              twentyFivePercent: {},
-              fortyPercent: {},
+              allocations: {}
             };
           }
         })
@@ -163,9 +163,7 @@ function AllocationTable({ scripts, accessToken }) {
                 <TableCell>ScriptName</TableCell>
                 <TableCell>LTP</TableCell>
                 <TableCell>SL</TableCell>
-                <TableCell>10% Allocation</TableCell>
-                <TableCell>25% Allocation</TableCell>
-                <TableCell>40% Allocation</TableCell>
+                <TableCell>Allocations</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -175,13 +173,17 @@ function AllocationTable({ scripts, accessToken }) {
                   <TableCell>{row.ltp}</TableCell>
                   <TableCell>{row.sl}</TableCell>
                   <TableCell>
-                    {row.tenPercent.canAllocate ? 'Yes' : 'No'} (Shares: {row.tenPercent.sharesToBuy}, Alloc: {row.tenPercent.allocationPercentOfPortfolio}%, Risk: ₹{row.tenPercent.potentialLoss})
-                  </TableCell>
-                  <TableCell>
-                    {row.twentyFivePercent.canAllocate ? 'Yes' : 'No'} (Shares: {row.twentyFivePercent.sharesToBuy}, Alloc: {row.twentyFivePercent.allocationPercentOfPortfolio}%, Risk: ₹{row.twentyFivePercent.potentialLoss})
-                  </TableCell>
-                  <TableCell>
-                    {row.fortyPercent.canAllocate ? 'Yes' : 'No'} (Shares: {row.fortyPercent.sharesToBuy}, Alloc: {row.fortyPercent.allocationPercentOfPortfolio}%, Risk: ₹{row.fortyPercent.potentialLoss})
+                    <Box flexDirection="column" display="flex" gap={1}>
+                      {
+                        Object.entries(row.allocations).map(([key, value]) => {
+                          return <span>
+                            {key}%:
+                            {value.canAllocate ? 'Yes' : 'No'}
+                            (Shares: {value.sharesToBuy}, Alloc: {value.allocationPercentOfPortfolio}%, Risk: ₹{value.potentialLoss})
+                          </span>
+                        })
+                      }
+                    </Box>
                   </TableCell>
                 </TableRow>
               ))}
@@ -200,7 +202,7 @@ function AllocationTable({ scripts, accessToken }) {
 }
 
 function App() {
-  const initialScripts = [ { "NSE_EQ:FSL": "NSE_EQ|INE684F01012" } ];
+  const initialScripts = [{ "NSE_EQ:FSL": "NSE_EQ|INE684F01012" }];
   const accessToken = import.meta.env.VITE_UPSTOXS_ACCESS_KEY;
 
   return (
