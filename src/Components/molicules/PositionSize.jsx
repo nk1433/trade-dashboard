@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   TextField,
   Button,
@@ -73,7 +73,13 @@ function AllocationTable({ scripts, accessToken }) {
     const month = String(currentDate.getMonth() + 1).padStart(2, '0');
     const day = String(currentDate.getDate()).padStart(2, '0');
     const toDate = `${year}-${month}-${day}`;
-    const fromDate = `${year}-${month}-01`;
+
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(currentDate.getDate() - 30);
+    const fromYear = thirtyDaysAgo.getFullYear();
+    const fromMonth = String(thirtyDaysAgo.getMonth() + 1).padStart(2, '0');
+    const fromDay = String(thirtyDaysAgo.getDate()).padStart(2, '0');
+    const fromDate = `${fromYear}-${fromMonth}-${fromDay}`;
 
     if (!isNaN(size) && !isNaN(riskOfPortfolio) && scripts && scripts.length > 0) {
       setLoading(true);
@@ -111,9 +117,9 @@ function AllocationTable({ scripts, accessToken }) {
               const allocation = calculateAllocationIntent(size, 10, ltp, riskOfPortfolio);
               riskRewardRatio = allocation.riskRewardRatio;
 
-              // Fetch historical data for average volume
+              // Fetch historical data for average volume (daily for last 30 days)
               const historicalResponse = await fetch(
-                `https://api.upstox.com/v3/historical-candle/${instrumentKey}/months/1/${toDate}/${fromDate}`,
+                `https://api.upstox.com/v3/historical-candle/${instrumentKey}/days/1/${toDate}/${fromDate}`,
                 {
                   headers: {
                     Authorization: `Bearer ${accessToken}`,
@@ -144,23 +150,39 @@ function AllocationTable({ scripts, accessToken }) {
             setError(`Error fetching data for one or more scripts.`);
           }
 
-          return {
-            scriptname,
-            ltp: ltp ? ltp.toFixed(2) : 'Error',
-            sl: (ltp && calculateAllocationIntent(size, 10, ltp, riskOfPortfolio).sl) || 'Error',
-            allocations: ltp ? {
-              10: calculateAllocationIntent(size, 10, ltp, riskOfPortfolio),
-              25: calculateAllocationIntent(size, 25, ltp, riskOfPortfolio),
-              40: calculateAllocationIntent(size, 40, ltp, riskOfPortfolio),
-            } : {},
-            riskRewardRatio: riskRewardRatio || 'Error',
-            strongStart,
-            avgVolume,
-            relativeVolumePercentage: relativeVolumePercentage + '%',
-          };
+          if (ltp !== null) {
+            const allocation10 = calculateAllocationIntent(size, 10, ltp, riskOfPortfolio);
+            const allocation25 = calculateAllocationIntent(size, 25, ltp, riskOfPortfolio);
+            const allocation40 = calculateAllocationIntent(size, 40, ltp, riskOfPortfolio);
+
+            return {
+              scriptname,
+              ltp: ltp.toFixed(2),
+              sl: allocation10.sl,
+              allocations: {
+                10: allocation10,
+                25: allocation25,
+                40: allocation40,
+              },
+              riskRewardRatio: riskRewardRatio,
+              strongStart: strongStart,
+              avgVolume: avgVolume,
+              relativeVolumePercentage: relativeVolumePercentage + '%',
+            };
+          } else {
+            return {
+              scriptname,
+              ltp: 'Error',
+              sl: 'Error',
+              allocations: {},
+              riskRewardRatio: 'Error',
+              strongStart: 'Error',
+              avgVolume: 'Error',
+              relativeVolumePercentage: 'Error',
+            };
+          }
         })
       );
-
       const sortedResults = [...results].sort((a, b) => {
         const ratioA = parseFloat(a.riskRewardRatio);
         const ratioB = parseFloat(b.riskRewardRatio);
@@ -171,7 +193,6 @@ function AllocationTable({ scripts, accessToken }) {
 
         return ratioA - ratioB;
       });
-
       setTableData(sortedResults);
       setLoading(false);
     } else {
@@ -179,12 +200,6 @@ function AllocationTable({ scripts, accessToken }) {
       setLoading(false);
     }
   };
-
-  useEffect(() => {
-    if (scripts && scripts.length > 0) {
-      handleCalculate();
-    }
-  }, [scripts, portfolioSize, riskPercentageOfPortfolio, accessToken]);
 
   return (
     <Box>
@@ -220,6 +235,7 @@ function AllocationTable({ scripts, accessToken }) {
               <TableCell>R / R</TableCell>
               <TableCell>% / ₹</TableCell>
               <TableCell>Re-Vol%/ M</TableCell>
+              <TableCell>Avg Volume</TableCell>
               <TableCell>Allocations</TableCell>
               <TableCell>Strong Start</TableCell>
             </TableRow>
@@ -231,8 +247,9 @@ function AllocationTable({ scripts, accessToken }) {
                 <TableCell>{row.ltp}</TableCell>
                 <TableCell>{row.sl}</TableCell>
                 <TableCell>1 / {row.riskRewardRatio}</TableCell>
-                <TableCell>{riskPercentageOfPortfolio} / {portfolioSize * (riskPercentageOfPortfolio / 100)}</TableCell>
+                <TableCell>{ riskPercentageOfPortfolio } / { portfolioSize * ( riskPercentageOfPortfolio / 100 )}</TableCell>
                 <TableCell>{row.relativeVolumePercentage}</TableCell>
+                <TableCell>{row.avgVolume}</TableCell>
                 <TableCell>
                   <Box flexDirection="column" display="flex" gap={1}>
                     {Object.entries(row.allocations).map(([key, value]) => (
@@ -254,16 +271,12 @@ function AllocationTable({ scripts, accessToken }) {
 }
 
 function App() {
-  const initialScripts = [
-    { "NSE_EQ:AVALON": "NSE_EQ|INE0LCL01028" },
-    { "NSE_EQ:FSL": "NSE_EQ|INE684F01012" },
-    { "NSE_EQ:KIRIINDUS": "NSE_EQ|INE415I01015" },
-  ];
-  const accessToken = import.meta.env.VITE_UPSTOXS_ACCESS_KEY;
+  const initialScripts = [{ "NSE_EQ:AVALON": "NSE_EQ|INE0LCL01028" }];
+  const accessToken = import.meta.env.VITE_UPSTOXS_ACCESS_KEY;
 
-  return (
-    <AllocationTable scripts={initialScripts} accessToken={accessToken} />
-  );
+  return (
+    <AllocationTable scripts={initialScripts} accessToken={accessToken} />
+  );
 }
 
 export default App;
