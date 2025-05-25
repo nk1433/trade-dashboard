@@ -33,3 +33,7 @@ The following enhancements are planned:
 5.  Implement automatic refreshing of stock quotes.
 6.  Develop a mobile application for the dashboard.
 7.  Implement portfolio tracking functionality.
+8.  Right now r/r always show 1 : 4 because of 0.25% of static risk, risk is dynamic based on the day low or else static risk sl, recommendation need to be done.
+9.  Strong start right now not consider the gap-up openings.
+10. Need to create a flow's where multiple entries within a zone 3-5% price.
+11. Staggered sl flow's.
