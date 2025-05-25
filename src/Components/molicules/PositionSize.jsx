@@ -23,6 +23,8 @@ const calculateAllocationIntent = (
   const stopLossPercentage = riskedAmountPercentage / 10; // Use dynamic risk percentage for stop loss
   const lossPerShare = entryPrice * stopLossPercentage;
   const stopLossPrice = parseFloat((entryPrice - lossPerShare).toFixed(2));
+  const rewardPerShare = parseFloat((entryPrice * 0.10).toFixed(2)); // 10% gain
+  const riskRewardRatio = lossPerShare > 0 ? (rewardPerShare / lossPerShare).toFixed(2) : 'Infinity';
 
   let sharesToBuyByRisk = 0;
   let sharesToBuyByInvestment = 0;
@@ -52,6 +54,7 @@ const calculateAllocationIntent = (
     riskAmount: riskAllowed.toFixed(2), // Return the allowed risk amount
     potentialLoss: potentialLoss.toFixed(2), // Keep potentialLoss for internal check
     canAllocate: riskAllowed >= potentialLoss,
+    riskRewardRatio: riskRewardRatio, // Add riskRewardRatio to the returned object
   };
 };
 
@@ -76,6 +79,7 @@ function AllocationTable({ scripts, accessToken }) {
           const scriptname = key.split(':')[1];
           const instrumentKey = value;
           let ltp = null;
+          let riskRewardRatio = null;
 
           try {
             const response = await fetch(
@@ -89,6 +93,8 @@ function AllocationTable({ scripts, accessToken }) {
             const data = await response.json();
             if (data.status === 'success' && data.data[key]) {
               ltp = data.data[key].last_price;
+              const allocation = calculateAllocationIntent(size, 10, ltp, riskOfPortfolio); // Calculate for one allocation to get the ratio
+              riskRewardRatio = allocation.riskRewardRatio;
             } else {
               console.error(`Failed to fetch LTP for ${scriptname}`, data);
               setError(`Failed to fetch LTP for one or more scripts.`);
@@ -111,14 +117,16 @@ function AllocationTable({ scripts, accessToken }) {
                 10: allocation10,
                 25: allocation25,
                 40: allocation40,
-              }
+              },
+              riskRewardRatio: riskRewardRatio, // Store the riskRewardRatio
             };
           } else {
             return {
               scriptname,
               ltp: 'Error',
               sl: 'Error',
-              allocations: {}
+              allocations: {},
+              riskRewardRatio: 'Error',
             };
           }
         })
@@ -160,9 +168,11 @@ function AllocationTable({ scripts, accessToken }) {
           <Table>
             <TableHead>
               <TableRow>
-                <TableCell>ScriptName</TableCell>
+                <TableCell>Script</TableCell>
                 <TableCell>LTP</TableCell>
                 <TableCell>SL</TableCell>
+                <TableCell>R/R</TableCell>
+                <TableCell>% / ₹</TableCell>
                 <TableCell>Allocations</TableCell>
               </TableRow>
             </TableHead>
@@ -172,17 +182,16 @@ function AllocationTable({ scripts, accessToken }) {
                   <TableCell>{row.scriptname}</TableCell>
                   <TableCell>{row.ltp}</TableCell>
                   <TableCell>{row.sl}</TableCell>
+                  <TableCell>{row.riskRewardRatio}</TableCell>
+                  <TableCell>{ riskPercentageOfPortfolio } / { portfolioSize * ( riskPercentageOfPortfolio / 100 )}</TableCell>
                   <TableCell>
                     <Box flexDirection="column" display="flex" gap={1}>
-                      {
-                        Object.entries(row.allocations).map(([key, value]) => {
-                          return <span>
-                            {key}%:
-                            {value.canAllocate ? 'Yes' : 'No'}
-                            (Shares: {value.sharesToBuy}, Alloc: {value.allocationPercentOfPortfolio}%, Risk: ₹{value.potentialLoss})
-                          </span>
-                        })
-                      }
+                      {Object.entries(row.allocations).map(([key, value]) => (
+                        <span key={key}>
+                          {key}%: {value.canAllocate ? 'Yes' : 'No'}
+                          (Shares: {value.sharesToBuy}, Alloc: {value.allocationPercentOfPortfolio}%, Risk: ₹{value.potentialLoss})
+                        </span>
+                      ))}
                     </Box>
                   </TableCell>
                 </TableRow>
