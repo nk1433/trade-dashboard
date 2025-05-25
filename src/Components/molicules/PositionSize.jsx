@@ -68,6 +68,12 @@ function AllocationTable({ scripts, accessToken }) {
   const handleCalculate = async () => {
     const size = parseFloat(portfolioSize);
     const riskOfPortfolio = parseFloat(riskPercentageOfPortfolio);
+    const currentDate = new Date();
+    const year = currentDate.getFullYear();
+    const month = String(currentDate.getMonth() + 1).padStart(2, '0');
+    const day = String(currentDate.getDate()).padStart(2, '0');
+    const toDate = `${year}-${month}-${day}`;
+    const fromDate = `${year}-${month}-01`;
 
     if (!isNaN(size) && !isNaN(riskOfPortfolio) && scripts && scripts.length > 0) {
       setLoading(true);
@@ -80,9 +86,13 @@ function AllocationTable({ scripts, accessToken }) {
           const instrumentKey = value;
           let ltp = null;
           let riskRewardRatio = null;
+          let strongStart = 'No';
+          let avgVolume = 'N/A';
+          let relativeVolumePercentage = 'N/A';
 
           try {
-            const response = await fetch(
+            // Fetch live data
+            const liveResponse = await fetch(
               `https://api.upstox.com/v3/market-quote/ohlc?instrument_key=${instrumentKey}&interval=1d`,
               {
                 headers: {
@@ -90,18 +100,48 @@ function AllocationTable({ scripts, accessToken }) {
                 },
               }
             );
-            const data = await response.json();
-            if (data.status === 'success' && data.data[key]) {
-              ltp = data.data[key].last_price;
-              const allocation = calculateAllocationIntent(size, 10, ltp, riskOfPortfolio); // Calculate for one allocation to get the ratio
+            const liveData = await liveResponse.json();
+            if (liveData.status === 'success' && liveData.data[key]) {
+              ltp = liveData.data[key].last_price;
+              const openPrice = liveData.data[key].live_ohlc.open;
+              const lowPrice = liveData.data[key].live_ohlc.low;
+              const currentVolume = liveData.data[key].live_ohlc.volume;
+              const threshold = openPrice * 0.99;
+              strongStart = lowPrice >= threshold ? 'Yes' : 'No';
+              const allocation = calculateAllocationIntent(size, 10, ltp, riskOfPortfolio);
               riskRewardRatio = allocation.riskRewardRatio;
+
+              // Fetch historical data for average volume
+              const historicalResponse = await fetch(
+                `https://api.upstox.com/v3/historical-candle/${instrumentKey}/months/1/${toDate}/${fromDate}`,
+                {
+                  headers: {
+                    Authorization: `Bearer ${accessToken}`,
+                  },
+                }
+              );
+              const historicalData = await historicalResponse.json();
+              if (historicalData.status === 'success' && historicalData.data.candles) {
+                const candles = historicalData.data.candles;
+                if (candles.length > 0) {
+                  const totalVolume = candles.reduce((sum, candle) => sum + candle[5], 0);
+                  avgVolume = (totalVolume / candles.length).toFixed(0);
+                  if (avgVolume !== '0' && avgVolume !== 0) {
+                    relativeVolumePercentage = ((currentVolume / parseFloat(avgVolume)) * 100).toFixed(2);
+                  } else if (avgVolume === '0' || avgVolume === 0) {
+                    relativeVolumePercentage = 'N/A';
+                  }
+                }
+              } else {
+                console.error(`Failed to fetch historical data for ${scriptname}`, historicalData);
+              }
             } else {
-              console.error(`Failed to fetch LTP for ${scriptname}`, data);
-              setError(`Failed to fetch LTP for one or more scripts.`);
+              console.error(`Failed to fetch LTP for ${scriptname}`, liveData);
+              setError(`Failed to fetch data for one or more scripts.`);
             }
           } catch (err) {
-            console.error(`Error fetching LTP for ${scriptname}`, err);
-            setError(`Error fetching LTP for one or more scripts.`);
+            console.error(`Error fetching data for ${scriptname}`, err);
+            setError(`Error fetching data for one or more scripts.`);
           }
 
           if (ltp !== null) {
@@ -118,7 +158,10 @@ function AllocationTable({ scripts, accessToken }) {
                 25: allocation25,
                 40: allocation40,
               },
-              riskRewardRatio: riskRewardRatio, // Store the riskRewardRatio
+              riskRewardRatio: riskRewardRatio,
+              strongStart: strongStart,
+              avgVolume: avgVolume,
+              relativeVolumePercentage: relativeVolumePercentage, // Store relative volume percentage
             };
           } else {
             return {
@@ -127,6 +170,9 @@ function AllocationTable({ scripts, accessToken }) {
               sl: 'Error',
               allocations: {},
               riskRewardRatio: 'Error',
+              strongStart: 'Error',
+              avgVolume: 'Error',
+              relativeVolumePercentage: 'Error',
             };
           }
         })
@@ -141,7 +187,7 @@ function AllocationTable({ scripts, accessToken }) {
 
   return (
     <Box>
-      <Box display="flex" flexDirection="column" gap={2} maxWidth={400} mb={3}>
+      <Box display="flex" flexDirection="column" alignItems={'center'} gap={2} mb={3}>
         <TextField
           label="Portfolio Size"
           type="number"
@@ -171,9 +217,11 @@ function AllocationTable({ scripts, accessToken }) {
                 <TableCell>Script</TableCell>
                 <TableCell>LTP</TableCell>
                 <TableCell>SL</TableCell>
-                <TableCell>R/R</TableCell>
+                <TableCell>R / R</TableCell>
                 <TableCell>% / ₹</TableCell>
+                <TableCell>Re-Vol%/ M</TableCell>
                 <TableCell>Allocations</TableCell>
+                <TableCell>Strong Start</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -182,8 +230,9 @@ function AllocationTable({ scripts, accessToken }) {
                   <TableCell>{row.scriptname}</TableCell>
                   <TableCell>{row.ltp}</TableCell>
                   <TableCell>{row.sl}</TableCell>
-                  <TableCell>{row.riskRewardRatio}</TableCell>
+                  <TableCell>1 / {row.riskRewardRatio}</TableCell>
                   <TableCell>{ riskPercentageOfPortfolio } / { portfolioSize * ( riskPercentageOfPortfolio / 100 )}</TableCell>
+                  <TableCell>{row.relativeVolumePercentage}</TableCell>
                   <TableCell>
                     <Box flexDirection="column" display="flex" gap={1}>
                       {Object.entries(row.allocations).map(([key, value]) => (
@@ -194,6 +243,7 @@ function AllocationTable({ scripts, accessToken }) {
                       ))}
                     </Box>
                   </TableCell>
+                  <TableCell>{row.strongStart}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -211,12 +261,12 @@ function AllocationTable({ scripts, accessToken }) {
 }
 
 function App() {
-  const initialScripts = [{ "NSE_EQ:FSL": "NSE_EQ|INE684F01012" }];
-  const accessToken = import.meta.env.VITE_UPSTOXS_ACCESS_KEY;
+  const initialScripts = [{ "NSE_EQ:AVALON": "NSE_EQ|INE0LCL01028" }];
+  const accessToken = import.meta.env.VITE_UPSTOXS_ACCESS_KEY;
 
-  return (
-    <AllocationTable scripts={initialScripts} accessToken={accessToken} />
-  );
+  return (
+    <AllocationTable scripts={initialScripts} accessToken={accessToken} />
+  );
 }
 
 export default App;
