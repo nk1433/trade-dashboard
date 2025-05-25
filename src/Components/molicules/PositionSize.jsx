@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   TextField,
   Button,
@@ -128,7 +128,7 @@ function AllocationTable({ scripts, accessToken }) {
                   avgVolume = (totalVolume / candles.length).toFixed(0);
                   if (avgVolume !== '0' && avgVolume !== 0) {
                     relativeVolumePercentage = ((currentVolume / parseFloat(avgVolume)) * 100).toFixed(2);
-                  } else if (avgVolume === '0' || avgVolume === 0) {
+                  } else {
                     relativeVolumePercentage = 'N/A';
                   }
                 }
@@ -144,46 +144,47 @@ function AllocationTable({ scripts, accessToken }) {
             setError(`Error fetching data for one or more scripts.`);
           }
 
-          if (ltp !== null) {
-            const allocation10 = calculateAllocationIntent(size, 10, ltp, riskOfPortfolio);
-            const allocation25 = calculateAllocationIntent(size, 25, ltp, riskOfPortfolio);
-            const allocation40 = calculateAllocationIntent(size, 40, ltp, riskOfPortfolio);
-
-            return {
-              scriptname,
-              ltp: ltp.toFixed(2),
-              sl: allocation10.sl,
-              allocations: {
-                10: allocation10,
-                25: allocation25,
-                40: allocation40,
-              },
-              riskRewardRatio: riskRewardRatio,
-              strongStart: strongStart,
-              avgVolume: avgVolume,
-              relativeVolumePercentage: relativeVolumePercentage, // Store relative volume percentage
-            };
-          } else {
-            return {
-              scriptname,
-              ltp: 'Error',
-              sl: 'Error',
-              allocations: {},
-              riskRewardRatio: 'Error',
-              strongStart: 'Error',
-              avgVolume: 'Error',
-              relativeVolumePercentage: 'Error',
-            };
-          }
+          return {
+            scriptname,
+            ltp: ltp ? ltp.toFixed(2) : 'Error',
+            sl: (ltp && calculateAllocationIntent(size, 10, ltp, riskOfPortfolio).sl) || 'Error',
+            allocations: ltp ? {
+              10: calculateAllocationIntent(size, 10, ltp, riskOfPortfolio),
+              25: calculateAllocationIntent(size, 25, ltp, riskOfPortfolio),
+              40: calculateAllocationIntent(size, 40, ltp, riskOfPortfolio),
+            } : {},
+            riskRewardRatio: riskRewardRatio || 'Error',
+            strongStart,
+            avgVolume,
+            relativeVolumePercentage: relativeVolumePercentage + '%',
+          };
         })
       );
-      setTableData(results);
+
+      const sortedResults = [...results].sort((a, b) => {
+        const ratioA = parseFloat(a.riskRewardRatio);
+        const ratioB = parseFloat(b.riskRewardRatio);
+
+        if (isNaN(ratioA) && isNaN(ratioB)) return 0;
+        if (isNaN(ratioA)) return 1;
+        if (isNaN(ratioB)) return -1;
+
+        return ratioA - ratioB;
+      });
+
+      setTableData(sortedResults);
       setLoading(false);
     } else {
       setTableData([{ error: "Please enter valid Portfolio Size and Risk Percentage." }]);
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (scripts && scripts.length > 0) {
+      handleCalculate();
+    }
+  }, [scripts, portfolioSize, riskPercentageOfPortfolio, accessToken]);
 
   return (
     <Box>
@@ -209,64 +210,60 @@ function AllocationTable({ scripts, accessToken }) {
       {loading && <p>Fetching live data...</p>}
       {error && <p style={{ color: 'red' }}>{error}</p>}
 
-      {tableData.length > 0 && !tableData[0]?.error && (
-        <TableContainer component={Paper}>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>Script</TableCell>
-                <TableCell>LTP</TableCell>
-                <TableCell>SL</TableCell>
-                <TableCell>R / R</TableCell>
-                <TableCell>% / ₹</TableCell>
-                <TableCell>Re-Vol%/ M</TableCell>
-                <TableCell>Allocations</TableCell>
-                <TableCell>Strong Start</TableCell>
+      <TableContainer component={Paper}>
+        <Table>
+          <TableHead>
+            <TableRow>
+              <TableCell>Script</TableCell>
+              <TableCell>LTP</TableCell>
+              <TableCell>SL</TableCell>
+              <TableCell>R / R</TableCell>
+              <TableCell>% / ₹</TableCell>
+              <TableCell>Re-Vol%/ M</TableCell>
+              <TableCell>Allocations</TableCell>
+              <TableCell>Strong Start</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {tableData.map((row, index) => (
+              <TableRow key={index}>
+                <TableCell>{row.scriptname}</TableCell>
+                <TableCell>{row.ltp}</TableCell>
+                <TableCell>{row.sl}</TableCell>
+                <TableCell>1 / {row.riskRewardRatio}</TableCell>
+                <TableCell>{riskPercentageOfPortfolio} / {portfolioSize * (riskPercentageOfPortfolio / 100)}</TableCell>
+                <TableCell>{row.relativeVolumePercentage}</TableCell>
+                <TableCell>
+                  <Box flexDirection="column" display="flex" gap={1}>
+                    {Object.entries(row.allocations).map(([key, value]) => (
+                      <span key={key}>
+                        {key}%: {value.canAllocate ? 'Yes' : 'No'}
+                        (Shares: {value.sharesToBuy}, Alloc: {value.allocationPercentOfPortfolio}%, Risk: ₹{value.potentialLoss})
+                      </span>
+                    ))}
+                  </Box>
+                </TableCell>
+                <TableCell>{row.strongStart}</TableCell>
               </TableRow>
-            </TableHead>
-            <TableBody>
-              {tableData.map((row, index) => (
-                <TableRow key={index}>
-                  <TableCell>{row.scriptname}</TableCell>
-                  <TableCell>{row.ltp}</TableCell>
-                  <TableCell>{row.sl}</TableCell>
-                  <TableCell>1 / {row.riskRewardRatio}</TableCell>
-                  <TableCell>{ riskPercentageOfPortfolio } / { portfolioSize * ( riskPercentageOfPortfolio / 100 )}</TableCell>
-                  <TableCell>{row.relativeVolumePercentage}</TableCell>
-                  <TableCell>
-                    <Box flexDirection="column" display="flex" gap={1}>
-                      {Object.entries(row.allocations).map(([key, value]) => (
-                        <span key={key}>
-                          {key}%: {value.canAllocate ? 'Yes' : 'No'}
-                          (Shares: {value.sharesToBuy}, Alloc: {value.allocationPercentOfPortfolio}%, Risk: ₹{value.potentialLoss})
-                        </span>
-                      ))}
-                    </Box>
-                  </TableCell>
-                  <TableCell>{row.strongStart}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      )}
-
-      {tableData[0]?.error && !loading && (
-        <Box mt={3}>
-          <p style={{ color: 'red' }}>{tableData[0].error}</p>
-        </Box>
-      )}
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
     </Box>
   );
 }
 
 function App() {
-  const initialScripts = [{ "NSE_EQ:AVALON": "NSE_EQ|INE0LCL01028" }];
-  const accessToken = import.meta.env.VITE_UPSTOXS_ACCESS_KEY;
+  const initialScripts = [
+    { "NSE_EQ:AVALON": "NSE_EQ|INE0LCL01028" },
+    { "NSE_EQ:FSL": "NSE_EQ|INE684F01012" },
+    { "NSE_EQ:KIRIINDUS": "NSE_EQ|INE415I01015" },
+  ];
+  const accessToken = import.meta.env.VITE_UPSTOXS_ACCESS_KEY;
 
-  return (
-    <AllocationTable scripts={initialScripts} accessToken={accessToken} />
-  );
+  return (
+    <AllocationTable scripts={initialScripts} accessToken={accessToken} />
+  );
 }
 
 export default App;
