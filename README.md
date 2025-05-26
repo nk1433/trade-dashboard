@@ -37,3 +37,4 @@ The following enhancements are planned:
 9.  Strong start right now not consider the gap-up openings.
 10. Need to create a flow's where multiple entries within a zone 3-5% price.
 11. Staggered sl flow's.
+12. [ UI ] - Spinner for fetching live data
