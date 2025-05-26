@@ -242,7 +242,7 @@ function AllocationTable({ scripts, accessToken }) {
               <TableCell>SL</TableCell>
               {/* <TableCell>R / R</TableCell> */}
               {/* <TableCell>% / ₹</TableCell> */}
-              <TableCell>Re-Vol%/ M</TableCell>
+              <TableCell>R-vol % / 21 D</TableCell>
               {/* <TableCell>Avg Volume</TableCell> */}
               <TableCell>Gap %</TableCell>
               <TableCell>Allocations</TableCell>
