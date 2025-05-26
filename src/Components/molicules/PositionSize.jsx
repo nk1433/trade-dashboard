@@ -11,6 +11,7 @@ import {
   Paper,
   Box,
 } from '@mui/material';
+import moment from 'moment';
 
 const calculateAllocationIntent = (
   capital,
@@ -72,14 +73,10 @@ function AllocationTable({ scripts, accessToken }) {
     const year = currentDate.getFullYear();
     const month = String(currentDate.getMonth() + 1).padStart(2, '0');
     const day = String(currentDate.getDate()).padStart(2, '0');
-    const toDate = `${year}-${month}-${day}`;
-
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(currentDate.getDate() - 30);
-    const fromYear = thirtyDaysAgo.getFullYear();
-    const fromMonth = String(thirtyDaysAgo.getMonth() + 1).padStart(2, '0');
-    const fromDay = String(thirtyDaysAgo.getDate()).padStart(2, '0');
-    const fromDate = `${fromYear}-${fromMonth}-${fromDay}`;
+    // const toDate = `${year}-${month}-${day}`;
+    const fromDate = moment().subtract(31, 'day').format('YYYY-MM-DD'); // Set fromDate to yesterday
+    const toDate = moment().subtract(1, 'day').format('YYYY-MM-DD'); // Set toDate to today
+    // const fromDate = `2025-04-26`; // Set the fromDate to April 26, 2025
 
     if (!isNaN(size) && !isNaN(riskOfPortfolio) && scripts && scripts.length > 0) {
       setLoading(true);
@@ -95,9 +92,10 @@ function AllocationTable({ scripts, accessToken }) {
           let strongStart = 'No';
           let avgVolume = 'N/A';
           let relativeVolumePercentage = 'N/A';
+          let gapUpPercentage = 'N/A';
 
           try {
-            // Fetch live data
+            // Fetch live data for current day open price
             const liveResponse = await fetch(
               `https://api.upstox.com/v3/market-quote/ohlc?instrument_key=${instrumentKey}&interval=1d`,
               {
@@ -109,15 +107,15 @@ function AllocationTable({ scripts, accessToken }) {
             const liveData = await liveResponse.json();
             if (liveData.status === 'success' && liveData.data[key]) {
               ltp = liveData.data[key].last_price;
-              const openPrice = liveData.data[key].live_ohlc.open;
+              const currentDayOpen = liveData.data[key].live_ohlc.open;
               const lowPrice = liveData.data[key].live_ohlc.low;
               const currentVolume = liveData.data[key].live_ohlc.volume;
-              const threshold = openPrice * 0.99;
+              const threshold = currentDayOpen * 0.99;
               strongStart = lowPrice >= threshold ? 'Yes' : 'No';
               const allocation = calculateAllocationIntent(size, 10, ltp, riskOfPortfolio);
               riskRewardRatio = allocation.riskRewardRatio;
 
-              // Fetch historical data for average volume (daily for last 30 days)
+              // Fetch historical data for average volume and previous day close price
               const historicalResponse = await fetch(
                 `https://api.upstox.com/v3/historical-candle/${instrumentKey}/days/1/${toDate}/${fromDate}`,
                 {
@@ -137,6 +135,21 @@ function AllocationTable({ scripts, accessToken }) {
                   } else {
                     relativeVolumePercentage = 'N/A';
                   }
+
+                  // Calculate Gap Up Percentage
+                  let previousDayClose = null;
+                  if (candles.length > 0) {
+                    previousDayClose = candles[0][4];
+                    if (currentDayOpen && previousDayClose) {
+                      gapUpPercentage = (((currentDayOpen - previousDayClose) / previousDayClose) * 100).toFixed(2) + '%';
+                    } else {
+                      gapUpPercentage = 'N/A';
+                    }
+                  } else {
+                    gapUpPercentage = 'N/A';
+                  }
+                } else {
+                  avgVolume = 'N/A';
                 }
               } else {
                 console.error(`Failed to fetch historical data for ${scriptname}`, historicalData);
@@ -168,6 +181,7 @@ function AllocationTable({ scripts, accessToken }) {
               strongStart: strongStart,
               avgVolume: avgVolume,
               relativeVolumePercentage: relativeVolumePercentage + '%',
+              gapUpPercentage: gapUpPercentage, // Store Gap Up Percentage
             };
           } else {
             return {
@@ -179,6 +193,7 @@ function AllocationTable({ scripts, accessToken }) {
               strongStart: 'Error',
               avgVolume: 'Error',
               relativeVolumePercentage: 'Error',
+              gapUpPercentage: 'Error',
             };
           }
         })
@@ -236,6 +251,7 @@ function AllocationTable({ scripts, accessToken }) {
               <TableCell>% / ₹</TableCell>
               <TableCell>Re-Vol%/ M</TableCell>
               <TableCell>Avg Volume</TableCell>
+              <TableCell>Gap Up %</TableCell>
               <TableCell>Allocations</TableCell>
               <TableCell>Strong Start</TableCell>
             </TableRow>
@@ -250,6 +266,7 @@ function AllocationTable({ scripts, accessToken }) {
                 <TableCell>{ riskPercentageOfPortfolio } / { portfolioSize * ( riskPercentageOfPortfolio / 100 )}</TableCell>
                 <TableCell>{row.relativeVolumePercentage}</TableCell>
                 <TableCell>{row.avgVolume}</TableCell>
+                <TableCell>{row.gapUpPercentage}</TableCell>
                 <TableCell>
                   <Box flexDirection="column" display="flex" gap={1}>
                     {Object.entries(row.allocations).map(([key, value]) => (
@@ -271,7 +288,11 @@ function AllocationTable({ scripts, accessToken }) {
 }
 
 function App() {
-  const initialScripts = [{ "NSE_EQ:AVALON": "NSE_EQ|INE0LCL01028" }];
+  const initialScripts = [
+//     { "NSE_EQ:AVALON": "NSE_EQ|INE0LCL01028" },
+//     { "NSE_EQ:FSL": "NSE_EQ|INE684F01012" },
+    { "NSE_EQ:KIRIINDUS": "NSE_EQ|INE415I01015" },
+  ];
   const accessToken = import.meta.env.VITE_UPSTOXS_ACCESS_KEY;
 
   return (
