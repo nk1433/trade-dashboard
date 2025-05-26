@@ -37,4 +37,9 @@ The following enhancements are planned:
 9.  Strong start right now not consider the gap-up openings.
 10. Need to create a flow's where multiple entries within a zone 3-5% price.
 11. Staggered sl flow's.
-12. [ UI ] - Spinner for fetching live data
+12. [ UI ] - Spinner for fetching live data.
+13. [ UI ] - Sorting for Rel/vol and other computed fields.
+14. [ UI ] - Search for script name.
+15. [ Func ] - Volume run rate.
+16. [ Func ] - Create notes for scripts
+17. [ UI ] - Added column preferences
