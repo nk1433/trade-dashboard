@@ -89,7 +89,7 @@ function AllocationTable({ scripts, accessToken }) {
           const instrumentKey = value;
           let ltp = null;
           let riskRewardRatio = null;
-          let strongStart = 'No';
+          let strongStart = false;
           let avgVolume = 'N/A';
           let relativeVolumePercentage = 'N/A';
           let gapUpPercentage = 'N/A';
@@ -111,7 +111,7 @@ function AllocationTable({ scripts, accessToken }) {
               const lowPrice = liveData.data[key].live_ohlc.low;
               const currentVolume = liveData.data[key].live_ohlc.volume;
               const threshold = currentDayOpen * 0.99;
-              strongStart = lowPrice >= threshold ? 'Yes' : 'No';
+              strongStart = lowPrice >= threshold;
               const allocation = calculateAllocationIntent(size, 10, ltp, riskOfPortfolio);
               riskRewardRatio = allocation.riskRewardRatio;
 
@@ -180,7 +180,7 @@ function AllocationTable({ scripts, accessToken }) {
               riskRewardRatio: riskRewardRatio,
               strongStart: strongStart,
               avgVolume: avgVolume,
-              relativeVolumePercentage: relativeVolumePercentage + '%',
+              relativeVolumePercentage: relativeVolumePercentage,
               gapUpPercentage: gapUpPercentage, // Store Gap Up Percentage
             };
           } else {
@@ -190,7 +190,7 @@ function AllocationTable({ scripts, accessToken }) {
               sl: 'Error',
               allocations: {},
               riskRewardRatio: 'Error',
-              strongStart: 'Error',
+              strongStart: false,
               avgVolume: 'Error',
               relativeVolumePercentage: 'Error',
               gapUpPercentage: 'Error',
@@ -199,14 +199,7 @@ function AllocationTable({ scripts, accessToken }) {
         })
       );
       const sortedResults = [...results].sort((a, b) => {
-        const ratioA = parseFloat(a.riskRewardRatio);
-        const ratioB = parseFloat(b.riskRewardRatio);
-
-        if (isNaN(ratioA) && isNaN(ratioB)) return 0;
-        if (isNaN(ratioA)) return 1;
-        if (isNaN(ratioB)) return -1;
-
-        return ratioA - ratioB;
+        return b.relativeVolumePercentage - a.relativeVolumePercentage
       });
       setTableData(sortedResults);
       setLoading(false);
@@ -247,11 +240,11 @@ function AllocationTable({ scripts, accessToken }) {
               <TableCell>Script</TableCell>
               <TableCell>LTP</TableCell>
               <TableCell>SL</TableCell>
-              <TableCell>R / R</TableCell>
-              <TableCell>% / ₹</TableCell>
+              {/* <TableCell>R / R</TableCell> */}
+              {/* <TableCell>% / ₹</TableCell> */}
               <TableCell>Re-Vol%/ M</TableCell>
-              <TableCell>Avg Volume</TableCell>
-              <TableCell>Gap Up %</TableCell>
+              {/* <TableCell>Avg Volume</TableCell> */}
+              <TableCell>Gap %</TableCell>
               <TableCell>Allocations</TableCell>
               <TableCell>Strong Start</TableCell>
             </TableRow>
@@ -262,22 +255,21 @@ function AllocationTable({ scripts, accessToken }) {
                 <TableCell>{row.scriptname}</TableCell>
                 <TableCell>{row.ltp}</TableCell>
                 <TableCell>{row.sl}</TableCell>
-                <TableCell>1 / {row.riskRewardRatio}</TableCell>
-                <TableCell>{ riskPercentageOfPortfolio } / { portfolioSize * ( riskPercentageOfPortfolio / 100 )}</TableCell>
-                <TableCell>{row.relativeVolumePercentage}</TableCell>
-                <TableCell>{row.avgVolume}</TableCell>
+                {/* <TableCell>1 / {row.riskRewardRatio}</TableCell> */}
+                {/* <TableCell>{ riskPercentageOfPortfolio } / { portfolioSize * ( riskPercentageOfPortfolio / 100 )}</TableCell> */}
+                <TableCell>{row.relativeVolumePercentage} %</TableCell>
+                {/* <TableCell>{row.avgVolume}</TableCell> */}
                 <TableCell>{row.gapUpPercentage}</TableCell>
                 <TableCell>
                   <Box flexDirection="column" display="flex" gap={1}>
-                    {Object.entries(row.allocations).map(([key, value]) => (
-                      <span key={key}>
-                        {key}%: {value.canAllocate ? 'Yes' : 'No'}
-                        (Shares: {value.sharesToBuy}, Alloc: {value.allocationPercentOfPortfolio}%, Risk: ₹{value.potentialLoss})
-                      </span>
-                    ))}
+                    {Object.entries(row.allocations).map(([key, value]) => {
+                      return <>
+                        { value.canAllocate && (<span key={key}>{key}% Shares: {value.sharesToBuy} Risk: ₹{value.potentialLoss} </span>) }
+                      </>
+                    })}
                   </Box>
                 </TableCell>
-                <TableCell>{row.strongStart}</TableCell>
+                <TableCell>{row.strongStart ? "Yes" : "No"}</TableCell>
               </TableRow>
             ))}
           </TableBody>
@@ -289,9 +281,17 @@ function AllocationTable({ scripts, accessToken }) {
 
 function App() {
   const initialScripts = [
-//     { "NSE_EQ:AVALON": "NSE_EQ|INE0LCL01028" },
-//     { "NSE_EQ:FSL": "NSE_EQ|INE684F01012" },
+    { "NSE_EQ:AVALON": "NSE_EQ|INE0LCL01028" },
+    { "NSE_EQ:FSL": "NSE_EQ|INE684F01012" },
     { "NSE_EQ:KIRIINDUS": "NSE_EQ|INE415I01015" },
+    { "NSE_EQ:AMIORG": "NSE_EQ|INE00FF01025" },
+    { "NSE_EQ:MANORAMA": "NSE_EQ|INE00VM01036" },
+    { "BSE_EQ:JAYKAY": "BSE_EQ|INE903A01025" },
+    { "NSE_EQ:MCX": "NSE_EQ|INE745G01035" },
+    { "NSE_EQ:MANAPPURAM": "NSE_EQ|INE522D01027" },
+    { "NSE_EQ:WINDMACHIN": "NSE_EQ|INE052A01021" },
+    { "NSE_EQ:BANCOINDIA": "NSE_EQ|INE213C01025" },
+    { "NSE_EQ:MANINDS": "NSE_EQ|INE993A01026" },
   ];
   const accessToken = import.meta.env.VITE_UPSTOXS_ACCESS_KEY;
 
