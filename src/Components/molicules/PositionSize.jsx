@@ -165,8 +165,9 @@ const AllocationTable = ({ scripts }) => {
 
   return (
     <Box>
-      <Box display="flex" flexDirection="column" alignItems={'center'} gap={2} mb={3}>
-        <form onSubmit={handleSubmit((formData) => onSubmit(formData, scripts))}>
+
+      <form onSubmit={handleSubmit((formData) => onSubmit(formData, scripts))}>
+        <Box display="flex" justifyContent={'space-around'} alignItems={"center"} flexDirection="column" gap={2} mb={2} >
           <TextField
             type="number" defaultValue={portfolioSize}
             onChange={(e) => setPortfolioSize(e.target.value)}
@@ -183,8 +184,8 @@ const AllocationTable = ({ scripts }) => {
           <Button type="submit" variant="contained" disabled={loading}>
             {loading ? 'Calculating...' : 'Calculate'}
           </Button>
-        </form>
-      </Box>
+        </Box>
+      </form>
 
       {loading && <p>Fetching live data...</p>}
       {error && <p style={{ color: 'red' }}>{error}</p>}
@@ -247,6 +248,13 @@ const initialScripts = [
   { "NSE_EQ:WINDMACHIN": "NSE_EQ|INE052A01021" },
   { "NSE_EQ:BANCOINDIA": "NSE_EQ|INE213C01025" },
   { "NSE_EQ:MANINDS": "NSE_EQ|INE993A01026" },
+  { "NSE_EQ:ZENTEC": "NSE_EQ|INE251B01027" },
+  { "NSE_EQ:NEWGEN": "NSE_EQ|INE619B01017" },
+  { "NSE_EQ:AIIL": "NSE_EQ|INE206F01022" },
+  { "NSE_EQ:RPOWER": "NSE_EQ|INE614G01033" },
+  { "NSE_EQ:BALUFORGE": "NSE_EQ|INE011E01029" },
+  { "NSE_EQ:SRM": "NSE_EQ|INE0R6Z01013" },
+  { "NSE_EQ:LLOYDSME": "NSE_EQ|INE281B01032" },
 ];
 
 const App = () => {
