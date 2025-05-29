@@ -41,5 +41,8 @@ The following enhancements are planned:
 13. [ UI ] - Sorting for Rel/vol and other computed fields.
 14. [ UI ] - Search for script name.
 15. [ Func ] - Volume run rate.
-16. [ Func ] - Create notes for scripts
-17. [ UI ] - Added column preferences
+16. [ Func ] - Create notes for scripts.
+17. [ UI ] - Added column preferences.
+18. [ UI ] - Add custom filters.
+19. [ UI ] - Add priority sections.
+20. [ UI ] - Search instruments and add to dashboard
