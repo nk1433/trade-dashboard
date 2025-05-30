@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from "react-hook-form";
 import {
   TextField,
@@ -68,9 +68,7 @@ const handleCalculate = async ({ portfolioSize, riskPercentageOfPortfolio }, scr
 
   const results = await Promise.all(
     scripts.map(async (scriptObj) => {
-      const key = Object.keys(scriptObj)[0];
-      const instrumentKey = scriptObj[key];
-      const scriptname = key.split(':')[1];
+      const { instrument_key: instrumentKey, name: scriptname } = scriptObj;
 
       let riskRewardRatio = null;
       let strongStart = false;
@@ -89,10 +87,13 @@ const handleCalculate = async ({ portfolioSize, riskPercentageOfPortfolio }, scr
           }
         );
         const liveData = await liveResponse.json();
+        const [key, instrumentLiveData] = Object.entries(liveData.data).find(([key, val]) => {
+          return val.instrument_token === instrumentKey;
+        });
         const {
           live_ohlc: { open: currentDayOpen, low: lowPrice, volume: currentVolume },
           last_price: ltp,
-        } = liveData.data[key];
+        } = instrumentLiveData;
         const threshold = currentDayOpen * 0.99;
         strongStart = lowPrice >= threshold;
         const allocation = calculateAllocationIntent(size, 10, ltp, riskOfPortfolio);
@@ -236,6 +237,7 @@ const AllocationTable = ({ scripts }) => {
   );
 };
 
+// TODO: Move this to local storage.
 const initialScripts = [
   { "NSE_EQ:AVALON": "NSE_EQ|INE0LCL01028" },
   { "NSE_EQ:FSL": "NSE_EQ|INE684F01012" },
@@ -258,6 +260,8 @@ const initialScripts = [
 ];
 
 const App = () => {
+  // TODO: Abstract this to use every where.
+  const initialScripts = localStorage.getItem("script") ? JSON.parse(localStorage.getItem("script")) : [];
   const accessToken = import.meta.env.VITE_UPSTOXS_ACCESS_KEY;
 
   return (

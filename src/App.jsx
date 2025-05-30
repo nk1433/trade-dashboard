@@ -7,6 +7,7 @@ import ClosedPositions from "./Components/molicules/ClosedPositions";
 import positions from "./config/position.json";
 import PortfolioPerformanceChart from "./Components/molicules/Performance";
 import PositionSizer from "./Components/molicules/PositionSize";
+import DisplayScript from "./Components/molicules/Scripts";
 
 const App = () => {
   return (
@@ -19,7 +20,8 @@ const App = () => {
         <Link to="/allocation">Allocation Calculator </Link>
         <Link to="/closed">Closed </Link>
         <Link to="/performance">Performance </Link>
-        <Link to="/quick-sizer">Quick Sizer</Link>
+        <Link to="/quick-sizer">Quick Sizer </Link>
+        <Link to="/tracker">Scripts </Link>
       </nav>
       <Routes>
         <Route path="/form" element={<PortfolioForm />} />
@@ -28,6 +30,7 @@ const App = () => {
         <Route path="/closed" element={<ClosedPositions />}/>
         <Route path="/performance" element={<PortfolioPerformanceChart />} />
         <Route path="/quick-sizer" element={<PositionSizer />} />
+        <Route path="/tracker" element={<DisplayScript />} />
       </Routes>
     </Router>
   );
