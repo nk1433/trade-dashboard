@@ -15,7 +15,7 @@ const DisplayScript = () => {
     const performSearch = (searchTerm) => {
         if (searchTerm.trim().length > 3) {
             for (let i = 0; i < scripts.length; i++) {
-                const scriptName = scripts[i].name.toLowerCase();;
+                const scriptName = scripts[i].name.toLowerCase();
                 if (scriptName.includes(searchTerm.toLowerCase())) {
                     setMatchedScripts(prev => [...prev, scripts[i]]);
                 }
