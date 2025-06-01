@@ -1,4 +1,3 @@
-import React, { useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { TextField, Button, Box, Typography } from "@mui/material";
 import { updateExitPercentage, updatePortfolioSize, updateRiskPercentage } from "../../Store/portfolio";

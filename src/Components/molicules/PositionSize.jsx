@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useForm } from "react-hook-form";
 import {
   TextField,
@@ -27,8 +27,6 @@ const calculateAllocationIntent = (
   const stopLossPrice = parseFloat((entryPrice - lossPerShare).toFixed(2));
   const rewardPerShare = parseFloat((entryPrice * 0.10).toFixed(2));
   const riskRewardRatio = lossPerShare > 0 ? (rewardPerShare / lossPerShare).toFixed(2) : 'Infinity';
-
-  let sharesToBuyByRisk = 0;
   let sharesToBuyByInvestment = 0;
   let sharesToBuy = 0;
   let investmentAmount = 0;
@@ -36,7 +34,6 @@ const calculateAllocationIntent = (
   let allocationPercentage = 0;
 
   if (lossPerShare > 0) {
-    sharesToBuyByRisk = Math.floor(riskAllowed / lossPerShare);
     sharesToBuyByInvestment = Math.floor(maxInvestment / entryPrice);
 
     sharesToBuy = sharesToBuyByInvestment;
@@ -137,7 +134,6 @@ const handleCalculate = async ({ portfolioSize, riskPercentageOfPortfolio }, scr
         };
       } catch (err) {
         console.error(`Error fetching data for ${scriptname}`, err);
-        setError(`Error fetching data for one or more scripts.`);
       }
     })
   );
@@ -236,28 +232,6 @@ const AllocationTable = ({ scripts }) => {
     </Box>
   );
 };
-
-// TODO: Move this to local storage.
-const initialScripts = [
-  { "NSE_EQ:AVALON": "NSE_EQ|INE0LCL01028" },
-  { "NSE_EQ:FSL": "NSE_EQ|INE684F01012" },
-  { "NSE_EQ:KIRIINDUS": "NSE_EQ|INE415I01015" },
-  { "NSE_EQ:AMIORG": "NSE_EQ|INE00FF01025" },
-  { "NSE_EQ:MANORAMA": "NSE_EQ|INE00VM01036" },
-  { "BSE_EQ:JAYKAY": "BSE_EQ|INE903A01025" },
-  { "NSE_EQ:MCX": "NSE_EQ|INE745G01035" },
-  { "NSE_EQ:MANAPPURAM": "NSE_EQ|INE522D01027" },
-  { "NSE_EQ:WINDMACHIN": "NSE_EQ|INE052A01021" },
-  { "NSE_EQ:BANCOINDIA": "NSE_EQ|INE213C01025" },
-  { "NSE_EQ:MANINDS": "NSE_EQ|INE993A01026" },
-  { "NSE_EQ:ZENTEC": "NSE_EQ|INE251B01027" },
-  { "NSE_EQ:NEWGEN": "NSE_EQ|INE619B01017" },
-  { "NSE_EQ:AIIL": "NSE_EQ|INE206F01022" },
-  { "NSE_EQ:RPOWER": "NSE_EQ|INE614G01033" },
-  { "NSE_EQ:BALUFORGE": "NSE_EQ|INE011E01029" },
-  { "NSE_EQ:SRM": "NSE_EQ|INE0R6Z01013" },
-  { "NSE_EQ:LLOYDSME": "NSE_EQ|INE281B01032" },
-];
 
 const App = () => {
   // TODO: Abstract this to use every where.
