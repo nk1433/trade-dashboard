@@ -2,7 +2,7 @@
 import { createSlice } from "@reduxjs/toolkit";
 
 const initialState = {
-  portfolioSize: 500000,
+  portfolioSize: 630000,
   exitPercentage: 10,
   riskPercentage: 0.25,
 };

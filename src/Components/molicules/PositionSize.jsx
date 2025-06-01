@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useForm } from "react-hook-form";
+import { useForm } from 'react-hook-form';
 import {
   TextField,
   Button,
@@ -13,6 +13,8 @@ import {
   Box,
 } from '@mui/material';
 import moment from 'moment';
+import { useDispatch, useSelector } from 'react-redux';
+import { updatePortfolioSize, updateRiskPercentage } from '../../Store/portfolio';
 
 const calculateAllocationIntent = (
   capital,
@@ -145,8 +147,11 @@ const handleCalculate = async ({ portfolioSize, riskPercentageOfPortfolio }, scr
 };
 
 const AllocationTable = ({ scripts }) => {
-  const [portfolioSize, setPortfolioSize] = useState('630000');
-  const [riskPercentageOfPortfolio, setRiskPercentageOfPortfolio] = useState('0.25');
+  const dispatch = useDispatch();
+  const {
+    portfolioSize,
+    riskPercentage: riskPercentageOfPortfolio
+  } = useSelector((state) => state.portfolio);
   const [tableData, setTableData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -162,23 +167,24 @@ const AllocationTable = ({ scripts }) => {
 
   return (
     <Box>
-
       <form onSubmit={handleSubmit((formData) => onSubmit(formData, scripts))}>
-        <Box display="flex" justifyContent={'space-around'} alignItems={"center"} flexDirection="column" gap={2} mb={2} >
+        <Box display='flex' justifyContent={'space-around'} alignItems={'center'} flexDirection='column' gap={2} mb={2} >
           <TextField
-            type="number" defaultValue={portfolioSize}
-            onChange={(e) => setPortfolioSize(e.target.value)}
-            {...register("portfolioSize", { required: true })}
+            type='number' 
+            value={portfolioSize}
+            {...register('portfolioSize', { required: true })}
+            onChange={(e) => { console.log(e.target.value); dispatch(updatePortfolioSize(e.target.value)) }}
           />
           <TextField
-            defaultValue={riskPercentageOfPortfolio}
-            onChange={(e) => setRiskPercentageOfPortfolio(e.target.value)}
-            {...register("riskPercentageOfPortfolio", { required: true })}
+            type='number'
+            value={riskPercentageOfPortfolio}
+            {...register('riskPercentageOfPortfolio', { required: true })}
+            onChange={(e) => dispatch(updateRiskPercentage(e.target.value))}
           />
 
           {errors.exampleRequired && <span>This field is required</span>}
 
-          <Button type="submit" variant="contained" disabled={loading}>
+          <Button type='submit' variant='contained' disabled={loading}>
             {loading ? 'Calculating...' : 'Calculate'}
           </Button>
         </Box>
@@ -215,7 +221,7 @@ const AllocationTable = ({ scripts }) => {
                 {/* <TableCell>{row.avgVolume}</TableCell> */}
                 <TableCell>{row.gapUpPercentage}</TableCell>
                 <TableCell>
-                  <Box flexDirection="column" display="flex" gap={1}>
+                  <Box flexDirection='column' display='flex' gap={1}>
                     {Object.entries(row.allocations).map(([key, value]) => {
                       return <>
                         {value.canAllocate && (<span key={key}>{key}% Shares: {value.sharesToBuy} Risk: ₹{value.potentialLoss} </span>)}
@@ -223,7 +229,7 @@ const AllocationTable = ({ scripts }) => {
                     })}
                   </Box>
                 </TableCell>
-                <TableCell>{row.strongStart ? "Yes" : "No"}</TableCell>
+                <TableCell>{row.strongStart ? 'Yes' : 'No'}</TableCell>
               </TableRow>
             ))}
           </TableBody>
@@ -235,7 +241,7 @@ const AllocationTable = ({ scripts }) => {
 
 const App = () => {
   // TODO: Abstract this to use every where.
-  const initialScripts = localStorage.getItem("script") ? JSON.parse(localStorage.getItem("script")) : [];
+  const initialScripts = localStorage.getItem('script') ? JSON.parse(localStorage.getItem('script')) : [];
   const accessToken = import.meta.env.VITE_UPSTOXS_ACCESS_KEY;
 
   return (
