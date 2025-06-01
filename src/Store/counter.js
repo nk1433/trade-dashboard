@@ -1,4 +1,4 @@
-import { configureStore, createSlice, createAsyncThunk } from "@reduxjs/toolkit";
+import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 
 export const getAsyncIncrement = createAsyncThunk("counter/asyncIncrement", async (state) => {
     const posts = await fetch("https://jsonplaceholder.typicode.com/posts");
