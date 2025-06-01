@@ -1,7 +1,5 @@
 import { useState } from 'react';
-import { useForm } from 'react-hook-form';
 import {
-  TextField,
   Button,
   Table,
   TableBody,
@@ -13,8 +11,9 @@ import {
   Box,
 } from '@mui/material';
 import moment from 'moment';
-import { useDispatch, useSelector } from 'react-redux';
-import { updatePortfolioSize, updateRiskPercentage } from '../../Store/portfolio';
+import { useSelector } from 'react-redux';
+import RefreshIcon from '@mui/icons-material/Refresh';
+
 
 const calculateAllocationIntent = (
   capital,
@@ -147,7 +146,6 @@ const handleCalculate = async ({ portfolioSize, riskPercentageOfPortfolio }, scr
 };
 
 const AllocationTable = ({ scripts }) => {
-  const dispatch = useDispatch();
   const {
     portfolioSize,
     riskPercentage: riskPercentageOfPortfolio
@@ -155,7 +153,6 @@ const AllocationTable = ({ scripts }) => {
   const [tableData, setTableData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const { register, handleSubmit, formState: { errors } } = useForm();
 
   const onSubmit = async (data, scripts) => {
     setLoading(true);
@@ -167,32 +164,13 @@ const AllocationTable = ({ scripts }) => {
 
   return (
     <Box>
-      <form onSubmit={handleSubmit((formData) => onSubmit(formData, scripts))}>
-        <Box display='flex' justifyContent={'space-around'} alignItems={'center'} flexDirection='column' gap={2} mb={2} >
-          <TextField
-            type='number' 
-            value={portfolioSize}
-            {...register('portfolioSize', { required: true })}
-            onChange={(e) => { console.log(e.target.value); dispatch(updatePortfolioSize(e.target.value)) }}
-          />
-          <TextField
-            type='number'
-            value={riskPercentageOfPortfolio}
-            {...register('riskPercentageOfPortfolio', { required: true })}
-            onChange={(e) => dispatch(updateRiskPercentage(e.target.value))}
-          />
-
-          {errors.exampleRequired && <span>This field is required</span>}
-
-          <Button type='submit' variant='contained' disabled={loading}>
-            {loading ? 'Calculating...' : 'Calculate'}
-          </Button>
-        </Box>
-      </form>
-
       {loading && <p>Fetching live data...</p>}
       {error && <p style={{ color: 'red' }}>{error}</p>}
 
+      <Button style={{ color: 'black'}} onClick={() => onSubmit({ portfolioSize, riskPercentageOfPortfolio }, scripts)}>
+        Refresh
+        <RefreshIcon ml={2}/>
+      </Button>
       <TableContainer component={Paper}>
         <Table>
           <TableHead>
