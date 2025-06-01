@@ -57,7 +57,7 @@ const DisplayScript = () => {
     }
 
     return (
-        <Box display={"flex"} gap={2} padding={2}>
+        <Box display="flex" gap={2} padding={2}>
             <Box>
                 {console.log("search", script)}
                 <input type="text" placeholder="Script name" value={script} onChange={(e) => setScript(e.target.value)} />

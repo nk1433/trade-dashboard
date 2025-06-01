@@ -1,4 +1,3 @@
-import React from "react";
 import {
   LineChart,
   Line,
@@ -10,13 +9,10 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import closedPositions from "../../config/closedPosition.json";
-import { useSelector } from "react-redux";
-import { reduce, map } from "@laufire/utils/collection";
+import { reduce } from "@laufire/utils/collection";
 import { group } from "@laufire/utils/crunch.js";
 
 const PerformanceGraph = () => {
-  const portfolioSize = useSelector((state) => state.portfolio.portfolioSize);
-
   const groupedData = group(closedPositions, (position) => {
     return position["Sell date"].split("-")[1]
   });
