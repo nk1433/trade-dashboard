@@ -5,12 +5,12 @@ export const placeSLMOrder = createAsyncThunk('Orders/placeSLMOrder', async (scr
         instrumentKey: instrument_token, allocations,
         ltp: price
     } = script;
-    const maxAllocation = Object.entries(allocations).find(([, allocation]) => {
+    const maxAllocation = Object.values(allocations).find((allocation) => {
         const { canAllocate } = allocation;
 
         return canAllocate;
     });
-    const { sharesToBuy: quantity, sl: trigger_price } = maxAllocation[1];
+    const { sharesToBuy: quantity, sl: trigger_price } = maxAllocation;
 
 
     const body = JSON.stringify({
