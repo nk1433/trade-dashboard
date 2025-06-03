@@ -14,6 +14,7 @@ import moment from 'moment';
 import { useDispatch, useSelector } from 'react-redux';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import { placeSLMOrder } from '../../Store/upstoxs';
+import PropTypes from 'prop-types';
 
 const calculateAllocationIntent = (
   capital,
@@ -85,7 +86,7 @@ const handleCalculate = async ({ portfolioSize, riskPercentageOfPortfolio }, scr
           }
         );
         const liveData = await liveResponse.json();
-        
+
         const [, instrumentLiveData] = Object.entries(liveData.data).find(([, val]) => {
           return val.instrument_token === instrumentKey;
         });
@@ -212,7 +213,7 @@ const AllocationTable = ({ scripts }) => {
                   </Box>
                 </TableCell>
                 <TableCell>
-                  <Button onClick={() => { dispatch(placeSLMOrder(row))}}>
+                  <Button onClick={() => { dispatch(placeSLMOrder(row)) }}>
                     Place Order
                   </Button>
                 </TableCell>
@@ -226,13 +227,18 @@ const AllocationTable = ({ scripts }) => {
   );
 };
 
+AllocationTable.propTypes = {
+  scripts: PropTypes.array.isRequired,
+};
+
+
+
 const App = () => {
   // TODO: Abstract this to use every where.
   const initialScripts = localStorage.getItem('script') ? JSON.parse(localStorage.getItem('script')) : [];
-  const accessToken = import.meta.env.VITE_UPSTOXS_ACCESS_KEY;
 
   return (
-    <AllocationTable scripts={initialScripts} accessToken={accessToken} />
+    <AllocationTable scripts={initialScripts} />
   );
 };
 
