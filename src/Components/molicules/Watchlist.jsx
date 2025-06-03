@@ -205,9 +205,9 @@ const AllocationTable = ({ scripts }) => {
                 <TableCell>
                   <Box flexDirection='column' display='flex' gap={1}>
                     {Object.entries(row.allocations).map(([key, value]) => {
-                      return <>
+                      return <span key={key}>
                         {value.canAllocate && (<span key={key}>{key}% Shares: {value.sharesToBuy} Risk: ₹{value.potentialLoss} </span>)}
-                      </>
+                      </span>
                     })}
                   </Box>
                 </TableCell>
