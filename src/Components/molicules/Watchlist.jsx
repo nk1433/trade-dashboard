@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Button,
   Table,
@@ -165,6 +165,10 @@ const AllocationTable = ({ scripts }) => {
     setTableData(sortedResults);
     setLoading(false);
   };
+
+  useEffect(() => {
+    onSubmit({ portfolioSize, riskPercentageOfPortfolio }, scripts);
+  }, [portfolioSize, riskPercentageOfPortfolio]);
 
   return (
     <Box>
