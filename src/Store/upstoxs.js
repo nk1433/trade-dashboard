@@ -3,6 +3,7 @@ import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 export const placeSLMOrder = createAsyncThunk('Orders/placeSLMOrder', async (script) => {
     const {
         instrumentKey: instrument_token, allocations,
+        ltp: price
     } = script;
     const maxAllocation = Object.entries(allocations).find(([, allocation]) => {
         const { canAllocate } = allocation;
@@ -16,13 +17,13 @@ export const placeSLMOrder = createAsyncThunk('Orders/placeSLMOrder', async (scr
         quantity: quantity,
         product: "D",
         validity: "DAY",
-        price: 0,
+        price,
         tag: "string",
         instrument_token: instrument_token,
-        order_type: "SL-M",
+        order_type: "SL",
         transaction_type: "BUY",
         disclosed_quantity: 0,
-        trigger_price: trigger_price,
+        trigger_price,
         is_amo: false
     });
 
@@ -38,6 +39,19 @@ export const placeSLMOrder = createAsyncThunk('Orders/placeSLMOrder', async (scr
     };
 
     await fetch(import.meta.env.VITE_UPSTOXS_SANDBOX_BASE_URL + "order/place", requestOptions);
+});
+
+export const getMarketQuote = createAsyncThunk('Orders/getMarketQuote', async (instrumentKey) => {
+    const liveResponse = await fetch(
+        `https://api.upstox.com/v3/market-quote/ohlc?instrument_key=${instrumentKey}&interval=1d`,
+        {
+            headers: {
+                Authorization: `Bearer ${import.meta.env.VITE_UPSTOXS_ACCESS_KEY}`,
+            },
+        }
+    );
+
+    return await liveResponse.json();
 });
 
 
