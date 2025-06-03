@@ -86,7 +86,7 @@ const handleCalculate = async ({ portfolioSize, riskPercentageOfPortfolio }, scr
         );
         const liveData = await liveResponse.json();
         
-        const [key, instrumentLiveData] = Object.entries(liveData.data).find(([key, val]) => {
+        const [, instrumentLiveData] = Object.entries(liveData.data).find(([, val]) => {
           return val.instrument_token === instrumentKey;
         });
         const {
