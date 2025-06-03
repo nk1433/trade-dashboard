@@ -11,9 +11,9 @@ import {
   Box,
 } from '@mui/material';
 import moment from 'moment';
-import { useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import RefreshIcon from '@mui/icons-material/Refresh';
-
+import { placeSLMOrder } from '../../Store/upstoxs';
 
 const calculateAllocationIntent = (
   capital,
@@ -66,13 +66,13 @@ const handleCalculate = async ({ portfolioSize, riskPercentageOfPortfolio }, scr
 
   const results = await Promise.all(
     scripts.map(async (scriptObj) => {
-      const { instrument_key: instrumentKey, name: scriptname } = scriptObj;
+      const { instrument_key: instrumentKey, name: scriptName } = scriptObj;
 
       let riskRewardRatio = null;
       let strongStart = false;
       let avgVolume = 'N/A';
       let relativeVolumePercentage = 'N/A';
-      let gapUpPercentage = 'N/A';
+      let gapPercentage = 'N/A';
       const accessToken = import.meta.env.VITE_UPSTOXS_ACCESS_KEY;
 
       try {
@@ -85,6 +85,7 @@ const handleCalculate = async ({ portfolioSize, riskPercentageOfPortfolio }, scr
           }
         );
         const liveData = await liveResponse.json();
+        
         const [key, instrumentLiveData] = Object.entries(liveData.data).find(([key, val]) => {
           return val.instrument_token === instrumentKey;
         });
@@ -112,20 +113,21 @@ const handleCalculate = async ({ portfolioSize, riskPercentageOfPortfolio }, scr
         relativeVolumePercentage = ((currentVolume / parseFloat(avgVolume)) * 100).toFixed(2);
 
         let previousDayClose = candles[0][4];
-        gapUpPercentage = (((currentDayOpen - previousDayClose) / previousDayClose) * 100).toFixed(2) + '%';
+        gapPercentage = (((currentDayOpen - previousDayClose) / previousDayClose) * 100).toFixed(2) + '%';
 
         const allocation10 = calculateAllocationIntent(size, 10, ltp, riskOfPortfolio);
         const allocation25 = calculateAllocationIntent(size, 25, ltp, riskOfPortfolio);
         const allocation40 = calculateAllocationIntent(size, 40, ltp, riskOfPortfolio);
 
         return {
-          scriptname,
+          scriptName,
           riskRewardRatio,
           strongStart,
           avgVolume,
           relativeVolumePercentage,
-          ltp: ltp.toFixed(2),
-          gapUpPercentage,
+          gapPercentage,
+          instrumentKey,
+          ltp: ltp,
           sl: allocation10.sl,
           allocations: {
             10: allocation10,
@@ -134,7 +136,7 @@ const handleCalculate = async ({ portfolioSize, riskPercentageOfPortfolio }, scr
           },
         };
       } catch (err) {
-        console.error(`Error fetching data for ${scriptname}`, err);
+        console.error(`Error fetching data for ${scriptName}`, err);
       }
     })
   );
@@ -146,6 +148,7 @@ const handleCalculate = async ({ portfolioSize, riskPercentageOfPortfolio }, scr
 };
 
 const AllocationTable = ({ scripts }) => {
+  const dispatch = useDispatch();
   const {
     portfolioSize,
     riskPercentage: riskPercentageOfPortfolio
@@ -167,9 +170,9 @@ const AllocationTable = ({ scripts }) => {
       {loading && <p>Fetching live data...</p>}
       {error && <p style={{ color: 'red' }}>{error}</p>}
 
-      <Button style={{ color: 'black'}} onClick={() => onSubmit({ portfolioSize, riskPercentageOfPortfolio }, scripts)}>
+      <Button style={{ color: 'black' }} onClick={() => onSubmit({ portfolioSize, riskPercentageOfPortfolio }, scripts)}>
         Refresh
-        <RefreshIcon ml={2}/>
+        <RefreshIcon ml={2} />
       </Button>
       <TableContainer component={Paper}>
         <Table>
@@ -184,20 +187,21 @@ const AllocationTable = ({ scripts }) => {
               {/* <TableCell>Avg Volume</TableCell> */}
               <TableCell>Gap %</TableCell>
               <TableCell>Allocations</TableCell>
+              <TableCell></TableCell>
               <TableCell>Strong Start</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {tableData.map((row, index) => (
               <TableRow key={index}>
-                <TableCell>{row.scriptname}</TableCell>
+                <TableCell>{row.scriptName}</TableCell>
                 <TableCell>{row.ltp}</TableCell>
                 <TableCell>{row.sl}</TableCell>
                 {/* <TableCell>1 / {row.riskRewardRatio}</TableCell> */}
                 {/* <TableCell>{ riskPercentageOfPortfolio } / { portfolioSize * ( riskPercentageOfPortfolio / 100 )}</TableCell> */}
                 <TableCell>{row.relativeVolumePercentage} %</TableCell>
                 {/* <TableCell>{row.avgVolume}</TableCell> */}
-                <TableCell>{row.gapUpPercentage}</TableCell>
+                <TableCell>{row.gapPercentage}</TableCell>
                 <TableCell>
                   <Box flexDirection='column' display='flex' gap={1}>
                     {Object.entries(row.allocations).map(([key, value]) => {
@@ -206,6 +210,11 @@ const AllocationTable = ({ scripts }) => {
                       </>
                     })}
                   </Box>
+                </TableCell>
+                <TableCell>
+                  <Button onClick={() => { dispatch(placeSLMOrder(row))}}>
+                    Place Order
+                  </Button>
                 </TableCell>
                 <TableCell>{row.strongStart ? 'Yes' : 'No'}</TableCell>
               </TableRow>
