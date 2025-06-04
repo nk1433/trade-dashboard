@@ -46,3 +46,5 @@ The following enhancements are planned:
 18. [ UI ] - Add custom filters.
 19. [ UI ] - Add priority sections.
 20. [ UI ] - Search instruments and add to dashboard
+21. [ Func ] - Add dynamic stop-loss preference like day opening and risk amount
+22. [ UI ] - Order detail page
