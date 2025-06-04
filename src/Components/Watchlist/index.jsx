@@ -1,11 +1,13 @@
 import { useEffect } from 'react';
-import {
-  Box,
-} from '@mui/material';
+import { Box } from '@mui/material';
 import { useDispatch, useSelector } from 'react-redux';
-import { calculateMetricsForScript } from '../../Store/upstoxs';
 import Refresh from './Refresh';
 import WatchList from './Table';
+import { calculateMetricsForScript } from '../../Store/upstoxs';
+
+const onSubmit = (scripts) => {
+  return calculateMetricsForScript(scripts)
+};
 
 const Dashboard = () => {
   const dispatch = useDispatch();
@@ -16,17 +18,14 @@ const Dashboard = () => {
   } = useSelector((state) => state.portfolio);
   const { orderMetrics } = useSelector((state) => state.orders);
 
-  const onSubmit = () => {
-    return calculateMetricsForScript(scripts)
-  };
 
   useEffect(() => {
-    dispatch(onSubmit());
+    dispatch(onSubmit(scripts));
   }, [portfolioSize, riskPercentageOfPortfolio]);
 
   return (
     <Box>
-      <Refresh refreshScripts={onSubmit} />
+      <Refresh refreshScripts={() => onSubmit(scripts)} />
       <WatchList scripts={orderMetrics} />
     </Box>
   );

@@ -13,13 +13,13 @@ const OrderDetails = ({ onClose }) => {
     );
 };
 
-const OrderDetailsPortal = () => {
+const OrderDetailsPortal = ({ children }) => {
     const [showModal, setShowModal] = useState(false);
 
     return (
         <>
             <button onClick={() => setShowModal(true)}>
-                Show modal using a portal
+                { children }
             </button>
             {showModal && createPortal(
                 <OrderDetails onClose={() => setShowModal(false)} />,
@@ -29,9 +29,11 @@ const OrderDetailsPortal = () => {
     );
 };
 
-
 OrderDetails.propTypes = {
     onClose: PropTypes.func,
+};
+OrderDetailsPortal.propTypes = {
+    children: PropTypes.children,
 };
 
 export default OrderDetailsPortal;
