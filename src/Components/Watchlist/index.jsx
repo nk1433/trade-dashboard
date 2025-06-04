@@ -2,12 +2,14 @@ import { useEffect } from 'react';
 import {
   Box,
 } from '@mui/material';
-import { useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { calculateMetricsForScript } from '../../Store/upstoxs';
 import Refresh from './Refresh';
 import WatchList from './Table';
 
 const Dashboard = () => {
+  const dispatch = useDispatch();
+  const scripts = localStorage.getItem('scripts') ? JSON.parse(localStorage.getItem('scripts')) : [];
   const {
     portfolioSize,
     riskPercentage: riskPercentageOfPortfolio
@@ -15,11 +17,11 @@ const Dashboard = () => {
   const { orderMetrics } = useSelector((state) => state.orders);
 
   const onSubmit = () => {
-    return calculateMetricsForScript(localStorage.getItem('scripts') ? JSON.parse(localStorage.getItem('scripts')) : [])
+    return calculateMetricsForScript(scripts)
   };
 
   useEffect(() => {
-    onSubmit();
+    dispatch(onSubmit());
   }, [portfolioSize, riskPercentageOfPortfolio]);
 
   return (

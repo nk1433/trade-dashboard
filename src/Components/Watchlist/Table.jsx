@@ -17,7 +17,7 @@ const columnsConfig = [
   { name: "LTP", value: (row) => row.ltp },
   { name: "SL", value: (row) => row.sl },
   { name: "R-vol % / 21 D", value: (row) => `${row.relativeVolumePercentage} %` },
-  { name: "Gap %", value: (row) => row.gapPercentage },
+  { name: "Gap %", value: (row) => `${row.gapPercentage} %` },
   {
     name: "Allocations",
     value: (row) => (

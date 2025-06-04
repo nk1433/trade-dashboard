@@ -80,39 +80,29 @@ export const calculateMetricsForScript = createAsyncThunk('Orders/calculateMetri
 
                 const size = parseFloat(portfolioSize);
                 const riskOfPortfolio = parseFloat(riskPercentageOfPortfolio);
-                const fromDate = moment().subtract(31, 'day').format('YYYY-MM-DD');
-                const toDate = moment().subtract(1, 'day').format('YYYY-MM-DD');
-                let riskRewardRatio = null;
-                let strongStart = false;
-                let avgVolume = 'N/A';
-                let relativeVolumePercentage = 'N/A';
-                let gapPercentage = 'N/A';
+
                 const marketQuote = await getMarketQuote(instrumentKey);
 
-                const [, instrumentLiveData] = Object.entries(marketQuote.data).find(([, val]) => {
-                    return val.instrument_token === instrumentKey;
-                });
                 const {
                     live_ohlc: { open: currentDayOpen, low: lowPrice, volume: currentVolume },
                     last_price: ltp,
-                } = instrumentLiveData;
+                } = Object.values(marketQuote.data).find(({ instrument_token }) => {
+                    return instrument_token === instrumentKey;
+                });
+
                 const threshold = currentDayOpen * 0.99;
-                strongStart = lowPrice >= threshold;
                 const allocation = calculateAllocationIntentForScript(size, 10, ltp, riskOfPortfolio);
-                riskRewardRatio = allocation.riskRewardRatio;
 
                 const historicalData = await getHistoricalData({
                     instrumentKey,
-                    toDate,
-                    fromDate,
+                    toDate: moment().subtract(1, 'day').format('YYYY-MM-DD'),
+                    fromDate: moment().subtract(31, 'day').format('YYYY-MM-DD'),
                 });
                 const candles = historicalData.data.candles;
                 const totalVolume = candles.reduce((sum, candle) => sum + candle[5], 0);
-                avgVolume = (totalVolume / candles.length).toFixed(0);
-                relativeVolumePercentage = ((currentVolume / parseFloat(avgVolume)) * 100).toFixed(2);
+                const avgVolume = (totalVolume / candles.length).toFixed(0);
 
                 let previousDayClose = candles[0][4];
-                gapPercentage = (((currentDayOpen - previousDayClose) / previousDayClose) * 100).toFixed(2) + '%';
 
                 const allocation10 = calculateAllocationIntentForScript(size, 10, ltp, riskOfPortfolio);
                 const allocation25 = calculateAllocationIntentForScript(size, 25, ltp, riskOfPortfolio);
@@ -120,12 +110,12 @@ export const calculateMetricsForScript = createAsyncThunk('Orders/calculateMetri
 
                 return {
                     scriptName,
-                    riskRewardRatio,
-                    strongStart,
                     avgVolume,
-                    relativeVolumePercentage,
-                    gapPercentage,
                     instrumentKey,
+                    relativeVolumePercentage: ((currentVolume / parseFloat(avgVolume)) * 100).toFixed(2),
+                    gapPercentage: (((currentDayOpen - previousDayClose) / previousDayClose) * 100).toFixed(2),
+                    strongStart: lowPrice >= threshold,
+                    riskRewardRatio: allocation.riskRewardRatio,
                     ltp: ltp,
                     sl: allocation10.sl,
                     allocations: {
