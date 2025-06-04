@@ -128,3 +128,48 @@ export const calculateAllocationIntent = (
   };
 };
 
+
+
+export const calculateAllocationIntentForScript = (
+  capital,
+  allocationSize,
+  entryPrice,
+  riskedAmountPercentage,
+) => {
+  const maxInvestment = (allocationSize / 100) * capital;
+  const riskAllowed = (riskedAmountPercentage / 100) * capital;
+  const stopLossPercentage = riskedAmountPercentage / 10;
+  const lossPerShare = entryPrice * stopLossPercentage;
+  const stopLossPrice = parseFloat((entryPrice - lossPerShare).toFixed(2));
+  const rewardPerShare = parseFloat((entryPrice * 0.10).toFixed(2));
+  const riskRewardRatio = lossPerShare > 0 ? (rewardPerShare / lossPerShare).toFixed(2) : 'Infinity';
+  let sharesToBuyByInvestment = 0;
+  let sharesToBuy = 0;
+  let investmentAmount = 0;
+  let potentialLoss = 0;
+  let allocationPercentage = 0;
+
+  if (lossPerShare > 0) {
+    sharesToBuyByInvestment = Math.floor(maxInvestment / entryPrice);
+
+    sharesToBuy = sharesToBuyByInvestment;
+
+    investmentAmount = sharesToBuy * entryPrice;
+    potentialLoss = sharesToBuy * (entryPrice - stopLossPrice);
+
+    allocationPercentage = parseFloat(((investmentAmount / capital) * 100).toFixed(2));
+  }
+
+  return {
+    percentage: allocationSize,
+    sharesToBuy,
+    allocation: investmentAmount.toFixed(2),
+    allocationPercentOfPortfolio: allocationPercentage,
+    sl: stopLossPrice,
+    riskAmount: riskAllowed.toFixed(2),
+    potentialLoss: potentialLoss.toFixed(2),
+    canAllocate: riskAllowed >= potentialLoss,
+    riskRewardRatio: riskRewardRatio,
+  };
+};
+

@@ -10,143 +10,11 @@ import {
   Paper,
   Box,
 } from '@mui/material';
-import moment from 'moment';
 import { useDispatch, useSelector } from 'react-redux';
 import RefreshIcon from '@mui/icons-material/Refresh';
-import { placeSLMOrder } from '../../Store/upstoxs';
+import { calculateMetricsForScript, placeSLMOrder } from '../../Store/upstoxs';
 import PropTypes from 'prop-types';
 
-const calculateAllocationIntent = (
-  capital,
-  allocationSize,
-  entryPrice,
-  riskedAmountPercentage,
-) => {
-  const maxInvestment = (allocationSize / 100) * capital;
-  const riskAllowed = (riskedAmountPercentage / 100) * capital;
-  const stopLossPercentage = riskedAmountPercentage / 10;
-  const lossPerShare = entryPrice * stopLossPercentage;
-  const stopLossPrice = parseFloat((entryPrice - lossPerShare).toFixed(2));
-  const rewardPerShare = parseFloat((entryPrice * 0.10).toFixed(2));
-  const riskRewardRatio = lossPerShare > 0 ? (rewardPerShare / lossPerShare).toFixed(2) : 'Infinity';
-  let sharesToBuyByInvestment = 0;
-  let sharesToBuy = 0;
-  let investmentAmount = 0;
-  let potentialLoss = 0;
-  let allocationPercentage = 0;
-
-  if (lossPerShare > 0) {
-    sharesToBuyByInvestment = Math.floor(maxInvestment / entryPrice);
-
-    sharesToBuy = sharesToBuyByInvestment;
-
-    investmentAmount = sharesToBuy * entryPrice;
-    potentialLoss = sharesToBuy * (entryPrice - stopLossPrice);
-
-    allocationPercentage = parseFloat(((investmentAmount / capital) * 100).toFixed(2));
-  }
-
-  return {
-    percentage: allocationSize,
-    sharesToBuy,
-    allocation: investmentAmount.toFixed(2),
-    allocationPercentOfPortfolio: allocationPercentage,
-    sl: stopLossPrice,
-    riskAmount: riskAllowed.toFixed(2),
-    potentialLoss: potentialLoss.toFixed(2),
-    canAllocate: riskAllowed >= potentialLoss,
-    riskRewardRatio: riskRewardRatio,
-  };
-};
-
-const handleCalculate = async ({ portfolioSize, riskPercentageOfPortfolio }, scripts) => {
-  const size = parseFloat(portfolioSize);
-  const riskOfPortfolio = parseFloat(riskPercentageOfPortfolio);
-  const fromDate = moment().subtract(31, 'day').format('YYYY-MM-DD');
-  const toDate = moment().subtract(1, 'day').format('YYYY-MM-DD');
-
-  const results = await Promise.all(
-    scripts.map(async (scriptObj) => {
-      const { instrument_key: instrumentKey, name: scriptName } = scriptObj;
-
-      let riskRewardRatio = null;
-      let strongStart = false;
-      let avgVolume = 'N/A';
-      let relativeVolumePercentage = 'N/A';
-      let gapPercentage = 'N/A';
-      const accessToken = import.meta.env.VITE_UPSTOXS_ACCESS_KEY;
-
-      try {
-        const liveResponse = await fetch(
-          `https://api.upstox.com/v3/market-quote/ohlc?instrument_key=${instrumentKey}&interval=1d`,
-          {
-            headers: {
-              Authorization: `Bearer ${accessToken}`,
-            },
-          }
-        );
-        const liveData = await liveResponse.json();
-
-        const [, instrumentLiveData] = Object.entries(liveData.data).find(([, val]) => {
-          return val.instrument_token === instrumentKey;
-        });
-        const {
-          live_ohlc: { open: currentDayOpen, low: lowPrice, volume: currentVolume },
-          last_price: ltp,
-        } = instrumentLiveData;
-        const threshold = currentDayOpen * 0.99;
-        strongStart = lowPrice >= threshold;
-        const allocation = calculateAllocationIntent(size, 10, ltp, riskOfPortfolio);
-        riskRewardRatio = allocation.riskRewardRatio;
-
-        const historicalResponse = await fetch(
-          `https://api.upstox.com/v3/historical-candle/${instrumentKey}/days/1/${toDate}/${fromDate}`,
-          {
-            headers: {
-              Authorization: `Bearer ${accessToken}`,
-            },
-          }
-        );
-        const historicalData = await historicalResponse.json();
-        const candles = historicalData.data.candles;
-        const totalVolume = candles.reduce((sum, candle) => sum + candle[5], 0);
-        avgVolume = (totalVolume / candles.length).toFixed(0);
-        relativeVolumePercentage = ((currentVolume / parseFloat(avgVolume)) * 100).toFixed(2);
-
-        let previousDayClose = candles[0][4];
-        gapPercentage = (((currentDayOpen - previousDayClose) / previousDayClose) * 100).toFixed(2) + '%';
-
-        const allocation10 = calculateAllocationIntent(size, 10, ltp, riskOfPortfolio);
-        const allocation25 = calculateAllocationIntent(size, 25, ltp, riskOfPortfolio);
-        const allocation40 = calculateAllocationIntent(size, 40, ltp, riskOfPortfolio);
-
-        return {
-          scriptName,
-          riskRewardRatio,
-          strongStart,
-          avgVolume,
-          relativeVolumePercentage,
-          gapPercentage,
-          instrumentKey,
-          ltp: ltp,
-          sl: allocation10.sl,
-          allocations: {
-            10: allocation10,
-            25: allocation25,
-            40: allocation40,
-          },
-        };
-      } catch (err) {
-        console.error(`Error fetching data for ${scriptName}`, err);
-      }
-    })
-  );
-  const sortedResults = [...results].sort((a, b) => {
-    return b.relativeVolumePercentage - a.relativeVolumePercentage
-  });
-
-  return sortedResults;
-};
 
 const AllocationTable = ({ scripts }) => {
   const dispatch = useDispatch();
@@ -154,15 +22,14 @@ const AllocationTable = ({ scripts }) => {
     portfolioSize,
     riskPercentage: riskPercentageOfPortfolio
   } = useSelector((state) => state.portfolio);
-  const [tableData, setTableData] = useState([]);
+  const { orderMetrics } = useSelector((state) => state.orders);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
   const onSubmit = async (data, scripts) => {
     setLoading(true);
     setError(null);
-    const sortedResults = await handleCalculate(data, scripts);
-    setTableData(sortedResults);
+    dispatch(calculateMetricsForScript(scripts, data));
     setLoading(false);
   };
 
@@ -177,7 +44,7 @@ const AllocationTable = ({ scripts }) => {
 
       <Button style={{ color: 'black' }} onClick={() => onSubmit({ portfolioSize, riskPercentageOfPortfolio }, scripts)}>
         Refresh
-        <RefreshIcon ml={2} />
+      <RefreshIcon ml={2} />
       </Button>
       <TableContainer component={Paper}>
         <Table>
@@ -197,7 +64,7 @@ const AllocationTable = ({ scripts }) => {
             </TableRow>
           </TableHead>
           <TableBody>
-            {tableData.map((row, index) => (
+            {orderMetrics.map((row, index) => (
               <TableRow key={index}>
                 <TableCell>{row.scriptName}</TableCell>
                 <TableCell>{row.ltp}</TableCell>
@@ -209,7 +76,7 @@ const AllocationTable = ({ scripts }) => {
                 <TableCell>{row.gapPercentage}</TableCell>
                 <TableCell>
                   <Box flexDirection='column' display='flex' gap={1}>
-                    {Object.entries(row.allocations).map(([key, value]) => {
+                    {Object.entries(row.allocations || []).map(([key, value]) => {
                       return <span key={key}>
                         {value.canAllocate && (<span key={key}>{key}% Shares: {value.sharesToBuy} Risk: ₹{value.potentialLoss} </span>)}
                       </span>
