@@ -2,7 +2,7 @@ import { BrowserRouter as Router, Route, Routes, Link } from "react-router-dom";
 import PortfolioForm from "./PortfolioForm";
 import ClosedPositions from "./ClosedPositions";
 import DisplayScript from "./Scripts";
-import Watchlist from "./Watchlist";
+import Watchlist from "../Watchlist/index.jsx";
 import AllocationIntentForm from "./AllocationForm";
 import PerformanceGraph from "./Performance";
 import { Menu } from "@mui/material";

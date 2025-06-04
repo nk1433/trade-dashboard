@@ -8,7 +8,7 @@ const DisplayScript = () => {
     const [trackingScripts, setTrackingScripts] = useState([]);
 
     useEffect(() => {
-        const initialScripts = localStorage.getItem("script") ? JSON.parse(localStorage.getItem("script")) : [];
+        const initialScripts = localStorage.getItem("scripts") ? JSON.parse(localStorage.getItem("scripts")) : [];
         setTrackingScripts(initialScripts);
     }, [])
 
@@ -27,31 +27,31 @@ const DisplayScript = () => {
     };
 
     const storeScript = (matchedScript) => {
-        const items = localStorage.getItem("script");
+        const items = localStorage.getItem("scripts");
         console.log("items", items);
 
         if (!items) {
-            localStorage.setItem("script", JSON.stringify(matchedScripts));
+            localStorage.setItem("scripts", JSON.stringify(matchedScripts));
         }
         else {
             const existingScripts = JSON.parse(items);
             const hasScriptExist = existingScripts.find(script => script.instrument_key === matchedScript.instrument_key);
             const newScripts = hasScriptExist ? existingScripts : [...existingScripts, matchedScript];
-            localStorage.setItem("script", JSON.stringify(newScripts));
+            localStorage.setItem("scripts", JSON.stringify(newScripts));
             setTrackingScripts(newScripts);
         }
 
 
 
-        // localStorage.setItem("script", JSON.stringify(matchedScripts));
+        // localStorage.setItem("scripts", JSON.stringify(matchedScripts));
     };
 
     const removeScript = (script) => {
-        const items = localStorage.getItem("script");
+        const items = localStorage.getItem("scripts");
         if (items) {
             const existingScripts = JSON.parse(items);
             const updatedScripts = existingScripts.filter(s => s.instrument_key !== script.instrument_key);
-            localStorage.setItem("script", JSON.stringify(updatedScripts));
+            localStorage.setItem("scripts", JSON.stringify(updatedScripts));
             setTrackingScripts(updatedScripts);
         }
     }

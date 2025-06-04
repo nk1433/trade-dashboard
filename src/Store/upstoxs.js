@@ -70,11 +70,16 @@ const getHistoricalData = async ({ instrumentKey, toDate, fromDate }) => {
 };
 
 export const calculateMetricsForScript = createAsyncThunk('Orders/calculateMetricsForScript', async (scripts, state) => {
+    console.log("Calculating metrics for scripts:", scripts.length, state);
+    const {  portfolio } = state.getState();
+    const { portfolioSize, riskPercentage: riskPercentageOfPortfolio } = portfolio;
+
+    console.log(state.getState())
+
     const results = await Promise.all(
         scripts.map(async (script) => {
             try {
                 const { instrument_key: instrumentKey, name: scriptName } = script;
-                const { portfolioSize, riskPercentage: riskPercentageOfPortfolio } = state.getState().portfolio;
 
                 const size = parseFloat(portfolioSize);
                 const riskOfPortfolio = parseFloat(riskPercentageOfPortfolio);
