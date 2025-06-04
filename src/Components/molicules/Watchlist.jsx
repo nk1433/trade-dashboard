@@ -76,7 +76,7 @@ const AllocationTable = ({ scripts }) => {
 
       <Button style={{ color: 'black' }} onClick={() => onSubmit({ portfolioSize, riskPercentageOfPortfolio }, scripts)}>
         Refresh
-        <RefreshIcon ml={2} />
+      <RefreshIcon ml={2} />
       </Button>
       <TableContainer component={Paper}>
         <Table>
