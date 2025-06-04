@@ -1,4 +1,3 @@
-import React from "react";
 import { useSelector } from "react-redux";
 import {
     Table,
@@ -18,7 +17,7 @@ const ClosedPositions = () => {
 
     // Extract the positions from the new data structure and filter for "closed" positions
     const closedPositions = Object.entries(positions)
-        .filter(([key, value]) => value['Realised P&L'] !== undefined)
+        .filter(([, value]) => value['Realised P&L'] !== undefined)
         .map(([key, value]) => ({
             symbol: key,
             quantity: value.Quantity,

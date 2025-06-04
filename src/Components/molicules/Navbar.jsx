@@ -5,7 +5,6 @@ import DisplayScript from "./Scripts";
 import Watchlist from "../Watchlist/index.jsx";
 import AllocationIntentForm from "./AllocationForm";
 import PerformanceGraph from "./Performance";
-import { Menu } from "@mui/material";
 
 // Configuration for the routes in JSON format
 const routesConfig = [
