@@ -84,7 +84,7 @@ export const calculateMetricsForScript = createAsyncThunk('Orders/calculateMetri
                 const marketQuote = await getMarketQuote(instrumentKey);
 
                 const {
-                    live_ohlc: { open: currentDayOpen, low: lowPrice, volume: currentVolume },
+                    live_ohlc: { open: currentDayOpen, low: lowPrice, volume: currentVolume, ts: lastTradingDay },
                     last_price: ltp,
                 } = Object.values(marketQuote.data).find(({ instrument_token }) => {
                     return instrument_token === instrumentKey;
@@ -102,7 +102,12 @@ export const calculateMetricsForScript = createAsyncThunk('Orders/calculateMetri
                 const totalVolume = candles.reduce((sum, candle) => sum + candle[5], 0);
                 const avgVolume = (totalVolume / candles.length).toFixed(0);
 
-                let previousDayClose = candles[0][4];
+                let previousDayClose = candles.find((candle) => {
+                    const previousDayCandleDate = moment(lastTradingDay).subtract(1, 'day').format('DD-MM-YYYY');
+
+                    return previousDayCandleDate === moment(candle[0]).format('DD-MM-YYYY')
+                })[4];
+                
 
                 const allocation10 = calculateAllocationIntentForScript(size, 10, ltp, riskOfPortfolio);
                 const allocation25 = calculateAllocationIntentForScript(size, 25, ltp, riskOfPortfolio);
