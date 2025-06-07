@@ -26,22 +26,23 @@ The dashboard currently displays the following information for a given list of s
 
 The following enhancements are planned:
 
-1.  Host the application in S3 for scalable and cost-effective deployment.
-2.  Implement OAuth for secure user authentication.
-3.  Enhance the UI/UX with a custom theme and improved design.
-4.  Enable GTT (Good Till Triggered) order placement functionality.
-5.  Implement automatic refreshing of stock quotes.
-6.  Develop a mobile application for the dashboard.
-7.  Implement portfolio tracking functionality.
-8.  Right now r/r always show 1 : 4 because of 0.25% of static risk, risk is dynamic based on the day low or else static risk sl, recommendation need to be done.
-9.  Strong start right now not consider the gap-up openings.
-10. Need to create a flow's where multiple entries within a zone 3-5% price.
-11. Staggered sl flow's.
+1.  [ Func ] - Host the application in S3 for scalable and cost-effective deployment.
+2.  [ Func ] - Implement OAuth for secure user authentication.
+3.  [ UI ] - Enhance the UI/UX with a custom theme and improved design.
+4.  [ Func ] - Enable GTT (Good Till Triggered) order placement functionality.
+5.  [ Func ] - Implement automatic refreshing of stock quotes.
+6.  [ Func ] - Develop a mobile application for the dashboard.
+7.  [ Func ] - Implement portfolio tracking functionality.
+8.  [ Func ] - Right now r/r always show 1 : 4 because of 0.25% of static risk, risk is dynamic based on the day low or else static risk sl, recommendation need to be done.
+9.  [ Func ] - Strong start right now not consider the gap-up openings.
+10. [ Func ] - Need to create a flow's where multiple entries within a zone 3-5% price.
+11. [ Func ] - Staggered sl flow's.
 12. [ UI ] - Spinner for fetching live data.
 13. [ UI ] - Sorting for Rel/vol and other computed fields.
 14. [ UI ] - Search for script name.
 15. [ Func ] - Volume run rate.
 16. [ Func ] - Create notes for scripts.
+    1.  On anticipation buy day, could not place orders due to r/r for 0.25% risk - make the risk higher and could have placed the orders
 17. [ UI ] - Added column preferences.
 18. [ UI ] - Add custom filters.
 19. [ UI ] - Add priority sections.
