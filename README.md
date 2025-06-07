@@ -48,3 +48,4 @@ The following enhancements are planned:
 20. [ UI ] - Search instruments and add to dashboard
 21. [ Func ] - Add dynamic stop-loss preference like day opening and risk amount
 22. [ UI ] - Order detail page
+23. [ Func ] - Multi Risk based allocation suggestions in order detail page.
