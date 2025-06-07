@@ -50,3 +50,8 @@ The following enhancements are planned:
 21. [ Func ] - Add dynamic stop-loss preference like day opening and risk amount
 22. [ UI ] - Order detail page
 23. [ Func ] - Multi Risk based allocation suggestions in order detail page.
+24. [ Func ] - Guards to protect from account blow.
+25. [ Func ] - Equity curve dashboard.
+    1.  Batting average
+    2.  Avg gain 
+    3.  Avg loss
