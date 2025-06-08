@@ -55,3 +55,4 @@ The following enhancements are planned:
     1.  Batting average
     2.  Avg gain 
     3.  Avg loss
+26. [ Func ] - Alerts
