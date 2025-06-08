@@ -70,7 +70,7 @@ const getHistoricalData = async ({ instrumentKey, toDate, fromDate }) => {
 };
 
 export const calculateMetricsForScript = createAsyncThunk('Orders/calculateMetricsForScript', async (scripts, state) => {
-    const {  portfolio } = state.getState();
+    const { portfolio } = state.getState();
     const { portfolioSize, riskPercentage: riskPercentageOfPortfolio } = portfolio;
 
     const results = await Promise.all(
@@ -91,10 +91,6 @@ export const calculateMetricsForScript = createAsyncThunk('Orders/calculateMetri
                 });
 
                 const threshold = currentDayOpen * 0.99;
-                const tempAllocation = calculateAllocationIntent(15, size, ltp, currentDayOpen, riskOfPortfolio);
-
-                console.log(tempAllocation)
-
                 const historicalData = await getHistoricalData({
                     instrumentKey,
                     toDate: moment().subtract(1, 'day').format('YYYY-MM-DD'),
@@ -109,14 +105,14 @@ export const calculateMetricsForScript = createAsyncThunk('Orders/calculateMetri
 
                     return previousDayCandleDate === moment(candle[0]).format('DD-MM-YYYY')
                 })[4];
-                
-                const temp = tempAllocation.error
-                ? { 
-                    maxAllocationPercentage: "-",
-                    riskRewardRatio: '-',
-                    allocationSuggestions: [],
-                }
-                :  tempAllocation
+
+                const allocation = (ltp - currentDayOpen) <= 0
+                    ? {
+                        maxAllocationPercentage: "-",
+                        riskRewardRatio: '-',
+                        allocationSuggestions: [],
+                    }
+                    : calculateAllocationIntent(15, size, ltp, currentDayOpen, riskOfPortfolio);
 
                 return {
                     scriptName,
@@ -127,7 +123,7 @@ export const calculateMetricsForScript = createAsyncThunk('Orders/calculateMetri
                     strongStart: lowPrice >= threshold,
                     ltp: ltp,
                     sl: currentDayOpen,
-                    ...temp,
+                    ...allocation,
                 };
             } catch (err) {
                 console.error(`Error fetching data for ${script.name}`, err);
