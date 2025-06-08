@@ -4,16 +4,11 @@ import moment from "moment";
 
 export const placeSLMOrder = createAsyncThunk('Orders/placeSLMOrder', async (script) => {
     const {
-        instrumentKey: instrument_token, allocations,
+        instrumentKey: instrument_token,
+        maxShareToBuy: quantity,
+        sl: trigger_price,
         ltp: price
     } = script;
-    const maxAllocation = Object.values(allocations).find((allocation) => {
-        const { canAllocate } = allocation;
-
-        return canAllocate;
-    });
-    const { sharesToBuy: quantity, sl: trigger_price } = maxAllocation;
-
 
     const body = JSON.stringify({
         quantity: quantity,

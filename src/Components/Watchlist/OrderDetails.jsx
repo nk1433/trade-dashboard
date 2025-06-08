@@ -5,8 +5,11 @@ import "../../App.css";
 import { Box, Button } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import WatchList from './Table';
+import { useDispatch } from 'react-redux';
+import { placeSLMOrder } from '../../Store/upstoxs';
 
 const OrderDetails = ({ onClose, script }) => {
+    const dispatch = useDispatch();
 
     return (
         <div className='modal'>
@@ -21,7 +24,9 @@ const OrderDetails = ({ onClose, script }) => {
                 </Box>
             </Box>
             <Box display={'flex'} alignItems={'center'} justifyContent={'center'}>
-                <Button>Place Order</Button>
+                <Button onClick={() => { console.log("dis"); dispatch(placeSLMOrder(script)); }}>
+                    Place Order
+                </Button>
             </Box>
         </div>
     );
