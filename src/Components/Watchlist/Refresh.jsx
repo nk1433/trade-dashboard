@@ -9,7 +9,7 @@ const Refresh = ({ refreshScripts }) => {
   const dispatch = useDispatch();
 
   return (
-    <Box>
+    <Box display={'flex'} alignItems={'end'} justifyContent={'end'}>
       <Button style={{ color: 'black' }} onClick={() => dispatch(refreshScripts())}>
         Refresh
         <RefreshIcon ml={2} />
