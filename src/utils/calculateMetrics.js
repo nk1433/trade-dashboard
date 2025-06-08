@@ -99,7 +99,8 @@ export const calculateAllocationIntent = (
     return { error: "Invalid exit price: It must be less than the entry price." };
   }
 
-  const sharesAllowedByRisk = Math.floor(riskAmount / lossPerShare);
+  const maxAffordableShares = Math.floor(portfolioSize / entryPrice);
+  const sharesAllowedByRisk = Math.min(Math.floor(riskAmount / lossPerShare), maxAffordableShares);
   const sharesAllowedByInvestment = Math.floor(maxInvestment / entryPrice);
   const sharesToBuy = Math.min(sharesAllowedByRisk, sharesAllowedByInvestment);
   const maxShareToBuy = Math.max(sharesAllowedByRisk, sharesAllowedByInvestment);
@@ -110,13 +111,13 @@ export const calculateAllocationIntent = (
   const rewardPerShare = entryPrice * 0.10;
   const riskRewardRatio = rewardPerShare / lossPerShare;
   const maxAllocationWithRisk = sharesAllowedByRisk * entryPrice;
-  const maxAllocationPercentage = (maxAllocationWithRisk / portfolioSize) * 100;
+  const maxAllocationPercentage = ((maxAllocationWithRisk / portfolioSize) * 100);
 
   const riskArray = [0.25, 0.3, 0.35]; // Array of risk percentages of portfolio
 
   const allocationSuggestions = riskArray.map((riskPercent) => {
     const totalRiskAmount = (riskPercent / 100) * portfolioSize;
-    const riskPerSharePercentage = 0.01; // Assuming you risk 1% of entry price per share - adjust as needed
+    const riskPerSharePercentage = 0.01;
     const riskPerShare = entryPrice * riskPerSharePercentage;
     const maxShares = Math.floor(totalRiskAmount / riskPerShare);
     const maxInvestment = maxShares * entryPrice;
