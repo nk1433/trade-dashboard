@@ -44,11 +44,11 @@ const OrderDetailsPortal = ({ children, data: script }) => {
 };
 
 OrderDetails.propTypes = {
-    onClose: PropTypes.function,
+    onClose: PropTypes.any,
     script: PropTypes.object,
 };
 OrderDetailsPortal.propTypes = {
-    children: PropTypes.children,
+    children: PropTypes.node,
     data: PropTypes.object,
 };
 
