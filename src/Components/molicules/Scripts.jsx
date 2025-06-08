@@ -47,12 +47,12 @@ const DisplayScript = () => {
         }
     };
 
-    const removeScript = (script) => {
+    const removeScript = (instrument_key) => {
         const items = localStorage.getItem("scripts");
 
         if (items) {
             const existingScripts = JSON.parse(items);
-            const updatedScripts = existingScripts.filter(s => s.instrument_key !== script.instrument_key);
+            const updatedScripts = existingScripts.filter(s => s.instrument_key !== instrument_key);
 
             localStorage.setItem("scripts", JSON.stringify(updatedScripts));
             setTrackingScripts(updatedScripts);
@@ -107,7 +107,7 @@ const DisplayScript = () => {
                                         <span>{name}</span>
                                         <span> - </span>
                                         <span>{instrument_key}</span>
-                                        <Button onClick={() => removeScript(script)}>
+                                        <Button onClick={() => removeScript(instrument_key)}>
                                             Untrack
                                         </Button>
                                     </li>
