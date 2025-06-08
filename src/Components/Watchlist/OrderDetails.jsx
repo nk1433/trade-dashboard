@@ -2,27 +2,41 @@ import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import PropTypes from 'prop-types';
 import "../../App.css";
+import { Box, Button } from '@mui/material';
+import CloseIcon from '@mui/icons-material/Close';
+import WatchList from './Table';
 
-const OrderDetails = ({ onClose }) => {
+const OrderDetails = ({ onClose, script }) => {
 
     return (
-        <div className="modal">
-            <div>I&#39;m a modal dialog</div>
-            <button onClick={onClose}>Close</button>
+        <div className='modal'>
+            <Box display={'flex'} alignItems={'end'} justifyContent={'end'}>
+                <Button onClick={onClose}>
+                    <CloseIcon />
+                </Button>
+            </Box>
+            <Box display={'flex'} alignItems={'center'} justifyContent={'center'}>
+                <Box sx={{ width: '500px' }}>
+                    <WatchList scripts={script.allocationSuggestions} type='allocationSuggestions' />
+                </Box>
+            </Box>
+            <Box display={'flex'} alignItems={'center'} justifyContent={'center'}>
+                <Button>Place Order</Button>
+            </Box>
         </div>
     );
 };
 
-const OrderDetailsPortal = ({ children }) => {
+const OrderDetailsPortal = ({ children, data: script }) => {
     const [showModal, setShowModal] = useState(false);
 
     return (
         <>
             <button onClick={() => setShowModal(true)}>
-                { children }
+                {children}
             </button>
             {showModal && createPortal(
-                <OrderDetails onClose={() => setShowModal(false)} />,
+                <OrderDetails onClose={() => setShowModal(false)} script={script} />,
                 document.body
             )}
         </>
@@ -30,10 +44,12 @@ const OrderDetailsPortal = ({ children }) => {
 };
 
 OrderDetails.propTypes = {
-    onClose: PropTypes.func,
+    onClose: PropTypes.function,
+    script: PropTypes.object,
 };
 OrderDetailsPortal.propTypes = {
     children: PropTypes.children,
+    data: PropTypes.object,
 };
 
 export default OrderDetailsPortal;

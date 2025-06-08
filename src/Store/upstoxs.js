@@ -1,5 +1,5 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
-import { calculateAllocationIntentForScript } from "../utils/calculateMetrics";
+import { calculateAllocationIntent } from "../utils/calculateMetrics";
 import moment from "moment";
 
 export const placeSLMOrder = createAsyncThunk('Orders/placeSLMOrder', async (script) => {
@@ -91,7 +91,9 @@ export const calculateMetricsForScript = createAsyncThunk('Orders/calculateMetri
                 });
 
                 const threshold = currentDayOpen * 0.99;
-                const allocation = calculateAllocationIntentForScript(size, 10, ltp, riskOfPortfolio);
+                const tempAllocation = calculateAllocationIntent(15, size, ltp, currentDayOpen, riskOfPortfolio);
+
+                console.log(tempAllocation)
 
                 const historicalData = await getHistoricalData({
                     instrumentKey,
@@ -108,10 +110,13 @@ export const calculateMetricsForScript = createAsyncThunk('Orders/calculateMetri
                     return previousDayCandleDate === moment(candle[0]).format('DD-MM-YYYY')
                 })[4];
                 
-
-                const allocation10 = calculateAllocationIntentForScript(size, 10, ltp, riskOfPortfolio);
-                const allocation25 = calculateAllocationIntentForScript(size, 25, ltp, riskOfPortfolio);
-                const allocation40 = calculateAllocationIntentForScript(size, 40, ltp, riskOfPortfolio);
+                const temp = tempAllocation.error
+                ? { 
+                    maxAllocationPercentage: "-",
+                    riskRewardRatio: '-',
+                    allocationSuggestions: [],
+                }
+                :  tempAllocation
 
                 return {
                     scriptName,
@@ -120,14 +125,9 @@ export const calculateMetricsForScript = createAsyncThunk('Orders/calculateMetri
                     relativeVolumePercentage: ((currentVolume / parseFloat(avgVolume)) * 100).toFixed(2),
                     gapPercentage: (((currentDayOpen - previousDayClose) / previousDayClose) * 100).toFixed(2),
                     strongStart: lowPrice >= threshold,
-                    riskRewardRatio: allocation.riskRewardRatio,
                     ltp: ltp,
-                    sl: allocation10.sl,
-                    allocations: {
-                        10: allocation10,
-                        25: allocation25,
-                        40: allocation40,
-                    },
+                    sl: currentDayOpen,
+                    ...temp,
                 };
             } catch (err) {
                 console.error(`Error fetching data for ${script.name}`, err);

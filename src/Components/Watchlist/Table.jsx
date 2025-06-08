@@ -1,51 +1,37 @@
 import {
-  Button,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
-  Box,
+  Table, TableBody, TableCell,
+  TableContainer, TableHead, TableRow,
+  Paper, Box,
 } from '@mui/material';
-import {placeSLMOrder } from '../../Store/upstoxs';
 import PropTypes from 'prop-types';
+import OrderDetailsPortal from './OrderDetails';
 
-const columnsConfig = [
-  { name: "Script", value: (row) => row.scriptName },
-  { name: "LTP", value: (row) => row.ltp },
-  { name: "SL", value: (row) => row.sl },
-  { name: "R-vol % / 21 D", value: (row) => `${row.relativeVolumePercentage} %` },
-  { name: "Gap %", value: (row) => `${row.gapPercentage} %` },
-  {
-    name: "Allocations",
-    value: (row) => (
-      <Box flexDirection='column' display='flex' gap={1}>
-        {Object.entries(row.allocations || {}).map(([key, value]) => (
-          <span key={key}>
-            {value.canAllocate && (
-              <span key={key}>
-                {key}% Shares: {value.sharesToBuy} Risk: ₹{value.potentialLoss}{" "}
-              </span>
-            )}
-          </span>
-        ))}
-      </Box>
-    ),
-  },
-  {
-    name: "Actions",
-    value: (row) => (
-      <Button onClick={() => { dispatch(placeSLMOrder(row)); }}>
-        Place Order
-      </Button>
-    ),
-  },
-  { name: "Strong Start", value: (row) => (row.strongStart ? "Yes" : "No") },
-];
+const columnsConfig = {
+  dashboard: [
+    {
+      name: "Script", value: (row) => {
+        return (
+          <OrderDetailsPortal data={row}>
+            {row.scriptName}
+          </OrderDetailsPortal>
+        );
+      }
+    },
+    { name: "LTP", value: (row) => row.ltp },
+    { name: "SL", value: (row) => row.sl },
+    { name: "Max Alloc", value: (row) => row.maxAllocationPercentage },
+    { name: "R-vol % / 21 D", value: (row) => `${row.relativeVolumePercentage} %` },
+    { name: "Gap %", value: (row) => `${row.gapPercentage} %` },
+    { name: "Strong Start", value: (row) => (row.strongStart ? "Yes" : "No") },
+  ],
+  allocationSuggestions: [
+    { name: "Size", value: (row) => row.allocPer },
+    { name: "Risk", value: (row) => row.riskPercentage },
+  ]
+};
 
-const WatchList = ({ scripts }) => {
+const WatchList = ({ scripts, type = 'dashboard' }) => {
+  const specifications = columnsConfig[type];
 
   return (
     <Box>
@@ -53,7 +39,7 @@ const WatchList = ({ scripts }) => {
         <Table>
           <TableHead>
             <TableRow>
-              {columnsConfig.map((column) => (
+              {specifications.map((column) => (
                 <TableCell key={column.name}>{column.name}</TableCell>
               ))}
             </TableRow>
@@ -61,7 +47,7 @@ const WatchList = ({ scripts }) => {
           <TableBody>
             {scripts.map((script, index) => (
               <TableRow key={index}>
-                {columnsConfig.map((column, colIndex) => (
+                {specifications.map((column, colIndex) => (
                   <TableCell key={`${index}-${colIndex}`}>
                     {column.value(script)}
                   </TableCell>
@@ -77,6 +63,7 @@ const WatchList = ({ scripts }) => {
 
 WatchList.propTypes = {
   scripts: PropTypes.array.isRequired,
+  type: PropTypes.string,
 };
 
 export default WatchList;

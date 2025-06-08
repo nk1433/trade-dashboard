@@ -112,14 +112,33 @@ export const calculateAllocationIntent = (
   const maxAllocationWithRisk = sharesAllowedByRisk * entryPrice;
   const maxAllocationPercentage = (maxAllocationWithRisk / portfolioSize) * 100;
 
+  const riskArray = [0.25, 0.3, 0.35]; // Array of risk percentages of portfolio
+
+  const allocationSuggestions = riskArray.map((riskPercent) => {
+    const totalRiskAmount = (riskPercent / 100) * portfolioSize;
+    const riskPerSharePercentage = 0.01; // Assuming you risk 1% of entry price per share - adjust as needed
+    const riskPerShare = entryPrice * riskPerSharePercentage;
+    const maxShares = Math.floor(totalRiskAmount / riskPerShare);
+    const maxInvestment = maxShares * entryPrice;
+    const maxInvestmentPercentage = (maxInvestment / portfolioSize) * 100;
+
+    return {
+      riskPercentage: riskPercent.toFixed(2) + "%",
+      maxInvestment: maxInvestment.toFixed(2),
+      allocPer: maxInvestmentPercentage.toFixed(2) + "%",
+      maxShares,
+    };
+  });
+
   return {
     sharesToBuy,
     maxShareToBuy,
+    allocationSuggestions,
     maxAllocationWithRisk: maxAllocationWithRisk.toFixed(2),
-    maxAllocationPercentage: maxAllocationPercentage.toFixed(2) + " %",
+    maxAllocationPercentage: maxAllocationPercentage.toFixed(2),
     intentInvestment: maxInvestment.toFixed(2),
     investmentAmount: investmentAmount.toFixed(2),
-    actualAllocationPercentage: actualAllocationPercentage.toFixed(2) + " %",
+    actualAllocationPercentage: actualAllocationPercentage.toFixed(2),
     riskAmount: riskAmount.toFixed(2),
     lossPerShare: lossPerShare.toFixed(2),
     riskRewardRatio: riskRewardRatio.toFixed(2),
