@@ -94,11 +94,12 @@ export const calculateMetricsForScript = createAsyncThunk('Orders/calculateMetri
                 const candles = historicalData.data.candles;
                 const totalVolume = candles.reduce((sum, candle) => sum + candle[5], 0);
                 const avgVolume = (totalVolume / candles.length).toFixed(0);
-
+                
                 let previousDayClose = candles.find((candle) => {
-                    const previousDayCandleDate = moment(lastTradingDay).subtract(1, 'day').format('DD-MM-YYYY');
+                    const currentDate = moment().date();
+                    const candleDate = moment(candle[0]).date();
 
-                    return previousDayCandleDate === moment(candle[0]).format('DD-MM-YYYY')
+                    return candleDate < currentDate;
                 })[4];
 
                 const allocation = (ltp - currentDayOpen) <= 0
