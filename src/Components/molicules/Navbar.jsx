@@ -10,10 +10,10 @@ import PerformanceGraph from "./Performance";
 const routesConfig = [
   { path: "/pf-config", component: PortfolioForm, linkText: "Configs" },
 //   { path: "/table", component: PortfolioTable, linkText: "PF" },
-  { path: "/allocation-calculator", component: AllocationIntentForm, linkText: "Allocation Intent" },
+  { path: "/allocation-calculator", component: AllocationIntentForm, linkText: "Allocation-intent" },
   { path: "/closed", component: ClosedPositions, linkText: "Closed" },
   { path: "/performance", component: PerformanceGraph, linkText: "Performance" },
-  { path: "/watch-list", component: Watchlist, linkText: "Watch List" },
+  { path: "/watch-list", component: Watchlist, linkText: "Watchlist" },
   { path: "/search-scripts", component: DisplayScript, linkText: "Scripts" },
 ];
 
