@@ -6,53 +6,47 @@ import { DataGrid } from '@mui/x-data-grid';
 
 const columnsConfig = {
   dashboard: [
-    {
-      field: "scriptName",
-      headerName: "Script",
-      width: 200,
-      renderCell: (params) => (
-        <OrderDetailsPortal data={params.row}>
-          {params.value}
-        </OrderDetailsPortal>
-      ),
-    },
-    { field: "ltp", headerName: "LTP", width: 100 },
-    { field: "sl", headerName: "SL", width: 100 },
-    { field: "maxShareToBuy", headerName: "Shares", width: 100 },
-    { field: "maxAllocationPercentage", headerName: "Max Alloc", width: 150 },
-    { field: "relativeVolumePercentage", headerName: "R-vol % / 21 D", width: 150 },
-    { field: "gapPercentage", headerName: "Gap %", width: 100 },
-    { field: "strongStart", headerName: "Strong Start", width: 120 },
+    { field: "scriptName", headerName: "Script", width: 350, renderCell: (params) => <OrderDetailsPortal data={params.row}>{params.value}</OrderDetailsPortal> },
+    { field: "ltp", headerName: "LTP",  },
+    { field: "sl", headerName: "SL",  },
+    { field: "maxShareToBuy", headerName: "Shares",  },
+    { field: "maxAllocationPercentage", headerName: "Max Alloc" },
+    { field: "relativeVolumePercentage", headerName: "R-vol % / 21 D" },
+    { field: "gapPercentage", headerName: "Gap %",  },
+    //TODO: Create a fallback(-), percentage(%) components.
+    { field: "strongStart", headerName: "Strong Start", renderCell: (params) => <>{params.row.strongStart ? "Yes" : "-" }</> },
   ],
   allocationSuggestions: [
-    { field: "allocPer", headerName: "Size", width: 100 },
-    { field: "riskPercentage", headerName: "Risk", width: 100 },
+    { field: "allocPer", headerName: "Size" },
+    { field: "riskPercentage", headerName: "Risk" },
   ],
 };
 
 const WatchList = ({ scripts, type = 'dashboard' }) => {
+  const columnMapping = {
+    Script: 'scriptName',
+    LTP: 'ltp',
+    SL: 'sl',
+    Shares: 'maxShareToBuy',
+    'Max Alloc': 'maxAllocationPercentage',
+    'R-vol % / 21 D': 'relativeVolumePercentage',
+    'Gap %': 'gapPercentage',
+    'Strong Start': 'strongStart',
+    Size: 'allocPer',
+    Risk: 'riskPercentage',
+  };
+
   const columns = columnsConfig[type].map(col => {
-    const gridColDef = { field: '', headerName: '', width: 100 };
+    const gridColDef = { field: '', headerName: '',  };
     if (col.name) {
-      gridColDef.field = Object.keys(scripts[0] || {}).find(key => {
-        // Find the field name in the scripts data that corresponds to the column name
-        if (col.name === "Script" && key === "scriptName") return true;
-        if (col.name === "LTP" && key === "ltp") return true;
-        if (col.name === "SL" && key === "sl") return true;
-        if (col.name === "Shares" && key === "maxShareToBuy") return true;
-        if (col.name === "Max Alloc" && key === "maxAllocationPercentage") return true;
-        if (col.name === "R-vol % / 21 D" && key === "relativeVolumePercentage") return true;
-        if (col.name === "Gap %" && key === "gapPercentage") return true;
-        if (col.name === "Strong Start" && key === "strongStart") return true;
-        if (col.name === "Size" && key === "allocPer") return true;
-        if (col.name === "Risk" && key === "riskPercentage") return true;
-        return false;
-      }) || col.name.toLowerCase().replace(' ', ''); // Fallback to lowercase and remove spaces
+      gridColDef.field = columnMapping[col.name] || col.name.toLowerCase().replace(' ', '');
       gridColDef.headerName = col.name;
       if (col.width) {
         gridColDef.width = col.width;
       }
-      if (col.value && col.name === "Script") {
+      if (col.renderCell) {
+        gridColDef.renderCell = col.renderCell;
+      } else if (col.value && col.name === "Script") {
         gridColDef.renderCell = (params) => col.value(params.row);
       }
     } else if (col.field && col.headerName) {
