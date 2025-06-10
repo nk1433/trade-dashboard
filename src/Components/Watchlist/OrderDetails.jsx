@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import PropTypes from 'prop-types';
 import "../../App.css";
-import { Box, Button } from '@mui/material';
+import { Box, Button, Link } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import WatchList from './Table';
 import { useDispatch } from 'react-redux';
@@ -37,9 +37,9 @@ const OrderDetailsPortal = ({ children, data: script }) => {
 
     return (
         <>
-            <button onClick={() => setShowModal(true)}>
+            <Link onClick={() => setShowModal(true)}>
                 {children}
-            </button>
+            </Link>
             {showModal && createPortal(
                 <OrderDetails onClose={() => setShowModal(false)} script={script} />,
                 document.body
