@@ -39,7 +39,7 @@ const WatchList = ({ scripts, type = 'dashboard' }) => {
   const columns = columnsConfig[type].map(col => {
     const gridColDef = { field: '', headerName: '',  };
     if (col.name) {
-      gridColDef.field = columnMapping[col.name] || col.name.toLowerCase().replace(' ', '');
+      gridColDef.field = columnMapping[col.name] || '';
       gridColDef.headerName = col.name;
       if (col.width) {
         gridColDef.width = col.width;
@@ -65,8 +65,8 @@ const WatchList = ({ scripts, type = 'dashboard' }) => {
   const rows = scripts.map((script, index) => ({ id: index, ...script }));
 
   return (
-    <Box sx={{ height: 400, width: '100%' }}>
-      <DataGrid rows={rows} columns={columns} autoHeight />
+    <Box sx={{ width: '100%' }}>
+      <DataGrid rows={rows} columns={columns} />
     </Box>
   );
 };

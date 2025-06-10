@@ -49,7 +49,7 @@
   border-radius: 12px;
   position: absolute; /* Or 'fixed' depending on your layout needs */
   width: 80%;        /* Example width, adjust as needed */
-  height: 45%;       /* Ensure initial height is also a percentage */
+  height: 50%;       /* Ensure initial height is also a percentage */
   top: 10%;          /* Example top margin */
   bottom: 10%;       /* Example bottom margin */
   left: 10%;          /* Example left margin */

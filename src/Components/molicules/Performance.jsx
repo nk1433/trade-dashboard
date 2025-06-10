@@ -29,7 +29,7 @@ const PerformanceGraph = () => {
   }, []);
 
   return (
-    <ResponsiveContainer width="100%" height={400}>
+    <ResponsiveContainer width="100%">
       <LineChart data={data} margin={{ top: 10, right: 30, left: 0, bottom: 10 }}>
         <CartesianGrid strokeDasharray="3 3" />
         <XAxis dataKey="name" label={{ value: "Date", position: "insideBottom", offset: -5 }} />
