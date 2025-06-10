@@ -19,6 +19,7 @@ const columnsConfig = {
     },
     { name: "LTP", value: (row) => row.ltp },
     { name: "SL", value: (row) => row.sl },
+    { name: "Shares", value: (row) => row.maxShareToBuy },
     { name: "Max Alloc", value: (row) => row.maxAllocationPercentage },
     { name: "R-vol % / 21 D", value: (row) => `${row.relativeVolumePercentage} %` },
     { name: "Gap %", value: (row) => `${row.gapPercentage} %` },
