@@ -55,4 +55,9 @@ The following enhancements are planned:
     1.  Batting average
     2.  Avg gain 
     3.  Avg loss
-26. [ Func ] - Alerts
+26. [ Func ] - Alerts.
+27. [ Bug ] - Mismatch in order detail allocation need to consider the maxAllocation in it.
+28. [ Bug ] - Order details is always static upon the scroll.
+29. [ Bug ] - Scripts page
+    1.  Track not working on first go.
+    2.  Inconsistency for some scripts ie: SEQUENT.
