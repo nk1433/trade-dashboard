@@ -60,4 +60,4 @@ The following enhancements are planned:
 28. [ Bug ] - Order details is always static upon the scroll.
 29. [ Bug ] - Scripts page
     1.  Track not working on first go.
-    2.  Inconsistency for some scripts ie: SEQUENT.
+    2.  Inconsistency for some scripts ie: SEQUENT, HPL.
