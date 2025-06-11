@@ -7,14 +7,14 @@ import { DataGrid } from '@mui/x-data-grid';
 const columnsConfig = {
   dashboard: [
     { field: "scriptName", headerName: "Script", width: 350, renderCell: (params) => <OrderDetailsPortal data={params.row}>{params.value}</OrderDetailsPortal> },
+    { field: "relativeVolumePercentage", headerName: "R-vol % / 21 D" },
+    { field: "gapPercentage", headerName: "Gap %",  },
+    { field: "strongStart", headerName: "Strong Start", renderCell: (params) => <>{params.row.strongStart ? "Yes" : "-" }</> },
     { field: "ltp", headerName: "LTP",  },
     { field: "sl", headerName: "SL",  },
     { field: "maxShareToBuy", headerName: "Shares",  },
     { field: "maxAllocationPercentage", headerName: "Max Alloc" },
-    { field: "relativeVolumePercentage", headerName: "R-vol % / 21 D" },
-    { field: "gapPercentage", headerName: "Gap %",  },
     //TODO: Create a fallback(-), percentage(%) components.
-    { field: "strongStart", headerName: "Strong Start", renderCell: (params) => <>{params.row.strongStart ? "Yes" : "-" }</> },
   ],
   allocationSuggestions: [
     { field: "allocPer", headerName: "Size" },
