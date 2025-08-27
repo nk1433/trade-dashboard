@@ -14,6 +14,7 @@ const columnsConfig = {
     { field: "sl", headerName: "SL",  },
     { field: "maxShareToBuy", headerName: "Shares",  },
     { field: "maxAllocationPercentage", headerName: "Max Alloc" },
+    { field: "barClosingStrength", headerName: "Closing Strength %"},
     //TODO: Create a fallback(-), percentage(%) components.
   ],
   allocationSuggestions: [
@@ -34,6 +35,7 @@ const WatchList = ({ scripts, type = 'dashboard' }) => {
     'Strong Start': 'strongStart',
     Size: 'allocPer',
     Risk: 'riskPercentage',
+    BarClosingStrength: 'barClosingStrength',
   };
 
   const columns = columnsConfig[type].map(col => {
@@ -65,8 +67,8 @@ const WatchList = ({ scripts, type = 'dashboard' }) => {
   const rows = scripts.map((script, index) => ({ id: index, ...script }));
 
   return (
-    <Box sx={{ width: '100%' }}>
-      <DataGrid rows={rows} columns={columns} />
+    <Box sx={{ width: '100%',  }}>
+      <DataGrid rows={rows} columns={columns}  />
     </Box>
   );
 };

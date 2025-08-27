@@ -79,12 +79,12 @@ export const calculateMetricsForScript = createAsyncThunk('Orders/calculateMetri
                 const marketQuote = await getMarketQuote(instrumentKey);
 
                 const {
-                    live_ohlc: { open: currentDayOpen, low: lowPrice, volume: currentVolume, ts: lastTradingDay },
+                    live_ohlc: { open: currentDayOpen, low: lowPrice, volume: currentVolume, ts: lastTradingDay, high },
                     last_price: ltp,
                 } = Object.values(marketQuote.data).find(({ instrument_token }) => {
                     return instrument_token === instrumentKey;
                 });
-
+                const barClosingStrength = ((ltp - lowPrice) / (high - lowPrice)) * 100;
                 const threshold = currentDayOpen * 0.99;
                 const historicalData = await getHistoricalData({
                     instrumentKey,
@@ -119,6 +119,7 @@ export const calculateMetricsForScript = createAsyncThunk('Orders/calculateMetri
                     strongStart: lowPrice >= threshold,
                     ltp: ltp,
                     sl: currentDayOpen,
+                    barClosingStrength: barClosingStrength.toFixed(0),
                     ...allocation,
                 };
             } catch (err) {
