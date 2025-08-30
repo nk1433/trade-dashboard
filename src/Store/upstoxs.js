@@ -2,6 +2,62 @@ import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import { calculateAllocationIntent } from "../utils/calculateMetrics";
 import moment from "moment";
 
+export const computeMetrics = async (context) => {
+    const {
+        scriptName,
+        instrumentKey,
+        size,
+        riskOfPortfolio,
+        currentDayOpen,
+        lowPrice,
+        currentVolume,
+        lastTradingDay,
+        high,
+        ltp,
+    } = context;
+
+    console.log(`Computing metrics for ${scriptName}...`);
+
+    const barClosingStrength = ((ltp - lowPrice) / (high - lowPrice)) * 100;
+    const threshold = currentDayOpen * 0.99;
+    const historicalData = await getHistoricalData({
+        instrumentKey,
+        toDate: moment().subtract(1, 'day').format('YYYY-MM-DD'),
+        fromDate: moment().subtract(31, 'day').format('YYYY-MM-DD'),
+    });
+    const candles = historicalData.data.candles;
+    const totalVolume = candles.reduce((sum, candle) => sum + candle[5], 0);
+    const avgVolume = (totalVolume / candles.length).toFixed(0);
+
+    let previousDayClose = candles.find((candle) => {
+        const currentDate = moment().date();
+        const candleDate = moment(candle[0]).date();
+
+        return candleDate < currentDate;
+    })[4];
+
+    const allocation = (ltp - currentDayOpen) <= 0
+        ? {
+            maxAllocationPercentage: "-",
+            riskRewardRatio: '-',
+            allocationSuggestions: [],
+        }
+        : calculateAllocationIntent(15, size, ltp, currentDayOpen, riskOfPortfolio);
+
+    return {
+        scriptName,
+        avgVolume,
+        instrumentKey,
+        relativeVolumePercentage: ((currentVolume / parseFloat(avgVolume)) * 100).toFixed(2),
+        gapPercentage: (((currentDayOpen - previousDayClose) / previousDayClose) * 100).toFixed(2),
+        strongStart: lowPrice >= threshold,
+        ltp: ltp,
+        sl: currentDayOpen,
+        barClosingStrength: barClosingStrength.toFixed(0),
+        ...allocation,
+    };
+};
+
 export const placeSLMOrder = createAsyncThunk('Orders/placeSLMOrder', async (script) => {
     const {
         instrumentKey: instrument_token,
@@ -84,44 +140,20 @@ export const calculateMetricsForScript = createAsyncThunk('Orders/calculateMetri
                 } = Object.values(marketQuote.data).find(({ instrument_token }) => {
                     return instrument_token === instrumentKey;
                 });
-                const barClosingStrength = ((ltp - lowPrice) / (high - lowPrice)) * 100;
-                const threshold = currentDayOpen * 0.99;
-                const historicalData = await getHistoricalData({
-                    instrumentKey,
-                    toDate: moment().subtract(1, 'day').format('YYYY-MM-DD'),
-                    fromDate: moment().subtract(31, 'day').format('YYYY-MM-DD'),
-                });
-                const candles = historicalData.data.candles;
-                const totalVolume = candles.reduce((sum, candle) => sum + candle[5], 0);
-                const avgVolume = (totalVolume / candles.length).toFixed(0);
-                
-                let previousDayClose = candles.find((candle) => {
-                    const currentDate = moment().date();
-                    const candleDate = moment(candle[0]).date();
 
-                    return candleDate < currentDate;
-                })[4];
-
-                const allocation = (ltp - currentDayOpen) <= 0
-                    ? {
-                        maxAllocationPercentage: "-",
-                        riskRewardRatio: '-',
-                        allocationSuggestions: [],
-                    }
-                    : calculateAllocationIntent(15, size, ltp, currentDayOpen, riskOfPortfolio);
-
-                return {
+                return await computeMetrics({
                     scriptName,
-                    avgVolume,
                     instrumentKey,
-                    relativeVolumePercentage: ((currentVolume / parseFloat(avgVolume)) * 100).toFixed(2),
-                    gapPercentage: (((currentDayOpen - previousDayClose) / previousDayClose) * 100).toFixed(2),
-                    strongStart: lowPrice >= threshold,
-                    ltp: ltp,
-                    sl: currentDayOpen,
-                    barClosingStrength: barClosingStrength.toFixed(0),
-                    ...allocation,
-                };
+                    size,
+                    riskOfPortfolio,
+                    currentDayOpen,
+                    lowPrice,
+                    currentVolume,
+                    lastTradingDay,
+                    high,
+                    ltp,
+                });
+
             } catch (err) {
                 console.error(`Error fetching data for ${script.name}`, err);
             }
@@ -140,9 +172,15 @@ const orders = createSlice({
     initialState: {
         orders: [],
         orderMetrics: [],
+        liveFeed: [],
     },
     reducers: {
-
+        setOrderMetrics(state, action) {
+            state.orderMetrics = action.payload;
+        },
+        setLiveFeed(state, action) {
+            state.liveFeed.push(action.payload);
+        },
     },
     extraReducers: (builder) => {
         builder.addCase(placeSLMOrder.fulfilled, (state, action) => {
@@ -155,3 +193,4 @@ const orders = createSlice({
 });
 
 export default orders.reducer;
+export const { setOrderMetrics, setLiveFeed } = orders.actions;

@@ -18,7 +18,6 @@ const Dashboard = () => {
   } = useSelector((state) => state.portfolio);
   const { orderMetrics } = useSelector((state) => state.orders);
 
-
   useEffect(() => {
     dispatch(onSubmit(scripts));
   }, [portfolioSize, riskPercentageOfPortfolio]);

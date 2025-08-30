@@ -4,6 +4,9 @@ import portfolioReducer from "./portfolio";
 import orders from "./upstoxs";
 
 const store = configureStore({
+    middleware: (getDefaultMiddleware) => getDefaultMiddleware({
+        serializableCheck: false,
+    }),
     reducer: {
         counter: counter,
         portfolio: portfolioReducer,

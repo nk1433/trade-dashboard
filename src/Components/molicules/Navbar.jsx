@@ -5,16 +5,18 @@ import DisplayScript from "./Scripts";
 import Watchlist from "../Watchlist/index.jsx";
 import AllocationIntentForm from "./AllocationForm";
 import PerformanceGraph from "./Performance";
+import LiveFeed from "./LiveFeed.jsx";
 
 // Configuration for the routes in JSON format
 const routesConfig = [
   { path: "/pf-config", component: PortfolioForm, linkText: "Configs" },
 //   { path: "/table", component: PortfolioTable, linkText: "PF" },
-  { path: "/allocation-calculator", component: AllocationIntentForm, linkText: "Allocation-intent" },
+  { path: "/allocation-calculator", component: AllocationIntentForm, linkText: "Calculator" },
   { path: "/closed", component: ClosedPositions, linkText: "Closed" },
   { path: "/performance", component: PerformanceGraph, linkText: "Performance" },
   { path: "/watch-list", component: Watchlist, linkText: "Watchlist" },
   { path: "/search-scripts", component: DisplayScript, linkText: "Scripts" },
+  { path: "/live-feed", component: LiveFeed, linkText: "Livefeed" },
 ];
 
 const Navbar = () => {
