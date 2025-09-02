@@ -61,3 +61,7 @@ The following enhancements are planned:
 29. [ Bug ] - Scripts page
     1.  Track not working on first go.
     2.  Inconsistency for some scripts ie: SEQUENT, HPL.
+30. [ Func ] - Since the zerodha/upstoxs both supports for multiple instrument quote API upto 500, take the daily dump of the instruments
+31. [ Func ] - Build a monorepo to join react + node + aws
+32. [ Func ] - Add a todo dashboard with checklist/routines
+33. [ Func ] - Cache the historical data API call for every live feed
