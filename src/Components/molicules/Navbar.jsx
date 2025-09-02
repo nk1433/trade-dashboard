@@ -6,6 +6,7 @@ import Watchlist from "../Watchlist/index.jsx";
 import AllocationIntentForm from "./AllocationForm";
 import PerformanceGraph from "./Performance";
 import LiveFeed from "./LiveFeed.jsx";
+import MarketBreadthTable from "./MarketBreadth.jsx";
 
 // Configuration for the routes in JSON format
 const routesConfig = [
@@ -17,6 +18,7 @@ const routesConfig = [
   { path: "/watch-list", component: Watchlist, linkText: "Watchlist" },
   { path: "/search-scripts", component: DisplayScript, linkText: "Scripts" },
   { path: "/live-feed", component: LiveFeed, linkText: "Livefeed" },
+  { path: "/market-breadth", component: MarketBreadthTable, linkText: "MM" },
 ];
 
 const Navbar = () => {
