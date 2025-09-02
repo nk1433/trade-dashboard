@@ -1,4 +1,4 @@
-import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
+import { createAsyncThunk, createSlice, current } from "@reduxjs/toolkit";
 import { calculateAllocationIntent } from "../utils/calculateMetrics";
 import moment from "moment";
 
@@ -11,30 +11,20 @@ export const computeMetrics = async (context) => {
         currentDayOpen,
         lowPrice,
         currentVolume,
-        lastTradingDay,
         high,
         ltp,
+        stats,
     } = context;
 
     console.log(`Computing metrics for ${scriptName}...`);
 
     const barClosingStrength = ((ltp - lowPrice) / (high - lowPrice)) * 100;
     const threshold = currentDayOpen * 0.99;
-    const historicalData = await getHistoricalData({
-        instrumentKey,
-        toDate: moment().subtract(1, 'day').format('YYYY-MM-DD'),
-        fromDate: moment().subtract(31, 'day').format('YYYY-MM-DD'),
-    });
-    const candles = historicalData.data.candles;
-    const totalVolume = candles.reduce((sum, candle) => sum + candle[5], 0);
-    const avgVolume = (totalVolume / candles.length).toFixed(0);
+    const instrumentStats = stats[instrumentKey] || {};
+    const { lastPrice, avgVolume21d } = instrumentStats;
 
-    let previousDayClose = candles.find((candle) => {
-        const currentDate = moment().date();
-        const candleDate = moment(candle[0]).date();
-
-        return candleDate < currentDate;
-    })[4];
+    const avgVolume = avgVolume21d;
+    const previousDayClose = lastPrice;
 
     const allocation = (ltp - currentDayOpen) <= 0
         ? {
@@ -57,6 +47,100 @@ export const computeMetrics = async (context) => {
         ...allocation,
     };
 };
+
+const getMarketQuote = async (instrumentKey) => {
+    const liveResponse = await fetch(
+        `https://api.upstox.com/v3/market-quote/ohlc?instrument_key=${instrumentKey}&interval=1d`,
+        {
+            headers: {
+                Authorization: `Bearer ${import.meta.env.VITE_UPSTOXS_ACCESS_KEY}`,
+            },
+        }
+    );
+
+    return await liveResponse.json();
+};
+
+const getStats = async () => {
+    const stats = await fetch(
+        `http://localhost:3015/stats/all`,
+        {
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+            },
+        }
+    );
+
+    return await stats.json();
+};
+
+const getHistoricalData = async ({ instrumentKey, toDate, fromDate }) => {
+    const historicalResponse = await fetch(
+        `https://api.upstox.com/v3/historical-candle/${instrumentKey}/days/1/${toDate}/${fromDate}`,
+        {
+            headers: {
+                Authorization: `Bearer ${import.meta.env.VITE_UPSTOXS_ACCESS_KEY}`,
+            },
+        }
+    );
+
+    return await historicalResponse.json();
+};
+
+export const getStatsForScripts = createAsyncThunk('Orders/getStats', async () => {
+    const response = await getStats();
+    return response.data;
+});
+
+export const calculateMetricsForScript = createAsyncThunk('Orders/calculateMetricsForScript', async (scripts, state) => {
+    const { portfolio } = state.getState();
+    const { orders: { stats } } = state.getState();
+    const { portfolioSize, riskPercentage: riskPercentageOfPortfolio } = portfolio;
+
+    const results = await Promise.all(
+        scripts.map(async (script) => {
+            try {
+                const { instrument_key: instrumentKey, name: scriptName } = script;
+
+                const size = parseFloat(portfolioSize);
+                const riskOfPortfolio = parseFloat(riskPercentageOfPortfolio);
+
+                const marketQuote = await getMarketQuote(instrumentKey);
+
+                const {
+                    live_ohlc: { open: currentDayOpen, low: lowPrice, volume: currentVolume, ts: lastTradingDay, high },
+                    last_price: ltp,
+                } = Object.values(marketQuote.data).find(({ instrument_token }) => {
+                    return instrument_token === instrumentKey;
+                });
+
+                return await computeMetrics({
+                    scriptName,
+                    instrumentKey,
+                    size,
+                    riskOfPortfolio,
+                    currentDayOpen,
+                    lowPrice,
+                    currentVolume,
+                    lastTradingDay,
+                    high,
+                    ltp,
+                    stats,
+                });
+
+            } catch (err) {
+                console.error(`Error fetching data for ${script.name}`, err);
+            }
+        }),
+    );
+    // TODO: Enable sorting later, creating high flicker in UI
+    // const sortedResults = [...results].sort((a, b) => {
+    //     return b.relativeVolumePercentage - a.relativeVolumePercentage
+    // });
+
+    return results;
+});
 
 export const placeSLMOrder = createAsyncThunk('Orders/placeSLMOrder', async (script) => {
     const {
@@ -94,92 +178,20 @@ export const placeSLMOrder = createAsyncThunk('Orders/placeSLMOrder', async (scr
     await fetch(import.meta.env.VITE_UPSTOXS_SANDBOX_BASE_URL + "order/place", requestOptions);
 });
 
-const getMarketQuote = async (instrumentKey) => {
-    const liveResponse = await fetch(
-        `https://api.upstox.com/v3/market-quote/ohlc?instrument_key=${instrumentKey}&interval=1d`,
-        {
-            headers: {
-                Authorization: `Bearer ${import.meta.env.VITE_UPSTOXS_ACCESS_KEY}`,
-            },
-        }
-    );
-
-    return await liveResponse.json();
-};
-
-const getHistoricalData = async ({ instrumentKey, toDate, fromDate }) => {
-    const historicalResponse = await fetch(
-        `https://api.upstox.com/v3/historical-candle/${instrumentKey}/days/1/${toDate}/${fromDate}`,
-        {
-            headers: {
-                Authorization: `Bearer ${import.meta.env.VITE_UPSTOXS_ACCESS_KEY}`,
-            },
-        }
-    );
-
-    return await historicalResponse.json();
-};
-
-export const calculateMetricsForScript = createAsyncThunk('Orders/calculateMetricsForScript', async (scripts, state) => {
-    const { portfolio } = state.getState();
-    const { portfolioSize, riskPercentage: riskPercentageOfPortfolio } = portfolio;
-
-    const results = await Promise.all(
-        scripts.map(async (script) => {
-            try {
-                const { instrument_key: instrumentKey, name: scriptName } = script;
-
-                const size = parseFloat(portfolioSize);
-                const riskOfPortfolio = parseFloat(riskPercentageOfPortfolio);
-
-                const marketQuote = await getMarketQuote(instrumentKey);
-
-                const {
-                    live_ohlc: { open: currentDayOpen, low: lowPrice, volume: currentVolume, ts: lastTradingDay, high },
-                    last_price: ltp,
-                } = Object.values(marketQuote.data).find(({ instrument_token }) => {
-                    return instrument_token === instrumentKey;
-                });
-
-                return await computeMetrics({
-                    scriptName,
-                    instrumentKey,
-                    size,
-                    riskOfPortfolio,
-                    currentDayOpen,
-                    lowPrice,
-                    currentVolume,
-                    lastTradingDay,
-                    high,
-                    ltp,
-                });
-
-            } catch (err) {
-                console.error(`Error fetching data for ${script.name}`, err);
-            }
-        }),
-    );
-    const sortedResults = [...results].sort((a, b) => {
-        return b.relativeVolumePercentage - a.relativeVolumePercentage
-    });
-
-    return sortedResults;
-});
-
-
 const orders = createSlice({
     name: "orders",
     initialState: {
         orders: [],
         orderMetrics: [],
         liveFeed: [],
+        stats: {},
     },
     reducers: {
         setOrderMetrics(state, action) {
             state.orderMetrics = action.payload;
         },
         setLiveFeed(state, action) {
-            state.liveFeed.push(action.payload);
+            state.liveFeed.unshift(action.payload);
         },
     },
     extraReducers: (builder) => {
@@ -188,6 +200,9 @@ const orders = createSlice({
         });
         builder.addCase(calculateMetricsForScript.fulfilled, (state, action) => {
             state.orderMetrics = action.payload;
+        });
+        builder.addCase(getStatsForScripts.fulfilled, (state, action) => {
+            state.stats = action.payload;
         });
     },
 });

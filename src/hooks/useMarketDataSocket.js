@@ -2,7 +2,10 @@ import { useEffect, useState } from "react";
 import { Buffer } from "buffer";
 import protobuf from "protobufjs";
 import { useDispatch } from "react-redux";
-import { setLiveFeed } from "../Store/upstoxs";
+import { setLiveFeed, setOrderMetrics } from "../Store/upstoxs";
+import { updateWatchlistWithMetrics } from "./useUpstoxWS";
+import niftymidsmall400float from "../index/niftymidsmall400-float.json" with { type: "json" };
+import { useSelector } from "react-redux";
 
 let protobufRoot = null;
 const initProtobuf = async () => {
@@ -31,7 +34,8 @@ const decodeProfobuf = (buffer) => {
 
 export function useMarketDataSocket({ wsUrl, request }) {
     const [isConnected, setIsConnected] = useState(false);
-    const [feedData, setFeedData] = useState([]);
+    const portfolio = useSelector((state) => state.portfolio);
+    const stats = useSelector((state) => state.orders.stats);
     const dispatch = useDispatch();
 
     useEffect(() => {
@@ -53,7 +57,15 @@ export function useMarketDataSocket({ wsUrl, request }) {
                 const arrayBuffer = await blobToArrayBuffer(event.data);
                 let buffer = Buffer.from(arrayBuffer);
                 let response = decodeProfobuf(buffer);
-                setFeedData((currentData) => [...currentData, response]);
+                const scripts = niftymidsmall400float.slice(0, 1);
+                const scriptMap = scripts.reduce((acc, script) => {
+                    acc[script.instrument_key] = script;
+
+                    return acc;
+                }, {});
+                const results = await updateWatchlistWithMetrics(response, scriptMap, portfolio, stats);
+
+                dispatch(setOrderMetrics(results));
                 dispatch(setLiveFeed(response));
             };
 
@@ -69,5 +81,5 @@ export function useMarketDataSocket({ wsUrl, request }) {
         };
     }, [wsUrl, JSON.stringify(request)]);
 
-    return { isConnected, feedData };
+    return { isConnected };
 };

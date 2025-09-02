@@ -1,8 +1,10 @@
-import * as React from 'react';
 import { Box } from '@mui/material';
 import PropTypes from 'prop-types';
 import OrderDetailsPortal from './OrderDetails';
 import { DataGrid } from '@mui/x-data-grid';
+import { useEffect } from 'react';
+import { useDispatch } from 'react-redux';
+import { getStatsForScripts } from '../../Store/upstoxs';
 
 const columnsConfig = {
   dashboard: [
@@ -24,6 +26,12 @@ const columnsConfig = {
 };
 
 const WatchList = ({ scripts, type = 'dashboard' }) => {
+  const dispatch = useDispatch();
+
+  useEffect(() => {
+    dispatch(getStatsForScripts());
+  }, []);
+
   const columnMapping = {
     Script: 'scriptName',
     LTP: 'ltp',

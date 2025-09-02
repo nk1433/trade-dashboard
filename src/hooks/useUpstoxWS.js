@@ -1,25 +1,43 @@
 import { useMarketDataSocket } from "./useMarketDataSocket";
-import { useSelector, useDispatch } from "react-redux";
 import { computeMetrics } from "../Store/upstoxs";
-import { setOrderMetrics } from "../Store/upstoxs";
-import { useEffect } from "react";
 import { useMarketFeedUrl } from "./useMarketFeedUrl";
+import niftymidsmall400float from "../index/niftymidsmall400-float.json" with { type: "json" };
 
 const token = import.meta.env.VITE_UPSTOXS_ACCESS_KEY;
 
-export const useUpstoxWS = () => {
-  const scripts = JSON.parse(localStorage.getItem('scripts')) || [];
-  const instruments = scripts.map((script) => script.instrument_key);
-  const scriptMap = scripts.reduce((acc, script) => {
-    acc[script.instrument_key] = script;
+export const updateWatchlistWithMetrics = async (liveFeed, scriptMap, portfolio, stats) => {
+  if (liveFeed.type === 1) {
+    const results = await Promise.all(
+      Object.entries(liveFeed.feeds).map(async ([instrumentKey, script]) => {
+        const latestFeed = script.fullFeed.marketFF.marketOHLC.ohlc.find((feed) => feed.interval === '1d');
 
-    return acc;
-  }, {});
-  const portfolio = useSelector((state) => state.portfolio);
-  const dispatch = useDispatch();
+        return await computeMetrics({
+          scriptName: scriptMap[instrumentKey]?.name || '',
+          instrumentKey,
+          size: portfolio.portfolioSize,
+          riskOfPortfolio: portfolio.riskPercentage,
+          currentDayOpen: latestFeed.open,
+          lowPrice: latestFeed.low,
+          currentVolume: latestFeed.vol,
+          high: latestFeed.high,
+          ltp: latestFeed.close,
+          stats,
+        });
+      })
+    );
+
+    return results;
+  }
+
+  return [];
+};
+
+export const useUpstoxWS = () => {
+  const scripts = niftymidsmall400float;
+  const instruments = scripts.map((script) => script.instrument_key);
 
   const { wsUrl } = useMarketFeedUrl(token);
-  const { feedData } = useMarketDataSocket({
+  useMarketDataSocket({
     wsUrl,
     request: {
       guid: "someguid",
@@ -30,32 +48,4 @@ export const useUpstoxWS = () => {
       },
     }
   });
-
-  useEffect(() => {
-    if (!feedData.length) return;
-    const lastTick = feedData[feedData.length - 1];
-
-    if (lastTick?.type === 0 && lastTick.feeds) {
-      (async () => {
-        const results = await Promise.all(
-          Object.entries(lastTick.feeds).map(async ([instrumentKey, script]) => {
-            const latestFeed = script.fullFeed.marketFF.marketOHLC.ohlc.find((feed) => feed.interval === '1d');
-
-            return computeMetrics({
-              scriptName: scriptMap[instrumentKey]?.name || '',
-              instrumentKey,
-              size: portfolio.portfolioSize,
-              riskOfPortfolio: portfolio.riskPercentage,
-              currentDayOpen: latestFeed.open,
-              lowPrice: latestFeed.low,
-              currentVolume: latestFeed.vol,
-              high: latestFeed.high,
-              ltp: latestFeed.close,
-            });
-          })
-        );
-        dispatch(setOrderMetrics(results));
-      })();
-    }
-  }, [feedData, scriptMap, portfolio, dispatch]);
 };
