@@ -8,7 +8,8 @@ import PerformanceGraph from "./Performance";
 import LiveFeed from "./LiveFeed.jsx";
 import MarketBreadthTable from "./MarketBreadth.jsx";
 import MarketHighLowWormChart from "./Worm.jsx";
-import TradingViewWidget from './TV.jsx';
+import TVChart from './TV.jsx';
+import HeatMap from './HeatMap.jsx';
 
 // Configuration for the routes in JSON format
 const routesConfig = [
@@ -22,7 +23,8 @@ const routesConfig = [
   { path: "/live-feed", component: LiveFeed, linkText: "Livefeed" },
   { path: "/market-breadth", component: MarketBreadthTable, linkText: "MM" },
   { path: "/worm", component: MarketHighLowWormChart, linkText: "WORM" },
-  { path: "/tv", component: TradingViewWidget, linkText: "TV" },
+  { path: "/tv", component: TVChart, linkText: "TV" },
+  { path: "/heat-map", component: HeatMap, linkText: "HeatMap" },
 ];
 
 const Navbar = () => {
