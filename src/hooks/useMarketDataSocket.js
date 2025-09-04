@@ -63,9 +63,9 @@ export function useMarketDataSocket({ wsUrl, request }) {
 
                     return acc;
                 }, {});
-                const results = await updateWatchlistWithMetrics(response, scriptMap, portfolio, stats);
+                // const results = await updateWatchlistWithMetrics(response, scriptMap, portfolio, stats);
 
-                dispatch(setOrderMetrics(results));
+                // dispatch(setOrderMetrics(results));
                 dispatch(setLiveFeed(response));
             };
 

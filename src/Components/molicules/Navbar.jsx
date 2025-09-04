@@ -7,6 +7,7 @@ import AllocationIntentForm from "./AllocationForm";
 import PerformanceGraph from "./Performance";
 import LiveFeed from "./LiveFeed.jsx";
 import MarketBreadthTable from "./MarketBreadth.jsx";
+import MarketHighLowWormChart from "./Worm.jsx";
 
 // Configuration for the routes in JSON format
 const routesConfig = [
@@ -19,6 +20,7 @@ const routesConfig = [
   { path: "/search-scripts", component: DisplayScript, linkText: "Scripts" },
   { path: "/live-feed", component: LiveFeed, linkText: "Livefeed" },
   { path: "/market-breadth", component: MarketBreadthTable, linkText: "MM" },
+  { path: "/worm", component: MarketHighLowWormChart, linkText: "WORM" },
 ];
 
 const Navbar = () => {
