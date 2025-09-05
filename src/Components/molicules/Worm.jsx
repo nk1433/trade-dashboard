@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { LineChart } from "@mui/x-charts/LineChart";
 import niftymidsmall400 from "../../index/niftymidsmall400-float.json";
 import axios from "axios";
@@ -24,6 +24,7 @@ async function fetchMarketOHLC(instrumentKeys) {
 }
 
 export default function MarketHighLowWormChart() {
+    //TODO: Got reset on navbar switch
     const [seriesData, setSeriesData] = useState([]);
     const instrumentKeys = useRef(getInstrumentKeyParam(niftymidsmall400));
 
@@ -80,7 +81,7 @@ export default function MarketHighLowWormChart() {
                         data: newHighSeries,
                         curve: "natural",
                         color: "green",
-                        area: true, // optional area fill like the example
+                        area: true,
                     },
                     {
                         label: "New Lows",
@@ -94,25 +95,12 @@ export default function MarketHighLowWormChart() {
                     {
                         data: timePoints,
                         label: "Time",
-                        scaleType: "band", // discrete times, change to "time" if Date objects used
-                        // Optionally add colorMap for segmented coloring like example:
-                        /*
-                        colorMap: {
-                          type: 'piecewise',
-                          thresholds: [/* some indices or dates *\/],
-                          colors: ['blue', 'orange', 'green'],
-                        },
-                        */
+                        scaleType: "band",
                     },
                 ]}
                 yAxis={[
                     {
                         label: "Count",
-                        colorMap: {
-                            type: "piecewise",
-                            thresholds: [0, 10],
-                            colors: ["red", "green", "blue"],
-                        },
                     },
                 ]}
             />
