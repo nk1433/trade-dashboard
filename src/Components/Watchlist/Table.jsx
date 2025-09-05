@@ -72,11 +72,14 @@ const WatchList = ({ scripts, type = 'dashboard' }) => {
     return gridColDef;
   });
 
-  const rows = scripts.map((script, index) => ({ id: index, ...script }));
+  const rows = Object.values(scripts).map(metric => ({
+    id: metric.instrumentKey,
+    ...metric,
+  }));
 
   return (
-    <Box sx={{ width: '100%',  }}>
-      <DataGrid rows={rows} columns={columns}  />
+    <Box sx={{ width: '100%', }}>
+      <DataGrid rows={rows} columns={columns} getRowId={row => row.id} pageSize={10} />
     </Box>
   );
 };

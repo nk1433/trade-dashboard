@@ -1,35 +1,33 @@
 import { useMarketDataSocket } from "./useMarketDataSocket";
 import { computeMetrics } from "../Store/upstoxs";
 import { useMarketFeedUrl } from "./useMarketFeedUrl";
-import niftymidsmall400float from "../index/niftymidsmall400-float.json" with { type: "json" };
+import niftymidsmall400float from "../index/niftymidsmall400-float.json";
 
 const token = import.meta.env.VITE_UPSTOXS_ACCESS_KEY;
 
 export const updateWatchlistWithMetrics = async (liveFeed, scriptMap, portfolio, stats) => {
-  if (liveFeed.type === 1) {
-    const results = await Promise.all(
-      Object.entries(liveFeed.feeds).map(async ([instrumentKey, script]) => {
-        const latestFeed = script.fullFeed.marketFF.marketOHLC.ohlc.find((feed) => feed.interval === '1d');
+  const results = await Promise.all(
+    Object.entries(liveFeed.feeds).map(async ([instrumentKey, script]) => {
+      const latestFeed = script.fullFeed.marketFF.marketOHLC.ohlc.find((feed) => feed.interval === '1d');
 
-        return await computeMetrics({
-          scriptName: scriptMap[instrumentKey]?.name || '',
-          instrumentKey,
-          size: portfolio.portfolioSize,
-          riskOfPortfolio: portfolio.riskPercentage,
-          currentDayOpen: latestFeed.open,
-          lowPrice: latestFeed.low,
-          currentVolume: latestFeed.vol,
-          high: latestFeed.high,
-          ltp: latestFeed.close,
-          stats,
-        });
-      })
-    );
+      const metric = await computeMetrics({
+        scriptName: scriptMap[instrumentKey]?.name || '',
+        instrumentKey,
+        size: portfolio.portfolioSize,
+        riskOfPortfolio: portfolio.riskPercentage,
+        currentDayOpen: latestFeed.open,
+        lowPrice: latestFeed.low,
+        currentVolume: latestFeed.vol,
+        high: latestFeed.high,
+        ltp: latestFeed.close,
+        stats,
+      });
 
-    return results;
-  }
+      return [instrumentKey, metric];
+    })
+  );
 
-  return [];
+  return Object.fromEntries(results);
 };
 
 export const useUpstoxWS = () => {

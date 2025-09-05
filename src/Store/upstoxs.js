@@ -1,6 +1,5 @@
-import { createAsyncThunk, createSlice, current } from "@reduxjs/toolkit";
+import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import { calculateAllocationIntent } from "../utils/calculateMetrics";
-import moment from "moment";
 
 export const computeMetrics = async (context) => {
     const {
@@ -73,19 +72,6 @@ const getStats = async () => {
     );
 
     return await stats.json();
-};
-
-const getHistoricalData = async ({ instrumentKey, toDate, fromDate }) => {
-    const historicalResponse = await fetch(
-        `https://api.upstox.com/v3/historical-candle/${instrumentKey}/days/1/${toDate}/${fromDate}`,
-        {
-            headers: {
-                Authorization: `Bearer ${import.meta.env.VITE_UPSTOXS_ACCESS_KEY}`,
-            },
-        }
-    );
-
-    return await historicalResponse.json();
 };
 
 export const getStatsForScripts = createAsyncThunk('Orders/getStats', async () => {
@@ -182,13 +168,17 @@ const orders = createSlice({
     name: "orders",
     initialState: {
         orders: [],
-        orderMetrics: [],
+        orderMetrics: {},
         liveFeed: [],
         stats: {},
     },
     reducers: {
         setOrderMetrics(state, action) {
-            state.orderMetrics = action.payload;
+            const newMetrics = action.payload; 
+            state.orderMetrics = {
+                ...state.orderMetrics,
+                ...newMetrics,
+            };
         },
         setLiveFeed(state, action) {
             state.liveFeed.unshift(action.payload);
