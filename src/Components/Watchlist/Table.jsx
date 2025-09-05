@@ -96,7 +96,7 @@ const WatchList = ({ scripts, type = 'dashboard' }) => {
 };
 
 WatchList.propTypes = {
-  scripts: PropTypes.array.isRequired,
+  scripts: PropTypes.object,
   type: PropTypes.string,
 };
 
