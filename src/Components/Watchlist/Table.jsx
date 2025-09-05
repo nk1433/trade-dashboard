@@ -8,15 +8,50 @@ import { getStatsForScripts } from '../../Store/upstoxs';
 
 const columnsConfig = {
   dashboard: [
-    { field: "scriptName", headerName: "Script", width: 350, renderCell: (params) => <OrderDetailsPortal data={params.row}>{params.value}</OrderDetailsPortal> },
+    {
+      field: "scriptName",
+      headerName: "Script",
+      width: 350,
+      renderCell: (params) => {
+        const isUp = params.row.isUpDay;
+        const color = isUp ? "green" : "red";
+        return (
+          <OrderDetailsPortal data={params.row}>
+            <span style={{ color }}>{params.value}</span>
+          </OrderDetailsPortal>
+        );
+      },
+    },
+    {
+      field: "ltp",
+      headerName: "LTP",
+      renderCell: (params) => {
+        const isUp = params.row.isUpDay;
+        const color = isUp ? "green" : "red";
+        return <span style={{ color }}>{params.value}</span>;
+      },
+    },
+    {
+      field: "changePercentage",
+      headerName: "Change %",
+      renderCell: (params) => {
+        const val = parseFloat(params.value);
+        const color = val >= 0 ? "green" : "red";
+        return <span style={{ color }}>{params.value}%</span>;
+      }
+    },
     { field: "relativeVolumePercentage", headerName: "R-vol % / 21 D" },
-    { field: "gapPercentage", headerName: "Gap %",  },
-    { field: "strongStart", headerName: "Strong Start", renderCell: (params) => <>{params.row.strongStart ? "Yes" : "-" }</> },
-    { field: "ltp", headerName: "LTP",  },
-    { field: "sl", headerName: "SL",  },
-    { field: "maxShareToBuy", headerName: "Shares",  },
+    { field: "gapPercentage", headerName: "Gap %" },
+    {
+      field: "strongStart",
+      headerName: "Strong Start",
+      renderCell: (params) => <>{params.row.strongStart ? "Yes" : "-"}</>,
+    },
+    { field: "sl", headerName: "SL" },
+    { field: "maxShareToBuy", headerName: "Shares" },
     { field: "maxAllocationPercentage", headerName: "Max Alloc" },
-    { field: "barClosingStrength", headerName: "Closing Strength %"},
+    { field: "barClosingStrength", headerName: "Closing Strength %" },
+    
     //TODO: Create a fallback(-), percentage(%) components.
   ],
   allocationSuggestions: [
@@ -44,10 +79,11 @@ const WatchList = ({ scripts, type = 'dashboard' }) => {
     Size: 'allocPer',
     Risk: 'riskPercentage',
     BarClosingStrength: 'barClosingStrength',
+    'Change %': 'changePercentage',
   };
 
   const columns = columnsConfig[type].map(col => {
-    const gridColDef = { field: '', headerName: '',  };
+    const gridColDef = { field: '', headerName: '', };
     if (col.name) {
       gridColDef.field = columnMapping[col.name] || '';
       gridColDef.headerName = col.name;
@@ -82,13 +118,13 @@ const WatchList = ({ scripts, type = 'dashboard' }) => {
 
   return (
     <Box sx={{ width: '100%', }}>
-      <DataGrid 
+      <DataGrid
         initialState={{
           pagination: { paginationModel: { pageSize: 5 } },
         }}
         rows={rows}
-        columns={columns} 
-        getRowId={row => row.id} 
+        columns={columns}
+        getRowId={row => row.id}
         pageSizeOptions={[5, 10, 25, { value: -1, label: 'All' }]}
       />
     </Box>
