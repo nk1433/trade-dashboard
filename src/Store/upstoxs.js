@@ -14,9 +14,6 @@ export const computeMetrics = async (context) => {
         ltp,
         stats,
     } = context;
-
-    console.log(`Computing metrics for ${scriptName}...`);
-
     const barClosingStrength = ((ltp - lowPrice) / (high - lowPrice)) * 100;
     const threshold = currentDayOpen * 0.99;
     const instrumentStats = stats[instrumentKey] || {};
@@ -120,11 +117,7 @@ export const calculateMetricsForScript = createAsyncThunk('Orders/calculateMetri
             }
         }),
     );
-    // TODO: Enable sorting later, creating high flicker in UI
-    // const sortedResults = [...results].sort((a, b) => {
-    //     return b.relativeVolumePercentage - a.relativeVolumePercentage
-    // });
-
+    
     return results;
 });
 

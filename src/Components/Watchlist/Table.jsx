@@ -76,10 +76,21 @@ const WatchList = ({ scripts, type = 'dashboard' }) => {
     id: metric.instrumentKey,
     ...metric,
   }));
+  rows.sort((a, b) => {
+    return b.relativeVolumePercentage - a.relativeVolumePercentage
+  });
 
   return (
     <Box sx={{ width: '100%', }}>
-      <DataGrid rows={rows} columns={columns} getRowId={row => row.id} pageSize={10} />
+      <DataGrid 
+        initialState={{
+          pagination: { paginationModel: { pageSize: 5 } },
+        }}
+        rows={rows}
+        columns={columns} 
+        getRowId={row => row.id} 
+        pageSizeOptions={[5, 10, 25, { value: -1, label: 'All' }]}
+      />
     </Box>
   );
 };
