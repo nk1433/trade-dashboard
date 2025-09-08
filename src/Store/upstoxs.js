@@ -2,57 +2,57 @@ import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import { calculateAllocationIntent } from "../utils/calculateMetrics";
 
 export const computeMetrics = async (context) => {
-  const {
-    scriptName,
-    instrumentKey,
-    size,
-    riskOfPortfolio,
-    currentDayOpen,
-    lowPrice,
-    currentVolume,
-    high,
-    ltp,
-    stats,
-  } = context;
+    const {
+        scriptName,
+        instrumentKey,
+        size,
+        riskOfPortfolio,
+        currentDayOpen,
+        lowPrice,
+        currentVolume,
+        high,
+        ltp,
+        stats,
+    } = context;
 
-  let barClosingStrength = ((ltp - lowPrice) / (high - lowPrice)) * 100;
-  const isUpDay = ltp >= currentDayOpen; // true if up day or flat
-  const changePercentage = (((ltp - previousDayClose) / previousDayClose) * 100);
+    let barClosingStrength = ((ltp - lowPrice) / (high - lowPrice)) * 100;
+    const isUpDay = ltp >= currentDayOpen; // true if up day or flat
 
-  if (!isUpDay) {
-    barClosingStrength = -Math.abs(barClosingStrength);
-  }
+    if (!isUpDay) {
+        barClosingStrength = -Math.abs(barClosingStrength);
+    }
 
-  const threshold = currentDayOpen * 0.99;
-  const instrumentStats = stats[instrumentKey] || {};
-  const { lastPrice, avgVolume21d } = instrumentStats;
+    const threshold = currentDayOpen * 0.99;
+    const instrumentStats = stats[instrumentKey] || {};
+    const { lastPrice, avgVolume21d } = instrumentStats;
 
-  const avgVolume = avgVolume21d;
-  const previousDayClose = lastPrice;
+    const avgVolume = avgVolume21d;
+    const previousDayClose = lastPrice;
 
-  const allocation =
-    ltp - currentDayOpen <= 0
-      ? {
-          maxAllocationPercentage: "-",
-          riskRewardRatio: "-",
-          allocationSuggestions: [],
-        }
-      : calculateAllocationIntent(15, size, ltp, currentDayOpen, riskOfPortfolio);
+    const changePercentage = (((ltp - previousDayClose) / previousDayClose) * 100);
+    const allocation =
+        ltp - currentDayOpen <= 0
+            ? {
+                maxAllocationPercentage: "-",
+                riskRewardRatio: "-",
+                allocationSuggestions: [],
+            }
+            : calculateAllocationIntent(15, size, ltp, currentDayOpen, riskOfPortfolio);
 
-  return {
-    scriptName,
-    avgVolume,
-    instrumentKey,
-    relativeVolumePercentage: ((currentVolume / parseFloat(avgVolume)) * 100).toFixed(2),
-    gapPercentage: (((currentDayOpen - previousDayClose) / previousDayClose) * 100).toFixed(2),
-    strongStart: lowPrice >= threshold,
-    ltp: ltp,
-    sl: currentDayOpen,
-    barClosingStrength: barClosingStrength.toFixed(0),
-    isUpDay,      
-    changePercentage: changePercentage.toFixed(2),
-    ...allocation,
-  };
+    return {
+        scriptName,
+        avgVolume,
+        instrumentKey,
+        relativeVolumePercentage: ((currentVolume / parseFloat(avgVolume)) * 100).toFixed(2),
+        gapPercentage: (((currentDayOpen - previousDayClose) / previousDayClose) * 100).toFixed(2),
+        strongStart: lowPrice >= threshold,
+        ltp: ltp,
+        sl: currentDayOpen,
+        barClosingStrength: barClosingStrength.toFixed(0),
+        isUpDay,
+        changePercentage: changePercentage.toFixed(2),
+        ...allocation,
+    };
 };
 
 const getMarketQuote = async (instrumentKey) => {
@@ -128,7 +128,7 @@ export const calculateMetricsForScript = createAsyncThunk('Orders/calculateMetri
             }
         }),
     );
-    
+
     return results;
 });
 
@@ -178,7 +178,7 @@ const orders = createSlice({
     },
     reducers: {
         setOrderMetrics(state, action) {
-            const newMetrics = action.payload; 
+            const newMetrics = action.payload;
             state.orderMetrics = {
                 ...state.orderMetrics,
                 ...newMetrics,

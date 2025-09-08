@@ -14,7 +14,9 @@ const columnsConfig = {
       width: 350,
       renderCell: (params) => {
         const isUp = params.row.isUpDay;
-        const color = isUp ? "green" : "red";
+        const gapup = params.row.gapPercentage;
+        const color = isUp && gapup >=0 ? "green" : "red";
+
         return (
           <OrderDetailsPortal data={params.row}>
             <span style={{ color }}>{params.value}</span>
@@ -27,7 +29,9 @@ const columnsConfig = {
       headerName: "LTP",
       renderCell: (params) => {
         const isUp = params.row.isUpDay;
-        const color = isUp ? "green" : "red";
+        const gapup = params.row.gapPercentage;
+        const color = isUp && gapup >= 0 ? "green" : "red";
+
         return <span style={{ color }}>{params.value}</span>;
       },
     },
@@ -35,8 +39,10 @@ const columnsConfig = {
       field: "changePercentage",
       headerName: "Change %",
       renderCell: (params) => {
-        const val = parseFloat(params.value);
-        const color = val >= 0 ? "green" : "red";
+        const val = params.row.isUpDay;
+        const gapup = params.row.gapPercentage;
+        const color = val && gapup >= 0 ? "green" : "red";
+
         return <span style={{ color }}>{params.value}%</span>;
       }
     },
