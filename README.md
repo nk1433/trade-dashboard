@@ -65,3 +65,7 @@ The following enhancements are planned:
 31. [ Func ] - Build a monorepo to join react + node + aws
 32. [ Func ] - Add a todo dashboard with checklist/routines
 33. [ Func ] - Cache the historical data API call for every live feed
+34. [ Func ] - Create dashboard for each watchlist
+35. [ Func ] - Enable the scripts to be added a watchlish
+36. [ Ref ] - Considered time series in MongoDB
+37. [ Func ] - Visualize the no.of gapup in the market intraday metrics
