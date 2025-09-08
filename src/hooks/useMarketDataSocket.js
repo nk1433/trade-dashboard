@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Buffer } from "buffer";
 import protobuf from "protobufjs";
 import { useDispatch } from "react-redux";
-import { setLiveFeed, setOrderMetrics } from "../Store/upstoxs";
+import { setLiveFeed, setOrderMetrics, setScanResults } from "../Store/upstoxs";
 import { updateWatchlistWithMetrics } from "./useUpstoxWS";
 import niftymidsmall400float from "../index/niftymidsmall400-float.json";
 import { useSelector } from "react-redux";
@@ -43,7 +43,7 @@ export function useMarketDataSocket({ wsUrl, request }) {
 
         return acc;
     }, {});
-    
+
 
     useEffect(() => {
         let ws;
@@ -65,12 +65,14 @@ export function useMarketDataSocket({ wsUrl, request }) {
                 let buffer = Buffer.from(arrayBuffer);
                 let response = decodeProfobuf(buffer);
 
-                if(response.type === 1){
-                    const results = await updateWatchlistWithMetrics(response, scriptMap, portfolio, stats);
-                    dispatch(setOrderMetrics(results));
+                if (response.type === 1) {
+                    const { metrics, scanResults } = await updateWatchlistWithMetrics(response, scriptMap, portfolio, stats);
+
+                    dispatch(setOrderMetrics(metrics));    // Dispatch all metrics
+                    dispatch(setScanResults(scanResults)); // Dispatch filtered scan results
                 }
 
-                // dispatch(setLiveFeed(response));
+                // dispatch(setLiveFeed(response)); // Uncomment if you want to store raw feed
             };
 
             ws.onerror = () => {

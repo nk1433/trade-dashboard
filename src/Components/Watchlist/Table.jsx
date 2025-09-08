@@ -126,7 +126,7 @@ const WatchList = ({ scripts, type = 'dashboard' }) => {
     <Box sx={{ width: '100%', }}>
       <DataGrid
         initialState={{
-          pagination: { paginationModel: { pageSize: 5 } },
+          pagination: { paginationModel: { pageSize: 10 } },
         }}
         rows={rows}
         columns={columns}
