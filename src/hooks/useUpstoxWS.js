@@ -38,16 +38,21 @@ export const updateWatchlistWithMetrics = async (liveFeed, scriptMap, portfolio,
     });
 
     if (!acc.metrics) acc.metrics = {};
-    if (!acc.scanResults) acc.scanResults = {};
+    if (!acc.bullishMB) acc.bullishMB = {};
+    if (!acc.bearishMB) acc.bearishMB = {};
 
     acc.metrics[instrumentKey] = metric;
 
     if (priceRatio >= 1.04 && currentVolume > prevDayVolume && currentVolume >= 100000) {
-      acc.scanResults[instrumentKey] = metric;
+      acc.bullishMB[instrumentKey] = metric;
+    }
+
+    if (priceRatio <= 0.96 && currentVolume > prevDayVolume && currentVolume >= 100000) {
+      acc.bearishMB[instrumentKey] = metric;
     }
 
     return acc;
-  }, Promise.resolve({ metrics: {}, scanResults: {} }));
+  }, Promise.resolve({ metrics: {}, bullishMB: {}, bearishMB: {} }));
 
   return results;
 };

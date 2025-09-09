@@ -29,7 +29,7 @@ export const computeMetrics = async (context) => {
     const avgVolume = avgVolume21d;
     const previousDayClose = lastPrice;
 
-    const changePercentage = (((ltp - previousDayClose) / previousDayClose) * 100);
+    const changePercentage = ((ltp - currentDayOpen) / currentDayOpen) * 100;
     const allocation =
         ltp - currentDayOpen <= 0
             ? {
@@ -176,6 +176,7 @@ const orders = createSlice({
         liveFeed: [],
         stats: {},
         bullishBurst: [],
+        bearishBurst: [],
     },
     reducers: {
         setOrderMetrics(state, action) {
@@ -188,10 +189,17 @@ const orders = createSlice({
         setLiveFeed(state, action) {
             state.liveFeed.unshift(action.payload);
         },
-        setScanResults(state, action) {
+        setBullishMB(state, action) {
             const newMetrics = action.payload;
             state.bullishBurst = {
                 ...state.bullishBurst,
+                ...newMetrics,
+            };
+        },
+        setBearishMB(state, action) {
+            const newMetrics = action.payload;
+            state.bearishBurst = {
+                ...state.bearishBurst,
                 ...newMetrics,
             };
         }
@@ -210,4 +218,4 @@ const orders = createSlice({
 });
 
 export default orders.reducer;
-export const { setOrderMetrics, setLiveFeed, setScanResults } = orders.actions;
+export const { setOrderMetrics, setLiveFeed, setBullishMB, setBearishMB } = orders.actions;
