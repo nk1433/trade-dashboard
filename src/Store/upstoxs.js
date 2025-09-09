@@ -189,7 +189,11 @@ const orders = createSlice({
             state.liveFeed.unshift(action.payload);
         },
         setScanResults(state, action) {
-            state.bullishBurst = action.payload;
+            const newMetrics = action.payload;
+            state.bullishBurst = {
+                ...state.bullishBurst,
+                ...newMetrics,
+            };
         }
     },
     extraReducers: (builder) => {
