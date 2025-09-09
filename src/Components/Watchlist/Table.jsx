@@ -14,8 +14,7 @@ const columnsConfig = {
       width: 350,
       renderCell: (params) => {
         const isUp = params.row.isUpDay;
-        const gapup = params.row.gapPercentage;
-        const color = isUp && gapup >=0 ? "green" : "red";
+        const color = isUp ? "green" : "red";
 
         return (
           <OrderDetailsPortal data={params.row}>
@@ -29,8 +28,7 @@ const columnsConfig = {
       headerName: "LTP",
       renderCell: (params) => {
         const isUp = params.row.isUpDay;
-        const gapup = params.row.gapPercentage;
-        const color = isUp && gapup >= 0 ? "green" : "red";
+        const color = isUp ? "green" : "red";
 
         return <span style={{ color }}>{params.value}</span>;
       },
@@ -39,15 +37,22 @@ const columnsConfig = {
       field: "changePercentage",
       headerName: "Change %",
       renderCell: (params) => {
-        const val = params.row.isUpDay;
-        const gapup = params.row.gapPercentage;
-        const color = val && gapup >= 0 ? "green" : "red";
+        const isUp = params.row.isUpDay;
+        const color = isUp  ? "green" : "red";
 
         return <span style={{ color }}>{params.value}%</span>;
       }
     },
     { field: "relativeVolumePercentage", headerName: "R-vol % / 21 D" },
-    { field: "gapPercentage", headerName: "Gap %" },
+    { field: "gapPercentage", 
+      headerName: "Gap %",
+      renderCell: (params) => {
+        const gapupPer = params.row.gapPercentage;
+        const color = gapupPer > 0 ? "green" : "red";
+
+        return <span style={{ color }}>{params.value}%</span>;
+      }
+    },
     {
       field: "strongStart",
       headerName: "Strong Start",
