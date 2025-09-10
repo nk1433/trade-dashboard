@@ -72,3 +72,4 @@ The following enhancements are planned:
 38. [ Func ] - Add persistant bullish/bearish MB in local storage with date as a property
 39. [ Func ] - Create snapshot component over tables and graph
 40. [ Func ] - Try to present the +-4% in MB table.
+41. [ Func ] - Track the price where the alert came in MB, track no.of.stocks which came in the alert as EOD report
