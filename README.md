@@ -69,3 +69,6 @@ The following enhancements are planned:
 35. [ Func ] - Enable the scripts to be added a watchlish
 36. [ Ref ] - Considered time series in MongoDB
 37. [ Func ] - Visualize the no.of gapup in the market intraday metrics
+38. [ Func ] - Add persistant bullish/bearish MB in local storage with date as a property
+39. [ Func ] - Create snapshot component over tables and graph
+40. [ Func ] - Try to present the +-4% in MB table.

@@ -1,38 +1,49 @@
-import { Box } from '@mui/material';
+import { Box, IconButton, Tooltip } from '@mui/material';
 import PropTypes from 'prop-types';
 import OrderDetailsPortal from './OrderDetails';
 import { DataGrid } from '@mui/x-data-grid';
 import { useEffect } from 'react';
 import { useDispatch } from 'react-redux';
 import { getStatsForScripts } from '../../Store/upstoxs';
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 
 const columnsConfig = {
   dashboard: [
     {
       field: "scriptName",
       headerName: "Script",
-      width: 350,
+      width: 300, // widened for icon
       renderCell: (params) => {
         const isUp = params.row.isUpDay;
         const color = isUp ? "green" : "red";
 
+        // Copy to clipboard handler
+        const handleCopy = (e) => {
+          e.stopPropagation(); // prevent row select on click
+          navigator.clipboard.writeText(params.value)
+            .then(() => { /* optionally show a success message */ })
+            .catch(() => { /* optionally handle errors */ });
+        };
+
         return (
           <OrderDetailsPortal data={params.row}>
-            <span style={{ color }}>{params.value}</span>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <span style={{ color }}>{params.value}</span>
+              <Tooltip title="Copy script name">
+                <IconButton
+                  size="small"
+                  onClick={handleCopy}
+                  aria-label="copy script name"
+                >
+                  <ContentCopyIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+            </Box>
           </OrderDetailsPortal>
         );
       },
     },
-    {
-      field: "ltp",
-      headerName: "LTP",
-      renderCell: (params) => {
-        const isUp = params.row.isUpDay;
-        const color = isUp ? "green" : "red";
-
-        return <span style={{ color }}>{params.value}</span>;
-      },
-    },
+    { field: "barClosingStrength", headerName: "Closing Strength %" },
     {
       field: "changePercentage",
       headerName: "Change %",
@@ -61,7 +72,17 @@ const columnsConfig = {
     { field: "sl", headerName: "SL" },
     { field: "maxShareToBuy", headerName: "Shares" },
     { field: "maxAllocationPercentage", headerName: "Max Alloc" },
-    { field: "barClosingStrength", headerName: "Closing Strength %" },
+    { field: "lossInMoney", headerName: "Loss" },
+    {
+      field: "ltp",
+      headerName: "LTP",
+      renderCell: (params) => {
+        const isUp = params.row.isUpDay;
+        const color = isUp ? "green" : "red";
+
+        return <span style={{ color }}>{params.value}</span>;
+      },
+    }
     
     //TODO: Create a fallback(-), percentage(%) components.
   ],
@@ -91,6 +112,7 @@ const WatchList = ({ scripts, type = 'dashboard' }) => {
     Risk: 'riskPercentage',
     BarClosingStrength: 'barClosingStrength',
     'Change %': 'changePercentage',
+    'Loss': 'lossInMoney',
   };
 
   const columns = columnsConfig[type].map(col => {
