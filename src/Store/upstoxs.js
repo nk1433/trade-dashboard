@@ -24,7 +24,7 @@ export const computeMetrics = async (context) => {
 
     const threshold = currentDayOpen * 0.99;
     const instrumentStats = stats[instrumentKey] || {};
-    const { lastPrice, avgVolume21d } = instrumentStats;
+    const { lastPrice, avgVolume21d, avgValueVolume21d } = instrumentStats;
 
     const avgVolume = avgVolume21d;
     const previousDayClose = lastPrice;
@@ -51,6 +51,7 @@ export const computeMetrics = async (context) => {
         barClosingStrength: barClosingStrength.toFixed(0),
         isUpDay,
         changePercentage: changePercentage.toFixed(2),
+        avgValueVolume21d,
         ...allocation,
     };
 };

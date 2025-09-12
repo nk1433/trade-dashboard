@@ -6,6 +6,7 @@ import { useEffect } from 'react';
 import { useDispatch } from 'react-redux';
 import { getStatsForScripts } from '../../Store/upstoxs';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+import { formatToIndianUnits } from '../../utils/index';
 
 const columnsConfig = {
   dashboard: [
@@ -82,6 +83,14 @@ const columnsConfig = {
 
         return <span style={{ color }}>{params.value}</span>;
       },
+    },
+    {
+      field: "avgValueVolume21d",
+      headerName: "Avg Value Vol (21 D)",
+      width: 150,
+      renderCell: (params) => {
+        return <span>{formatToIndianUnits(params.value)}</span>;
+      }
     }
     
     //TODO: Create a fallback(-), percentage(%) components.
@@ -113,6 +122,7 @@ const WatchList = ({ scripts, type = 'dashboard' }) => {
     BarClosingStrength: 'barClosingStrength',
     'Change %': 'changePercentage',
     'Loss': 'lossInMoney',
+    'avgValueVolume21d': 'avgValueVolume21d'
   };
 
   const columns = columnsConfig[type].map(col => {

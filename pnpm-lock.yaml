@@ -38,6 +38,9 @@ importers:
       buffer:
         specifier: ^6.0.3
         version: 6.0.3
+      indian-number-format:
+        specifier: ^1.0.5
+        version: 1.0.5
       lodash:
         specifier: ^4.17.21
         version: 4.17.21
@@ -1418,6 +1421,9 @@ packages:
   imurmurhash@0.1.4:
     resolution: {integrity: sha512-JmXMZ6wuvDmLiHEml9ykzqO6lwFbof0GG4IkcGaENdCRDDmMVnny7s5HsIgHCbaq0w2MyPhDqkhTUgS2LU2PHA==}
     engines: {node: '>=0.8.19'}
+
+  indian-number-format@1.0.5:
+    resolution: {integrity: sha512-srQIMFKY82WpaJiTtM6LRD+5ZFFuSOjFh9aIbjdPOln1lG7Zvs3S8PGJUOvto+6IMXc8zP+1y7kESEZltUTjqw==}
 
   inflight@1.0.6:
     resolution: {integrity: sha512-k92I/b08q4wvFscXCLvqfsHCrjrF7yiXsQuIVvVE7N82W3+aqpzuUdBbfhWcy/FZR3/4IgflMgKLOsvPDrGCJA==}
@@ -3686,6 +3692,8 @@ snapshots:
       resolve-from: 4.0.0
 
   imurmurhash@0.1.4: {}
+
+  indian-number-format@1.0.5: {}
 
   inflight@1.0.6:
     dependencies:
