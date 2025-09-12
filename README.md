@@ -73,3 +73,7 @@ The following enhancements are planned:
 39. [ Func ] - Create snapshot component over tables and graph
 40. [ Func ] - Try to present the +-4% in MB table.
 41. [ Func ] - Track the price where the alert came in MB, track no.of.stocks which came in the alert as EOD report
+42. [ Func ] - Add persistant notification when the stock entered the MBB and at what price and time.
+43. [ Func ] - Use multiple tabs for ipo/nifty50/niftymidsmall400 and have active ws connection according to that tab
+44. [ Func ] - Introduce dollar volume breakout scan with BMB - https://stockbee.blogspot.com/2009/08/what-is-dollar-volume-and-why-it-is.html
+45. [ Func ] - Add live metric volume * currentPrice to see dollar price volume 
