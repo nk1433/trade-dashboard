@@ -52,7 +52,7 @@ export default function MarketHighLowWormChart() {
                     ...prev,
                     { time: timeLabel, newHighs: newHighCount, newLows: newLowCount }
                 ];
-                return updated.length > 40 ? updated.slice(updated.length - 40) : updated;
+                return updated;
             });
         };
 
