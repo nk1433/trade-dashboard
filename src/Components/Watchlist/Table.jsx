@@ -66,6 +66,15 @@ const columnsConfig = {
       }
     },
     {
+      field: "currentMinuteVolume",
+      headerName: "Volume ROC %",
+      width: 130,
+      renderCell: (params) => {
+        const color = params.value > 0 ? "green" : "red";
+        return <span style={{ color }}>{params.value?.toFixed(2)}%</span>;
+      }
+    },
+    {
       field: "strongStart",
       headerName: "Strong Start",
       renderCell: (params) => <>{params.row.strongStart ? "Yes" : "-"}</>,
@@ -122,7 +131,8 @@ const WatchList = ({ scripts, type = 'dashboard' }) => {
     BarClosingStrength: 'barClosingStrength',
     'Change %': 'changePercentage',
     'Loss': 'lossInMoney',
-    'avgValueVolume21d': 'avgValueVolume21d'
+    'avgValueVolume21d': 'avgValueVolume21d',
+    currentMinuteVolume: 'currentMinuteVolume',
   };
 
   const columns = columnsConfig[type].map(col => {

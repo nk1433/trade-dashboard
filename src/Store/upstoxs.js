@@ -13,6 +13,7 @@ export const computeMetrics = async (context) => {
         high,
         ltp,
         stats,
+        currentMinuteVolume,
     } = context;
 
     let barClosingStrength = ((ltp - lowPrice) / (high - lowPrice)) * 100;
@@ -52,6 +53,7 @@ export const computeMetrics = async (context) => {
         isUpDay,
         changePercentage: changePercentage.toFixed(2),
         avgValueVolume21d,
+        currentMinuteVolume,
         ...allocation,
     };
 };

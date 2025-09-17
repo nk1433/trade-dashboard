@@ -11,30 +11,44 @@ export const updateWatchlistWithMetrics = async (liveFeed, scriptMap, portfolio,
   const results = await entries.reduce(async (accP, [instrumentKey, script]) => {
     const acc = await accP;
 
-    const latestFeed = script.fullFeed?.marketFF?.marketOHLC?.ohlc.find(feed => feed.interval === '1d');
-    if (!latestFeed) return acc;
+    // Get daily OHLC feed
+    const latestDayFeed = script.fullFeed?.marketFF?.marketOHLC?.ohlc.find(feed => feed.interval === '1d');
+    // Get latest minute OHLC feed
+    const latestMinuteFeed = script.fullFeed?.marketFF?.marketOHLC?.ohlc.find(feed => feed.interval === 'I1');
+
+    if (!latestDayFeed || !latestMinuteFeed) return acc;
 
     const prevStats = stats[instrumentKey] || {};
     const prevDayVolume = prevStats.prevDayVolume || 0;
     const prevDayClose = prevStats.lastPrice || 0;
 
-    const currentClose = latestFeed.close;
-    const currentVolume = latestFeed.vol;
+    const currentClose = latestDayFeed.close;
+    const currentVolume = latestDayFeed.vol;
+    const currentMinuteVolume = latestMinuteFeed.vol;
 
     const priceRatio = prevDayClose > 0 ? currentClose / prevDayClose : 0;
 
-    // Compute full metrics
+    // Volume surge rate (minute vs daily)
+    // This shows what fraction of today's volume just happened in the last minute
+    const volSurgeRate =
+      currentVolume > 0 ? (currentMinuteVolume / currentVolume) * 100 : 0;
+
+    // You can also use daily average minute volume, for example:
+    // const avgMinuteVolume = currentVolume / totalTradingMinutesSoFarToday;
+
     const metric = await computeMetrics({
       scriptName: scriptMap[instrumentKey]?.name || '',
       instrumentKey,
       size: portfolio.portfolioSize,
       riskOfPortfolio: portfolio.riskPercentage,
-      currentDayOpen: latestFeed.open,
-      lowPrice: latestFeed.low,
+      currentDayOpen: latestDayFeed.open,
+      lowPrice: latestDayFeed.low,
       currentVolume,
-      high: latestFeed.high,
+      high: latestDayFeed.high,
       ltp: currentClose,
       stats,
+      volSurgeRate, // percent of today's volume just in the last minute
+      currentMinuteVolume,
     });
 
     if (!acc.metrics) acc.metrics = {};
@@ -56,7 +70,6 @@ export const updateWatchlistWithMetrics = async (liveFeed, scriptMap, portfolio,
 
   return results;
 };
-
 
 export const useUpstoxWS = () => {
   const scripts = niftymidsmall400float;
