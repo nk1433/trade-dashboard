@@ -77,3 +77,4 @@ The following enhancements are planned:
 43. [ Func ] - Use multiple tabs for ipo/nifty50/niftymidsmall400 and have active ws connection according to that tab
 44. [ Func ] - Introduce dollar volume breakout scan with BMB - https://stockbee.blogspot.com/2009/08/what-is-dollar-volume-and-why-it-is.html
 45. [ Func ] - Add live metric volume * currentPrice to see dollar price volume 
+46. [ Func ] - Add a filter to see specific stock in a watchlist table.
