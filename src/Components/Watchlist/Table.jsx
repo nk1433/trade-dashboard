@@ -7,6 +7,7 @@ import { useDispatch } from 'react-redux';
 import { getStatsForScripts } from '../../Store/upstoxs';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import { formatToIndianUnits } from '../../utils/index';
+const token = import.meta.env.VITE_UPSTOXS_ACCESS_KEY;
 
 const columnsConfig = {
   dashboard: [
@@ -43,6 +44,68 @@ const columnsConfig = {
           </OrderDetailsPortal>
         );
       },
+    },
+    {
+      field: 'placeOrder',
+      headerName: 'Place Order',
+      width: 130,
+      sortable: false,
+      filterable: false,
+      renderCell: (params) => {
+        const handlePlaceOrder = async (event) => {
+          event.stopPropagation(); // prevent row selection on click
+
+          const accessToken = 'Bearer ' + token; // replace with your token retrieval logic
+
+          // Prepare main market order payload
+          const mainOrderPayload = {
+            instrument_token: params.row.instrumentKey,
+            quantity: params.row.maxShareToBuy,
+            product: 'D', // delivery or as applicable
+            validity: 'DAY',
+            price: 0, // market order price
+            order_type: 'MARKET',
+            transaction_type: 'BUY',
+            disclosed_quantity: 0,
+            trigger_price:  params.row.sl,
+            is_amo: false,
+            slice: true,
+          };
+
+          console.log(mainOrderPayload)
+
+          try {
+            // Place main order
+            const mainResponse = await fetch('http://localhost:3015/place-order', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                accept:  'application/json',
+                Authorization: accessToken,
+              },
+              body: JSON.stringify(mainOrderPayload),
+            });
+
+            if (!mainResponse.ok) {
+              const errorData = await mainResponse.json();
+              alert('Main order failed: ' + (errorData.error?.message || JSON.stringify(errorData)));
+              return;
+            }
+
+            const mainData = await mainResponse.json();
+            alert('Main order placed successfully! Order IDs: ' + mainData.data.order_ids.join(', '));
+
+          } catch (error) {
+            alert('Error placing order: ' + error.message);
+          }
+        };
+
+        return (
+          <button type="button" onClick={handlePlaceOrder}>
+            Place Order
+          </button>
+        );
+      }
     },
     { field: "barClosingStrength", headerName: "Closing Strength %" },
     {
