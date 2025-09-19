@@ -38,6 +38,7 @@ export const updateWatchlistWithMetrics = async (liveFeed, scriptMap, portfolio,
 
     const metric = await computeMetrics({
       scriptName: scriptMap[instrumentKey]?.name || '',
+      symbol: scriptMap[instrumentKey]?.tradingsymbol,
       instrumentKey,
       size: portfolio.portfolioSize,
       riskOfPortfolio: portfolio.riskPercentage,

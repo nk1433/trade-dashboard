@@ -14,6 +14,7 @@ export const computeMetrics = async (context) => {
         ltp,
         stats,
         currentMinuteVolume,
+        symbol,
     } = context;
 
     let barClosingStrength = ((ltp - lowPrice) / (high - lowPrice)) * 100;
@@ -42,6 +43,7 @@ export const computeMetrics = async (context) => {
 
     return {
         scriptName,
+        symbol,
         avgVolume,
         instrumentKey,
         relativeVolumePercentage: ((currentVolume / parseFloat(avgVolume)) * 100).toFixed(2),
