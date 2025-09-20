@@ -1,12 +1,13 @@
 import { Box, IconButton, Tooltip } from '@mui/material';
 import PropTypes from 'prop-types';
 import OrderDetailsPortal from './OrderDetails';
-import { DataGrid } from '@mui/x-data-grid';
-import { useEffect } from 'react';
+import { DataGrid, GridLogicOperator } from '@mui/x-data-grid';
+import { useEffect, useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { getStatsForScripts } from '../../Store/upstoxs';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import { formatToIndianUnits } from '../../utils/index';
+
 const token = import.meta.env.VITE_UPSTOXS_ACCESS_KEY;
 
 const columnsConfig = {
@@ -67,7 +68,7 @@ const columnsConfig = {
             order_type: 'MARKET',
             transaction_type: 'BUY',
             disclosed_quantity: 0,
-            trigger_price:  params.row.sl,
+            trigger_price: params.row.sl,
             is_amo: false,
             slice: true,
           };
@@ -80,7 +81,7 @@ const columnsConfig = {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
-                accept:  'application/json',
+                accept: 'application/json',
                 Authorization: accessToken,
               },
               body: JSON.stringify(mainOrderPayload),
@@ -107,19 +108,20 @@ const columnsConfig = {
         );
       }
     },
-    { field: "barClosingStrength", headerName: "Closing Strength %" },
+    { field: "barClosingStrength", headerName: "Closing Strength %", type: 'number',  },
     {
       field: "changePercentage",
       headerName: "Change %",
       renderCell: (params) => {
         const isUp = params.row.isUpDay;
-        const color = isUp  ? "green" : "red";
+        const color = isUp ? "green" : "red";
 
         return <span style={{ color }}>{params.value}%</span>;
       }
     },
     { field: "relativeVolumePercentage", headerName: "R-vol % / 21 D" },
-    { field: "gapPercentage", 
+    {
+      field: "gapPercentage",
       headerName: "Gap %",
       renderCell: (params) => {
         const gapupPer = params.row.gapPercentage;
@@ -164,7 +166,7 @@ const columnsConfig = {
         return <span>{formatToIndianUnits(params.value)}</span>;
       }
     }
-    
+
     //TODO: Create a fallback(-), percentage(%) components.
   ],
   allocationSuggestions: [
@@ -173,68 +175,79 @@ const columnsConfig = {
   ],
 };
 
+const columnMapping = {
+  Script: 'scriptName',
+  LTP: 'ltp',
+  SL: 'sl',
+  Shares: 'maxShareToBuy',
+  'Max Alloc': 'maxAllocationPercentage',
+  'R-vol % / 21 D': 'relativeVolumePercentage',
+  'Gap %': 'gapPercentage',
+  'Strong Start': 'strongStart',
+  Size: 'allocPer',
+  Risk: 'riskPercentage',
+  BarClosingStrength: 'barClosingStrength',
+  'Change %': 'changePercentage',
+  'Loss': 'lossInMoney',
+  'avgValueVolume21d': 'avgValueVolume21d',
+  currentMinuteVolume: 'currentMinuteVolume',
+};
+
+const initialfilterModel = {
+  items: [
+    { id: 1, field: 'barClosingStrength', operator: '>=', value: '70' }
+  ],
+  logicOperator: GridLogicOperator.And,
+};
+
 const WatchList = ({ scripts, type = 'dashboard' }) => {
   const dispatch = useDispatch();
+
+  const [filterModel, setFilterModel] = useState(initialfilterModel);
 
   useEffect(() => {
     dispatch(getStatsForScripts());
   }, []);
 
-  const columnMapping = {
-    Script: 'scriptName',
-    LTP: 'ltp',
-    SL: 'sl',
-    Shares: 'maxShareToBuy',
-    'Max Alloc': 'maxAllocationPercentage',
-    'R-vol % / 21 D': 'relativeVolumePercentage',
-    'Gap %': 'gapPercentage',
-    'Strong Start': 'strongStart',
-    Size: 'allocPer',
-    Risk: 'riskPercentage',
-    BarClosingStrength: 'barClosingStrength',
-    'Change %': 'changePercentage',
-    'Loss': 'lossInMoney',
-    'avgValueVolume21d': 'avgValueVolume21d',
-    currentMinuteVolume: 'currentMinuteVolume',
-  };
+ const columns = columnsConfig[type]
+  .map(col => {
+    let field = '';
+    let headerName = '';
+    let width, renderCell, filterable;
 
-  const columns = columnsConfig[type].map(col => {
-    const gridColDef = { field: '', headerName: '', };
     if (col.name) {
-      gridColDef.field = columnMapping[col.name] || '';
-      gridColDef.headerName = col.name;
-      if (col.width) {
-        gridColDef.width = col.width;
-      }
-      if (col.renderCell) {
-        gridColDef.renderCell = col.renderCell;
-      } else if (col.value && col.name === "Script") {
-        gridColDef.renderCell = (params) => col.value(params.row);
-      }
+      field = columnMapping[col.name] || '';
+      headerName = col.name;
+      width = col.width;
+      renderCell = col.renderCell ?? (col.value && col.name === "Script" ? (params) => col.value(params.row) : undefined);
+      filterable = col.filterable;
     } else if (col.field && col.headerName) {
-      gridColDef.field = col.field;
-      gridColDef.headerName = col.headerName;
-      if (col.width) {
-        gridColDef.width = col.width;
-      }
-      if (col.renderCell) {
-        gridColDef.renderCell = col.renderCell;
-      }
+      ({ field, headerName, width, renderCell, filterable } = col);
     }
-    return gridColDef;
-  });
+
+    if (!field || !headerName) return null;  // Discard invalid columns
+
+    return {
+      field,
+      headerName,
+      ...(width && { width }),
+      ...(renderCell && { renderCell }),
+      ...(filterable !== undefined && { filterable }),
+      ...(col.type && { type: col.type }), 
+    };
+  })
+  .filter(Boolean);  // Remove nulls
 
   const rows = Object.values(scripts).map(metric => ({
     id: metric.instrumentKey,
     ...metric,
   }));
-  rows.sort((a, b) => {
-    return b.relativeVolumePercentage - a.relativeVolumePercentage
-  });
 
   return (
     <Box sx={{ width: '100%', }}>
       <DataGrid
+        filterModel={filterModel}
+        onFilterModelChange={setFilterModel}
         initialState={{
           pagination: { paginationModel: { pageSize: 10 } },
         }}

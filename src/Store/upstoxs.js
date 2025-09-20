@@ -51,7 +51,7 @@ export const computeMetrics = async (context) => {
         strongStart: lowPrice >= threshold,
         ltp: ltp,
         sl: currentDayOpen,
-        barClosingStrength: barClosingStrength.toFixed(0),
+        barClosingStrength: Math.round(barClosingStrength),
         isUpDay,
         changePercentage: changePercentage.toFixed(2),
         avgValueVolume21d,
