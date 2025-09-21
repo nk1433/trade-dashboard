@@ -1,10 +1,8 @@
-import React from 'react';
 import { BarChart } from '@mui/x-charts/BarChart';
 import { Typography, Box } from '@mui/material';
+import PropTypes from 'prop-types';
 
 export default function MarketBreadthBarChart({ data, seriesKey, chartTitle, barColor }) {
-    console.log({ data, seriesKey, chartTitle, barColor })
-  // data: array of objects with date and numeric values by seriesKey
   const categories = data.map(d => d.date);
   const seriesData = data.map(d => d[seriesKey]);
 
@@ -38,3 +36,10 @@ export default function MarketBreadthBarChart({ data, seriesKey, chartTitle, bar
     </Box>
   );
 }
+
+MarketBreadthBarChart.propTypes = {
+  data: PropTypes.array,
+  seriesKey: PropTypes.string,
+  chartTitle: PropTypes.string,
+  barColor: PropTypes.string,
+};

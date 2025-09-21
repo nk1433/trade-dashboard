@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
-import { Box, Button, FormControl, FormControlLabel, Radio, RadioGroup, Typography } from '@mui/material';
+import { Box, FormControl, FormControlLabel, Radio, RadioGroup, Typography } from '@mui/material';
 import { DataGrid } from '@mui/x-data-grid';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchMarketBreadth } from '../../Store/marketBreadth';
-import MarketBreadthBarChart from './MarketBreadthChart';  // Import your bar chart component
+import MarketBreadthBarChart from './MarketBreadthChart';
 import BreadthDataForTV from './TVLightChart';
 
 const columns = [
@@ -35,16 +35,6 @@ const MarketBreadthTable = () => {
 
   return (
     <Box sx={{ width: '100%', paddingTop: '50px' }}>
-      <Box sx={{ height: '500px', marginBottom: 4 }}>
-        <DataGrid
-          rows={rows}
-          columns={columns}
-          pageSize={10}
-          rowsPerPageOptions={[10, 25, 50, 100]}
-          disableSelectionOnClick
-        />
-      </Box>
-
       <Box sx={{ maxWidth: 1200, margin: 'auto', p: 2 }}>
         <Typography variant="h6" sx={{ mb: 2 }}>
           Select Chart Type:
@@ -98,6 +88,16 @@ const MarketBreadthTable = () => {
             />
           </>
         )}
+      </Box>
+
+      <Box sx={{ height: '500px', marginBottom: 4 }}>
+        <DataGrid
+          rows={rows}
+          columns={columns}
+          pageSize={10}
+          rowsPerPageOptions={[10, 25, 50, 100]}
+          disableSelectionOnClick
+        />
       </Box>
       <Box sx={{ marginTop: 4, textAlign: 'left' }}>
         <div>
