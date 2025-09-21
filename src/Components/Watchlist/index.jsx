@@ -27,7 +27,7 @@ const Dashboard = () => {
   return (
     <Box sx={{ p: 2 }}>
       <FormControl component="fieldset" sx={{ mb: 2 }}>
-        <FormLabel component="legend">Select Market Breadth</FormLabel>
+        <FormLabel component="legend">Select View</FormLabel>
         <RadioGroup row value={selectedIndex} onChange={handleSelectionChange}>
           <FormControlLabel value="all" control={<Radio />} label={`All - ${Object.keys(orderMetrics).length}`} />
           <FormControlLabel value="bullishMB" control={<Radio />} label={`Bullish MB - ${Object.keys(bullishBurst).length}`} />

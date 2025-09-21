@@ -1,9 +1,10 @@
-import { useEffect } from 'react';
-import { Box } from '@mui/material';
+import { useEffect, useState } from 'react';
+import { Box, Button, FormControl, FormControlLabel, Radio, RadioGroup, Typography } from '@mui/material';
 import { DataGrid } from '@mui/x-data-grid';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchMarketBreadth } from '../../Store/marketBreadth';
 import MarketBreadthBarChart from './MarketBreadthChart';  // Import your bar chart component
+import BreadthDataForTV from './TVLightChart';
 
 const columns = [
   { field: 'date', headerName: 'Date', width: 150 },
@@ -17,6 +18,11 @@ const columns = [
 const MarketBreadthTable = () => {
   const dispatch = useDispatch();
   const breadthData = useSelector(state => state.marketBreadth.data);
+  const [chartType, setChartType] = useState('mui');
+
+  const handleChange = (event) => {
+    setChartType(event.target.value);
+  };
 
   useEffect(() => {
     dispatch(fetchMarketBreadth());
@@ -39,25 +45,60 @@ const MarketBreadthTable = () => {
         />
       </Box>
 
-      <Box sx={{ mb: 4 }}>
-        <MarketBreadthBarChart
-          data={breadthData}
-          seriesKey="up4Percent"
-          chartTitle="Market Breadth: Stocks Up ≥ 4% (Daily)"
-          barColor="green"
-        />
-      </Box>
+      <Box sx={{ maxWidth: 1200, margin: 'auto', p: 2 }}>
+        <Typography variant="h6" sx={{ mb: 2 }}>
+          Select Chart Type:
+        </Typography>
 
-      {/* Chart for Down 4% */}
-      <Box sx={{ mb: 4 }}>
-        <MarketBreadthBarChart
-          data={breadthData}
-          seriesKey="down4Percent"
-          chartTitle="Market Breadth: Stocks Down ≥ 4% (Daily)"
-          barColor="red"
-        />
-      </Box>
+        <FormControl component="fieldset">
+          <RadioGroup
+            row
+            aria-label="chart-type"
+            name="chart-type"
+            value={chartType}
+            onChange={handleChange}
+          >
+            <FormControlLabel value="mui" control={<Radio />} label="MUI Bar Chart" />
+            <FormControlLabel value="tv" control={<Radio />} label="TradingView Chart" />
+          </RadioGroup>
+        </FormControl>
 
+        {chartType === 'mui' ? (
+          <>
+            <Box sx={{ mb: 4 }}>
+              <MarketBreadthBarChart
+                data={breadthData}
+                seriesKey="up4Percent"
+                chartTitle="Market Breadth: Stocks Up ≥ 4% (Daily)"
+                barColor="green"
+              />
+            </Box>
+            <Box sx={{ mb: 4 }}>
+              <MarketBreadthBarChart
+                data={breadthData}
+                seriesKey="down4Percent"
+                chartTitle="Market Breadth: Stocks Down ≥ 4% (Daily)"
+                barColor="red"
+              />
+            </Box>
+          </>
+        ) : (
+          <>
+            <BreadthDataForTV
+              data={breadthData}
+              seriesKey="up4Percent"
+              barColor="green"
+              title="Stocks Up ≥ 4% (Daily)"
+            />
+            <BreadthDataForTV
+              data={breadthData}
+              seriesKey="down4Percent"
+              barColor="red"
+              title="Stocks Down ≤ -4% (Daily)"
+            />
+          </>
+        )}
+      </Box>
       <Box sx={{ marginTop: 4, textAlign: 'left' }}>
         <div>
           <b>Things/Insight‘s from Stockbee, Magic number‘s as associated to US markets:</b>
