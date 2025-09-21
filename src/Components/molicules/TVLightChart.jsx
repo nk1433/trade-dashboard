@@ -1,5 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { createChart, HistogramSeries } from 'lightweight-charts';
+import { CrosshairMode } from 'lightweight-charts';
+import { LineStyle } from 'lightweight-charts';
 
 // Example data: array of { date: 'YYYY-MM-DD', up4Percent: n, down4Percent: n }
 export default function MarketBreadthChart({ data, seriesKey = 'up4Percent', barColor = 'green', title = '' }) {
@@ -21,9 +23,36 @@ export default function MarketBreadthChart({ data, seriesKey = 'up4Percent', bar
         // Add the histogram series
         const histogramSeries = chart.addSeries(HistogramSeries, {
             color: barColor,
-            priceFormat: { type: 'volume' },
-            priceScaleId: 'right', 
-            base: 0,
+            width: 1000,
+            height: 350,
+            crosshair: {
+                mode: CrosshairMode.Normal,
+                vertLine: {
+                    visible: true,
+                    style: LineStyle.Dashed,
+                    width: 1,
+                    color: 'rgba(197, 203, 206, 0.8)',
+                },
+                horzLine: {
+                    visible: true,
+                    style: LineStyle.Dashed,
+                    width: 1,
+                    color: 'rgba(197, 203, 206, 0.8)',
+                },
+            },
+            handleScroll: {
+                mouseWheel: true,
+                pressedMouseMove: true,
+            },
+            handleScale: {
+                axisPressedMouseMove: true,
+                mouseWheel: true,
+                pinch: true,
+            },
+            timeScale: {
+                timeVisible: true,
+                secondsVisible: false,
+            },
         });
         histogramSeries.setData(histoSeriesData);
 
