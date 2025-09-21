@@ -78,3 +78,10 @@ The following enhancements are planned:
 44. [ Func ] - Introduce dollar volume breakout scan with BMB - https://stockbee.blogspot.com/2009/08/what-is-dollar-volume-and-why-it-is.html
 45. [ Func ] - Add live metric volume * currentPrice to see dollar price volume 
 46. [ Func ] - Add a filter to see specific stock in a watchlist table.
+47. [ Func ] - List down the study point
+    1.  What type of gap should we look into small gaps/ big gaps
+    2.  Holding periods
+    3.  Entry tactics
+    4.  How many days the move is holding
+    5.  Move started from which leg
+    6.  BO volume in large consolidation vs low consolidation
