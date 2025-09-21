@@ -2,6 +2,8 @@ import { useMarketDataSocket } from "./useMarketDataSocket";
 import { computeMetrics } from "../Store/upstoxs";
 import { useMarketFeedUrl } from "./useMarketFeedUrl";
 import niftymidsmall400float from "../index/niftymidsmall400-float.json";
+import { usePortfolioDataSocket } from "./usePorfolio";
+import { usePortfolioSocket } from "./usePortfolioSocket";
 
 const token = import.meta.env.VITE_UPSTOXS_ACCESS_KEY;
 
@@ -77,6 +79,7 @@ export const useUpstoxWS = () => {
   const instruments = scripts.map((script) => script.instrument_key);
 
   const { wsUrl } = useMarketFeedUrl(token);
+  const { porfolioWsUrl } = usePortfolioSocket(token);
   useMarketDataSocket({
     wsUrl,
     request: {
@@ -88,4 +91,5 @@ export const useUpstoxWS = () => {
       },
     }
   });
+  usePortfolioDataSocket({ porfolioWsUrl });
 };
