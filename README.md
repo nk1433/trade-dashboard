@@ -85,3 +85,8 @@ The following enhancements are planned:
     4.  How many days the move is holding
     5.  Move started from which leg
     6.  BO volume in large consolidation vs low consolidation
+48. [ Func ] - Build model portfolio.
+49. [ Bug ] - Fix the change% when stocks gap down, change% is not considering the negative gap%
+50. [ Bug ] - Stats api is making race condition
+51. [ Bug ] - Fix negative closing strength, fix through testcases to it.
+52. [ Bug ] - Fix inconsistency of 399/398
