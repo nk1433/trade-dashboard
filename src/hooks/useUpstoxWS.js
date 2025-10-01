@@ -23,6 +23,11 @@ export const updateWatchlistWithMetrics = async (liveFeed, scriptMap, portfolio,
     const prevStats = stats[instrumentKey] || {};
     const prevDayVolume = prevStats.prevDayVolume || 0;
     const prevDayClose = prevStats.lastPrice || 0;
+    // Newly added metrics from stats
+    const minVolume3d = prevStats.minVolume3d || 0;
+    const trendIntensity = parseFloat(prevStats.trendIntensity) || 0;
+    const closePrev1 = parseFloat(prevStats.closePrev1) || 0;
+    const closePrev2 = parseFloat(prevStats.closePrev2) || 0;
 
     const currentClose = latestDayFeed.close;
     const currentVolume = latestDayFeed.vol;
@@ -31,12 +36,7 @@ export const updateWatchlistWithMetrics = async (liveFeed, scriptMap, portfolio,
     const priceRatio = prevDayClose > 0 ? currentClose / prevDayClose : 0;
 
     // Volume surge rate (minute vs daily)
-    // This shows what fraction of today's volume just happened in the last minute
-    const volSurgeRate =
-      currentVolume > 0 ? (currentMinuteVolume / currentVolume) * 100 : 0;
-
-    // You can also use daily average minute volume, for example:
-    // const avgMinuteVolume = currentVolume / totalTradingMinutesSoFarToday;
+    const volSurgeRate = currentVolume > 0 ? (currentMinuteVolume / currentVolume) * 100 : 0;
 
     const metric = await computeMetrics({
       scriptName: scriptMap[instrumentKey]?.name || '',
@@ -50,13 +50,14 @@ export const updateWatchlistWithMetrics = async (liveFeed, scriptMap, portfolio,
       high: latestDayFeed.high,
       ltp: currentClose,
       stats,
-      volSurgeRate, // percent of today's volume just in the last minute
+      volSurgeRate,
       currentMinuteVolume,
     });
 
     if (!acc.metrics) acc.metrics = {};
     if (!acc.bullishMB) acc.bullishMB = {};
     if (!acc.bearishMB) acc.bearishMB = {};
+    if (!acc.bullishSLTB) acc.bullishSLTB = {};
 
     acc.metrics[instrumentKey] = metric;
 
@@ -68,8 +69,22 @@ export const updateWatchlistWithMetrics = async (liveFeed, scriptMap, portfolio,
       acc.bearishMB[instrumentKey] = metric;
     }
 
+    // New scan example using newly added metrics for acc.sltb
+    // Adjust condition logic as required
+    if (
+      minVolume3d > 100000 &&
+      trendIntensity >= 1.05 &&          // trend weakening // current volume below min volume last 3 days          // price dropping
+      latestDayFeed.close > latestDayFeed.open &&
+      latestDayFeed.close > closePrev1 &&
+      latestDayFeed.close / closePrev1 > closePrev1 / closePrev2 &&
+      closePrev1 /closePrev2 < 1.02 &&
+      closePrev1 > closePrev2         // previous day close higher than day before
+    ) {
+      acc.bullishSLTB[instrumentKey] = metric;
+    }
+
     return acc;
-  }, Promise.resolve({ metrics: {}, bullishMB: {}, bearishMB: {} }));
+  }, Promise.resolve({ metrics: {}, bullishMB: {}, bearishMB: {}, bullishSLTB: {} }));
 
   return results;
 };
