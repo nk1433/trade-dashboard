@@ -4,7 +4,10 @@ import { useState } from 'react';
 import WatchList from './Table';
 
 const Dashboard = () => {
-  const { orderMetrics, bullishBurst, bearishBurst, bullishSLTB } = useSelector(state => state.orders);
+  const { 
+    orderMetrics, bullishBurst, bearishBurst, 
+    bullishSLTB, bearishSLTB,
+  } = useSelector(state => state.orders);
   const [selectedIndex, setSelectedIndex] = useState('all');
 
   const handleSelectionChange = (event) => {
@@ -20,6 +23,8 @@ const Dashboard = () => {
         return bearishBurst || {};
       case 'bullishSLTB':
         return bullishSLTB || {};
+      case 'bearishSLTB':
+        return bearishSLTB || {};
       case 'all':
       default:
         return orderMetrics || {};
@@ -34,7 +39,8 @@ const Dashboard = () => {
           <FormControlLabel value="all" control={<Radio />} label={`All - ${Object.keys(orderMetrics).length}`} />
           <FormControlLabel value="bullishMB" control={<Radio />} label={`Bullish MB - ${Object.keys(bullishBurst).length}`} />
           <FormControlLabel value="bearishMB" control={<Radio />} label={`Bearish MB - ${Object.keys(bearishBurst).length}`} />
-          <FormControlLabel value="bullishSLTB" control={<Radio />} label={`Bullist SLTB - ${Object.keys(bullishSLTB).length}`} />
+          <FormControlLabel value="bullishSLTB" control={<Radio />} label={`Bullish SLTB - ${Object.keys(bullishSLTB).length}`} />
+          <FormControlLabel value="bearishSLTB" control={<Radio />} label={`Bearish SLTB - ${Object.keys(bearishSLTB).length}`} />
         </RadioGroup>
       </FormControl>
 

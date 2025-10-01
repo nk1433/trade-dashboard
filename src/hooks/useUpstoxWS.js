@@ -58,6 +58,7 @@ export const updateWatchlistWithMetrics = async (liveFeed, scriptMap, portfolio,
     if (!acc.bullishMB) acc.bullishMB = {};
     if (!acc.bearishMB) acc.bearishMB = {};
     if (!acc.bullishSLTB) acc.bullishSLTB = {};
+    if (!acc.bearishSLTB) acc.bearishSLTB = {};
 
     acc.metrics[instrumentKey] = metric;
 
@@ -69,22 +70,36 @@ export const updateWatchlistWithMetrics = async (liveFeed, scriptMap, portfolio,
       acc.bearishMB[instrumentKey] = metric;
     }
 
-    // New scan example using newly added metrics for acc.sltb
-    // Adjust condition logic as required
     if (
       minVolume3d > 100000 &&
-      trendIntensity >= 1.05 &&          // trend weakening // current volume below min volume last 3 days          // price dropping
+      trendIntensity >= 1.05 &&
       latestDayFeed.close > latestDayFeed.open &&
       latestDayFeed.close > closePrev1 &&
       latestDayFeed.close / closePrev1 > closePrev1 / closePrev2 &&
-      closePrev1 /closePrev2 < 1.02 &&
-      closePrev1 > closePrev2         // previous day close higher than day before
+      closePrev1 / closePrev2 < 1.02 &&
+      closePrev1 > closePrev2 &&
+      latestDayFeed.close > 100
     ) {
       acc.bullishSLTB[instrumentKey] = metric;
     }
 
+    if (
+      closePrev1 / closePrev2 >= 0.98 &&
+      latestDayFeed.close / closePrev1 < closePrev1 / closePrev2 &&
+      latestDayFeed.close < closePrev1 &&
+      latestDayFeed.close < latestDayFeed.open &&
+      minVolume3d >= 100000 &&
+      (latestDayFeed.close - latestDayFeed.low) / (latestDayFeed.high - latestDayFeed.low) < 0.2 &&
+      latestDayFeed.close > 100
+    ) {
+      acc.bearishSLTB[instrumentKey] = metric;
+    }
+
     return acc;
-  }, Promise.resolve({ metrics: {}, bullishMB: {}, bearishMB: {}, bullishSLTB: {} }));
+  }, Promise.resolve({
+    metrics: {}, bullishMB: {}, bearishMB: {},
+    bullishSLTB: {}, bearishSLTB: {},
+  }));
 
   return results;
 };

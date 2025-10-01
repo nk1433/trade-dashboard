@@ -2,10 +2,13 @@ import { useEffect, useState } from "react";
 import { Buffer } from "buffer";
 import protobuf from "protobufjs";
 import { useDispatch } from "react-redux";
-import { setOrderMetrics, setBearishMB, setBullishMB, setBullishSLTB } from "../Store/upstoxs";
 import { updateWatchlistWithMetrics } from "./useUpstoxWS";
 import niftymidsmall400float from "../index/niftymidsmall400-float.json";
 import { useSelector } from "react-redux";
+import { 
+    setOrderMetrics, setBearishMB, setBullishMB, 
+    setBullishSLTB, setBearishSLTB,
+} from "../Store/upstoxs";
 
 let protobufRoot = null;
 const initProtobuf = async () => {
@@ -66,15 +69,14 @@ export function useMarketDataSocket({ wsUrl, request }) {
                 let response = decodeProfobuf(buffer);
 
                 if (response.type === 1) {
-                    const { metrics, bullishMB, bearishMB, bullishSLTB } = await updateWatchlistWithMetrics(response, scriptMap, portfolio, stats);
+                    const { metrics, bullishMB, bearishMB, bullishSLTB, bearishSLTB } = await updateWatchlistWithMetrics(response, scriptMap, portfolio, stats);
 
-                    dispatch(setOrderMetrics(metrics));    // Dispatch all metrics
-                    dispatch(setBullishMB(bullishMB)); // Dispatch filtered scan results
-                    dispatch(setBearishMB(bearishMB)); // Dispatch filtered scan results
-                    dispatch(setBullishSLTB(bullishSLTB)); // Dispatch filtered scan results
+                    dispatch(setOrderMetrics(metrics));   
+                    dispatch(setBullishMB(bullishMB)); 
+                    dispatch(setBearishMB(bearishMB)); 
+                    dispatch(setBullishSLTB(bullishSLTB));
+                    dispatch(setBearishSLTB(bearishSLTB));
                 }
-
-                // dispatch(setLiveFeed(response)); // Uncomment if you want to store raw feed
             };
 
             ws.onerror = () => {
