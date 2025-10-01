@@ -29,20 +29,18 @@ const columnsConfig = {
         };
 
         return (
-          <OrderDetailsPortal data={params.row}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <span style={{ color }}>{params.value}</span>
-              <Tooltip title="Copy script name">
-                <IconButton
-                  size="small"
-                  onClick={handleCopy}
-                  aria-label="copy script name"
-                >
-                  <ContentCopyIcon fontSize="small" />
-                </IconButton>
-              </Tooltip>
-            </Box>
-          </OrderDetailsPortal>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <span style={{ color }}>{params.value}</span>
+            <Tooltip title="Copy script name">
+              <IconButton
+                size="small"
+                onClick={handleCopy}
+                aria-label="copy script name"
+              >
+                <ContentCopyIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          </Box>
         );
       },
     },
@@ -108,7 +106,7 @@ const columnsConfig = {
         );
       }
     },
-    { field: "barClosingStrength", headerName: "Closing Strength %", type: 'number',  },
+    { field: "barClosingStrength", headerName: "Closing Strength %", type: 'number', },
     {
       field: "changePercentage",
       headerName: "Change %",
@@ -209,42 +207,59 @@ const WatchList = ({ scripts, type = 'dashboard' }) => {
     dispatch(getStatsForScripts());
   }, []);
 
- const columns = columnsConfig[type]
-  .map(col => {
-    let field = '';
-    let headerName = '';
-    let width, renderCell, filterable;
+  const columns = columnsConfig[type]
+    .map(col => {
+      let field = '';
+      let headerName = '';
+      let width, renderCell, filterable;
 
-    if (col.name) {
-      field = columnMapping[col.name] || '';
-      headerName = col.name;
-      width = col.width;
-      renderCell = col.renderCell ?? (col.value && col.name === "Script" ? (params) => col.value(params.row) : undefined);
-      filterable = col.filterable;
-    } else if (col.field && col.headerName) {
-      ({ field, headerName, width, renderCell, filterable } = col);
-    }
+      if (col.name) {
+        field = columnMapping[col.name] || '';
+        headerName = col.name;
+        width = col.width;
+        renderCell = col.renderCell ?? (col.value && col.name === "Script" ? (params) => col.value(params.row) : undefined);
+        filterable = col.filterable;
+      } else if (col.field && col.headerName) {
+        ({ field, headerName, width, renderCell, filterable } = col);
+      }
 
-    if (!field || !headerName) return null;  // Discard invalid columns
+      if (!field || !headerName) return null;  // Discard invalid columns
 
-    return {
-      field,
-      headerName,
-      ...(width && { width }),
-      ...(renderCell && { renderCell }),
-      ...(filterable !== undefined && { filterable }),
-      ...(col.type && { type: col.type }), 
-    };
-  })
-  .filter(Boolean);  // Remove nulls
+      return {
+        field,
+        headerName,
+        ...(width && { width }),
+        ...(renderCell && { renderCell }),
+        ...(filterable !== undefined && { filterable }),
+        ...(col.type && { type: col.type }),
+      };
+    })
+    .filter(Boolean);  // Remove nulls
 
   const rows = Object.values(scripts).map(metric => ({
     id: metric.instrumentKey,
     ...metric,
   }));
 
+  function handleCopyColumn(field) {
+    const values = rows.map(row => row[field]);
+    const textToCopy = values.join(','); // comma, no space
+    navigator.clipboard.writeText(textToCopy)
+      .then(() => alert(`Copied all values for ${field} column!`))
+      .catch(() => alert('Copy failed.'));
+  }
+
   return (
     <Box sx={{ width: '100%', }}>
+      <Box sx={{ mb: 1 }}>
+        <Tooltip title="Copy all Script names">
+          <IconButton onClick={() => handleCopyColumn('symbol')}>
+            Copy to trading view
+            <ContentCopyIcon />
+          </IconButton>
+        </Tooltip>
+        {/* Repeat button for other fields if desired */}
+      </Box>
       <DataGrid
         filterModel={filterModel}
         onFilterModelChange={setFilterModel}
