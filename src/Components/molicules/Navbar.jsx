@@ -10,6 +10,7 @@ import MarketBreadthTable from "./MarketBreadth.jsx";
 import MarketHighLowWormChart from "./Worm.jsx";
 import TVChart from './TV.jsx';
 import HeatMap from './HeatMap.jsx';
+import ChartWithMarkers from './Visualize.jsx';
 
 // Configuration for the routes in JSON format
 const routesConfig = [
@@ -25,6 +26,7 @@ const routesConfig = [
   { path: "/worm", component: MarketHighLowWormChart, linkText: "WORM" },
   { path: "/tv", component: TVChart, linkText: "TV" },
   { path: "/heat-map", component: HeatMap, linkText: "HeatMap" },
+  { path: "/visualize", component: ChartWithMarkers, linkText: "Visualize" },
 ];
 
 const Navbar = () => {

@@ -1,49 +1,24 @@
-import { Box, FormControl, FormControlLabel, FormLabel, Radio, RadioGroup } from '@mui/material';
-import { useSelector } from 'react-redux';
-import { useState } from 'react';
+import React from 'react';
+import { Box } from '@mui/material';
+import WatchlistFilterForm from '../molicules/WatchlistFilterForm';
+import { useWatchlistFilter } from '../../hooks/useWatchlistFilter';
 import WatchList from './Table';
 
 const Dashboard = () => {
-  const { 
-    orderMetrics, bullishBurst, bearishBurst, 
-    bullishSLTB, bearishSLTB,
-  } = useSelector(state => state.orders);
-  const [selectedIndex, setSelectedIndex] = useState('all');
-
-  const handleSelectionChange = (event) => {
-    setSelectedIndex(event.target.value);
-  };
-
-  // Determine scripts to show based on selection
-  const scriptsToShow = (() => {
-    switch (selectedIndex) {
-      case 'bullishMB':
-        return bullishBurst || {};
-      case 'bearishMB':
-        return bearishBurst || {};
-      case 'bullishSLTB':
-        return bullishSLTB || {};
-      case 'bearishSLTB':
-        return bearishSLTB || {};
-      case 'all':
-      default:
-        return orderMetrics || {};
-    }
-  })();
+  const {
+    selectedIndex,
+    handleSelectionChange,
+    scriptsToShow,
+    counts,
+  } = useWatchlistFilter();
 
   return (
     <Box sx={{ p: 2 }}>
-      <FormControl component="fieldset" sx={{ mb: 2 }}>
-        <FormLabel component="legend">Select View</FormLabel>
-        <RadioGroup row value={selectedIndex} onChange={handleSelectionChange}>
-          <FormControlLabel value="all" control={<Radio />} label={`All - ${Object.keys(orderMetrics).length}`} />
-          <FormControlLabel value="bullishMB" control={<Radio />} label={`Bullish MB - ${Object.keys(bullishBurst).length}`} />
-          <FormControlLabel value="bearishMB" control={<Radio />} label={`Bearish MB - ${Object.keys(bearishBurst).length}`} />
-          <FormControlLabel value="bullishSLTB" control={<Radio />} label={`Bullish SLTB - ${Object.keys(bullishSLTB).length}`} />
-          <FormControlLabel value="bearishSLTB" control={<Radio />} label={`Bearish SLTB - ${Object.keys(bearishSLTB).length}`} />
-        </RadioGroup>
-      </FormControl>
-
+      <WatchlistFilterForm
+        selectedIndex={selectedIndex}
+        handleSelectionChange={handleSelectionChange}
+        counts={counts}
+      />
       <WatchList scripts={scriptsToShow} />
     </Box>
   );

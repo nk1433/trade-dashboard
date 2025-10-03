@@ -8,6 +8,7 @@ import { useSelector } from "react-redux";
 import { 
     setOrderMetrics, setBearishMB, setBullishMB, 
     setBullishSLTB, setBearishSLTB,
+    setBullishAnts,
 } from "../Store/upstoxs";
 
 let protobufRoot = null;
@@ -69,13 +70,17 @@ export function useMarketDataSocket({ wsUrl, request }) {
                 let response = decodeProfobuf(buffer);
 
                 if (response.type === 1) {
-                    const { metrics, bullishMB, bearishMB, bullishSLTB, bearishSLTB } = await updateWatchlistWithMetrics(response, scriptMap, portfolio, stats);
+                    const { 
+                        metrics, bullishMB, bearishMB, 
+                        bullishSLTB, bearishSLTB, bullishAnts,
+                    } = await updateWatchlistWithMetrics(response, scriptMap, portfolio, stats);
 
                     dispatch(setOrderMetrics(metrics));   
                     dispatch(setBullishMB(bullishMB)); 
                     dispatch(setBearishMB(bearishMB)); 
                     dispatch(setBullishSLTB(bullishSLTB));
                     dispatch(setBearishSLTB(bearishSLTB));
+                    dispatch(setBullishAnts(bullishAnts));
                 }
             };
 

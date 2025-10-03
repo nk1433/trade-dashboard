@@ -184,6 +184,7 @@ const orders = createSlice({
         bearishBurst: [],
         bullishSLTB: [],
         bearishSLTB: [],
+        bullishAnts: [],
     },
     reducers: {
         setOrderMetrics(state, action) {
@@ -223,7 +224,14 @@ const orders = createSlice({
                 ...state.bearishSLTB,
                 ...newMetrics,
             };
-        }
+        },
+        setBullishAnts(state, action) {
+            const newMetrics = action.payload;
+            state.bullishAnts = {
+                ...state.bullishAnts,
+                ...newMetrics,
+            };
+        },
     },
     extraReducers: (builder) => {
         builder.addCase(placeSLMOrder.fulfilled, (state, action) => {
@@ -242,4 +250,5 @@ export default orders.reducer;
 export const { 
     setOrderMetrics, setLiveFeed, setBullishMB, 
     setBearishMB, setBullishSLTB, setBearishSLTB,
+    setBullishAnts,
 } = orders.actions;

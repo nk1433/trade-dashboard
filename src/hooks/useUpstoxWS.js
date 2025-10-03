@@ -59,6 +59,7 @@ export const updateWatchlistWithMetrics = async (liveFeed, scriptMap, portfolio,
     if (!acc.bearishMB) acc.bearishMB = {};
     if (!acc.bullishSLTB) acc.bullishSLTB = {};
     if (!acc.bearishSLTB) acc.bearishSLTB = {};
+    if (!acc.bullishAnts) acc.bullishAnts = {};
 
     acc.metrics[instrumentKey] = metric;
 
@@ -95,10 +96,19 @@ export const updateWatchlistWithMetrics = async (liveFeed, scriptMap, portfolio,
       acc.bearishSLTB[instrumentKey] = metric;
     }
 
+    if (
+      minVolume3d > 100000 &&
+      trendIntensity >= 1.05 &&
+      priceRatio > -0.01 &&
+      priceRatio < 0.01
+    ) {
+      acc.bullishAnts[instrumentKey] = metric;
+    }
+
     return acc;
   }, Promise.resolve({
     metrics: {}, bullishMB: {}, bearishMB: {},
-    bullishSLTB: {}, bearishSLTB: {},
+    bullishSLTB: {}, bearishSLTB: {}, bullishAnts: {},
   }));
 
   return results;
