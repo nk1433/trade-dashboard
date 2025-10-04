@@ -4,7 +4,7 @@ import { DataGrid } from '@mui/x-data-grid';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchMarketBreadth } from '../../Store/marketBreadth';
 import MarketBreadthBarChart from './MarketBreadthChart';
-import BreadthDataForTV from './TVLightChart';
+import BreadthTwoPaneChart from './TVLightChart';
 
 const columns = [
   { field: 'date', headerName: 'Date', width: 150 },
@@ -32,6 +32,8 @@ const MarketBreadthTable = () => {
     id: item.date || index,
     ...item,
   }));
+
+  rows.sort((a, b) => new Date(a.date) - new Date(b.date));
 
   return (
     <Box sx={{ width: '100%', paddingTop: '50px' }}>
@@ -74,18 +76,7 @@ const MarketBreadthTable = () => {
           </>
         ) : (
           <>
-            <BreadthDataForTV
-              data={breadthData}
-              seriesKey="up4Percent"
-              barColor="green"
-              title="Stocks Up ≥ 4% (Daily)"
-            />
-            <BreadthDataForTV
-              data={breadthData}
-              seriesKey="down4Percent"
-              barColor="red"
-              title="Stocks Down ≤ -4% (Daily)"
-            />
+            <BreadthTwoPaneChart data={rows} />
           </>
         )}
       </Box>
