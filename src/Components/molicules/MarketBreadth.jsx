@@ -6,13 +6,109 @@ import { fetchMarketBreadth } from '../../Store/marketBreadth';
 import MarketBreadthBarChart from './MarketBreadthChart';
 import BreadthTwoPaneChart from './TVLightChart';
 
+const getCellStyle = (value, positiveThreshold = 0.5) => {
+  if (typeof value !== 'number') return {};
+  if (value >= positiveThreshold) {
+    return { backgroundColor: '#d0f0c0', color: '#004d00' }; // light green bg, dark green text
+  } else if (value > 0) {
+    return { backgroundColor: '#ffd6d6', color: '#800000' }; // light red bg, dark red text
+  }
+  return {};
+};
+
 const columns = [
-  { field: 'date', headerName: 'Date', width: 150 },
-  { field: 'up4Percent', headerName: 'Up ≥ 4% (Daily)', width: 150 },
-  { field: 'down4Percent', headerName: 'Down ≥ 4% (Daily)', width: 150 },
-  { field: 'up20Pct5d', headerName: 'Up ≥ 20% (5 Days)', width: 170 },
-  { field: 'down20Pct5d', headerName: 'Down ≥ 20% (5 Days)', width: 170 },
-  { field: 'totalStocks', headerName: 'Total Stocks', width: 130 },
+  { field: 'date', headerName: 'Date', width: 130 },
+  {
+    field: 'up4Percent',
+    headerName: 'Up ≥4% (Day)',
+    width: 120,
+    align: 'center',
+    headerAlign: 'center',
+    renderCell: (params) => (
+      <div style={getCellStyle(params.value, 10)}>{params.value}</div>
+    )
+  },
+  {
+    field: 'strongCloseUpRatio',
+    headerName: 'Strong Close Up',
+    width: 140,
+    type: 'number',
+    align: 'center',
+    headerAlign: 'center',
+    renderCell: (params) => (
+      <div style={getCellStyle(params.value, 0.6)}>{(params.value * 100).toFixed(2)}%</div>
+    )
+  },
+  {
+    field: 'down4Percent',
+    headerName: 'Down ≥4% (Day)',
+    width: 120,
+    align: 'center',
+    headerAlign: 'center',
+    renderCell: (params) => (
+      <div style={getCellStyle(params.value, 10)}>{params.value}</div>
+    )
+  },
+  {
+    field: 'strongCloseDownRatio',
+    headerName: 'Strong Close Down',
+    width: 140,
+    type: 'number',
+    align: 'center',
+    headerAlign: 'center',
+    renderCell: (params) => (
+      <div style={getCellStyle(params.value, 0.6)}>{(params.value * 100).toFixed(2)}%</div>
+    )
+  },
+  {
+    field: 'up20Pct5d',
+    headerName: 'Up ≥20% (5D)',
+    width: 120,
+    align: 'center',
+    headerAlign: 'center',
+    renderCell: (params) => (
+      <div style={getCellStyle(params.value, 10)}>{params.value}</div>
+    )
+  },
+  {
+    field: 'down20Pct5d',
+    headerName: 'Down ≥20% (5D)',
+    width: 120,
+    align: 'center',
+    headerAlign: 'center',
+    renderCell: (params) => (
+      <div style={getCellStyle(params.value, 10)}>{params.value}</div>
+    )
+  },
+  {
+    field: 'totalStocks',
+    headerName: 'Total Stocks',
+    width: 120,
+    align: 'center',
+    headerAlign: 'center',
+  },
+  {
+    field: 'intentScoreUp',
+    headerName: 'Intent Score Up',
+    width: 130,
+    type: 'number',
+    align: 'center',
+    headerAlign: 'center',
+    renderCell: (params) => (
+      <div style={getCellStyle(params.value, 5)}>{params.value.toFixed(2)}</div>
+    )
+  },
+  {
+    field: 'intentScoreDown',
+    headerName: 'Intent Score Down',
+    width: 130,
+    type: 'number',
+    align: 'center',
+    headerAlign: 'center',
+    renderCell: (params) => (
+      <div style={getCellStyle(params.value, 5)}>{params.value.toFixed(2)}</div>
+    )
+  },
 ];
 
 const MarketBreadthTable = () => {
@@ -83,7 +179,7 @@ const MarketBreadthTable = () => {
 
       <Box sx={{ height: '500px', marginBottom: 4 }}>
         <DataGrid
-          rows={rows}
+          rows={[...rows].sort((a, b) => new Date(b.date) - new Date(a.date))}
           columns={columns}
           pageSize={10}
           rowsPerPageOptions={[10, 25, 50, 100]}
