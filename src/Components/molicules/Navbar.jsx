@@ -11,6 +11,7 @@ import MarketHighLowWormChart from "./Worm.jsx";
 import TVChart from './TV.jsx';
 import HeatMap from './HeatMap.jsx';
 import ChartWithMarkers from './Visualize.jsx';
+import PlContributionCalendar from "./Contribution.jsx";
 
 // Configuration for the routes in JSON format
 const routesConfig = [
@@ -27,6 +28,7 @@ const routesConfig = [
   { path: "/tv", component: TVChart, linkText: "TV" },
   { path: "/heat-map", component: HeatMap, linkText: "HeatMap" },
   { path: "/visualize", component: ChartWithMarkers, linkText: "Visualize" },
+  { path: "/contribution", component: PlContributionCalendar, linkText: "Contribution" },
 ];
 
 const Navbar = () => {
