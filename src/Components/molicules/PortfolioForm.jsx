@@ -1,18 +1,22 @@
-import { useDispatch, useSelector } from "react-redux";
-import { TextField, Button, Box, Typography } from "@mui/material";
-import { updateExitPercentage, updatePortfolioSize, updateRiskPercentage } from "../../Store/portfolio";
-import {  } from "react-redux";
+import React, { useEffect } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { TextField, Button, Box, Typography } from '@mui/material';
+import { updateExitPercentage, updateRiskPercentage, fetchPortfolioSize } from '../../Store/portfolio';
 
 const PortfolioForm = () => {
   const dispatch = useDispatch();
-  const { portfolioSize, exitPercentage, riskPercentage } = useSelector((state) => state.portfolio);
+  const { portfolioSize, exitPercentage, riskPercentage, loading, error } = useSelector(state => state.portfolio);
+
+  useEffect(() => {
+    dispatch(fetchPortfolioSize());
+  }, [dispatch]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    dispatch(updatePortfolioSize(Number(portfolioSize)));
+    // portfolioSize is from API, no manual update here
     dispatch(updateExitPercentage(Number(exitPercentage)));
     dispatch(updateRiskPercentage(Number(riskPercentage)));
-    alert("Portfolio settings updated!");
+    alert('Portfolio settings updated!');
   };
 
   return (
@@ -20,12 +24,16 @@ const PortfolioForm = () => {
       <Typography variant="h5" gutterBottom>
         Update Portfolio Settings
       </Typography>
+
+      {loading && <Typography>Loading portfolio size...</Typography>}
+      {error && <Typography color="error">{error}</Typography>}
+
       <form onSubmit={handleSubmit}>
         <TextField
-          label="Portfolio Size"
+          label="Portfolio Size (from API)"
           type="number"
           value={portfolioSize}
-          onChange={(e) => dispatch(updatePortfolioSize(Number(e.target.value)))}
+          disabled
           fullWidth
           margin="normal"
         />
@@ -45,7 +53,13 @@ const PortfolioForm = () => {
           fullWidth
           margin="normal"
         />
-        <Button type="submit" variant="contained" color="primary" sx={{ marginTop: 2 }}>
+        <Button 
+          type="submit" 
+          variant="contained" 
+          color="primary" 
+          sx={{ marginTop: 2 }}
+          disabled={loading}
+        >
           Update
         </Button>
       </form>
