@@ -21,7 +21,7 @@ export const computeMetrics = async (context) => {
     const isUpDay = ltp >= currentDayOpen; // true if up day or flat
 
     if (!isUpDay) {
-        barClosingStrength = -Math.abs(barClosingStrength);
+        barClosingStrength = ((high - ltp) / (high - lowPrice)) * 100;
     }
 
     const threshold = currentDayOpen * 0.99;
