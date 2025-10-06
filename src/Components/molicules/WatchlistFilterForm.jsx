@@ -12,6 +12,7 @@ const WatchlistFilterForm = ({ selectedIndex, handleSelectionChange, counts }) =
         <FormControlLabel value="bullishSLTB" control={<Radio />} label={`Bullish SLTB - ${counts.bullishSLTB}`} />
         <FormControlLabel value="bearishSLTB" control={<Radio />} label={`Bearish SLTB - ${counts.bearishSLTB}`} />
         <FormControlLabel value="bullishAnts" control={<Radio />} label={`Bullish Ants - ${counts.bullishAnts}`} />
+        <FormControlLabel value="dollar" control={<Radio />} label={`$ dollar - ${counts.dollar}`} />
       </RadioGroup>
     </FormControl>
   );

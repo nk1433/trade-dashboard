@@ -4,6 +4,7 @@ import { useMarketFeedUrl } from "./useMarketFeedUrl";
 import niftymidsmall400float from "../index/niftymidsmall400-float.json";
 import { usePortfolioDataSocket } from "./usePorfolio";
 import { usePortfolioSocket } from "./usePortfolioSocket";
+import niftylargeCap from '../index/niftylargecap.json';
 
 const token = import.meta.env.VITE_UPSTOXS_ACCESS_KEY;
 
@@ -60,6 +61,7 @@ export const updateWatchlistWithMetrics = async (liveFeed, scriptMap, portfolio,
     if (!acc.bullishSLTB) acc.bullishSLTB = {};
     if (!acc.bearishSLTB) acc.bearishSLTB = {};
     if (!acc.bullishAnts) acc.bullishAnts = {};
+    if (!acc.dollar) acc.dollar = {};
 
     acc.metrics[instrumentKey] = metric;
 
@@ -105,10 +107,15 @@ export const updateWatchlistWithMetrics = async (liveFeed, scriptMap, portfolio,
       acc.bullishAnts[instrumentKey] = metric;
     }
 
+    if(latestDayFeed.close - latestDayFeed.open > 50 && currentVolume >= 100000){
+      acc.dollar[instrumentKey] = metric;
+    }
+
     return acc;
   }, Promise.resolve({
     metrics: {}, bullishMB: {}, bearishMB: {},
     bullishSLTB: {}, bearishSLTB: {}, bullishAnts: {},
+    dollar: {},
   }));
 
   return results;
@@ -117,6 +124,7 @@ export const updateWatchlistWithMetrics = async (liveFeed, scriptMap, portfolio,
 export const useUpstoxWS = () => {
   const scripts = niftymidsmall400float;
   const instruments = scripts.map((script) => script.instrument_key);
+  const niftylargeCaps = niftylargeCap.map((script) => script.instrument_key);
 
   const { wsUrl } = useMarketFeedUrl(token);
   const { porfolioWsUrl } = usePortfolioSocket(token);
@@ -127,7 +135,7 @@ export const useUpstoxWS = () => {
       method: "sub",
       data: {
         mode: "full",
-        instrumentKeys: instruments,
+        instrumentKeys: [...instruments, ...niftylargeCaps],
       },
     }
   });

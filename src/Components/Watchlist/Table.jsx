@@ -23,14 +23,14 @@ const columnsConfig = {
         // Copy to clipboard handler
         const handleCopy = (e) => {
           e.stopPropagation(); // prevent row select on click
-          navigator.clipboard.writeText(params.value)
+          navigator.clipboard.writeText(params.row.symbol)
             .then(() => { /* optionally show a success message */ })
             .catch(() => { /* optionally handle errors */ });
         };
 
         return (
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <span style={{ color }}>{params.value}</span>
+            <span style={{ color }}>{params.row.symbol}</span>
             <Tooltip title="Copy script name">
               <IconButton
                 size="small"

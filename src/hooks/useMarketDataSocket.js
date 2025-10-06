@@ -4,11 +4,13 @@ import protobuf from "protobufjs";
 import { useDispatch } from "react-redux";
 import { updateWatchlistWithMetrics } from "./useUpstoxWS";
 import niftymidsmall400float from "../index/niftymidsmall400-float.json";
+import niftylargeCaps from '../index/niftylargecap.json';
 import { useSelector } from "react-redux";
 import { 
     setOrderMetrics, setBearishMB, setBullishMB, 
     setBullishSLTB, setBearishSLTB,
     setBullishAnts,
+    setDollarBo,
 } from "../Store/upstoxs";
 
 let protobufRoot = null;
@@ -41,7 +43,7 @@ export function useMarketDataSocket({ wsUrl, request }) {
     const portfolio = useSelector((state) => state.portfolio);
     const stats = useSelector((state) => state.orders.stats);
     const dispatch = useDispatch();
-    const scripts = niftymidsmall400float;
+    const scripts = [...niftymidsmall400float, ...niftylargeCaps];
     const scriptMap = scripts.reduce((acc, script) => {
         acc[script.instrument_key] = script;
 
@@ -73,6 +75,7 @@ export function useMarketDataSocket({ wsUrl, request }) {
                     const { 
                         metrics, bullishMB, bearishMB, 
                         bullishSLTB, bearishSLTB, bullishAnts,
+                        dollar,
                     } = await updateWatchlistWithMetrics(response, scriptMap, portfolio, stats);
 
                     dispatch(setOrderMetrics(metrics));   
@@ -81,6 +84,7 @@ export function useMarketDataSocket({ wsUrl, request }) {
                     dispatch(setBullishSLTB(bullishSLTB));
                     dispatch(setBearishSLTB(bearishSLTB));
                     dispatch(setBullishAnts(bullishAnts));
+                    dispatch(setDollarBo(dollar));
                 }
             };
 
