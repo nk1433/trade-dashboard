@@ -10,6 +10,7 @@ export const useWatchlistFilter = () => {
     bearishSLTB,
     bullishAnts,
     dollar,
+    bearishDollar,
   } = useSelector(state => state.orders);
 
   const [selectedIndex, setSelectedIndex] = useState('all');
@@ -26,6 +27,7 @@ export const useWatchlistFilter = () => {
       case 'bearishSLTB': return bearishSLTB || {};
       case 'bullishAnts': return bullishAnts || {};
       case 'dollar': return dollar || {};
+      case 'bearishDollar': return bearishDollar || {};
       case 'all':
       default: return orderMetrics || {};
     }
@@ -40,6 +42,7 @@ export const useWatchlistFilter = () => {
     bearishSLTB: Object.keys(bearishSLTB || {}).length,
     bullishAnts: Object.keys(bullishAnts || {}).length,
     dollar: Object.keys(dollar || {}).length,
+    bearishDollar: Object.keys(bearishDollar || {}).length,
   };
 
   return {

@@ -11,6 +11,7 @@ import {
     setBullishSLTB, setBearishSLTB,
     setBullishAnts,
     setDollarBo,
+    setBearishDollarBo,
 } from "../Store/upstoxs";
 
 let protobufRoot = null;
@@ -75,7 +76,7 @@ export function useMarketDataSocket({ wsUrl, request }) {
                     const { 
                         metrics, bullishMB, bearishMB, 
                         bullishSLTB, bearishSLTB, bullishAnts,
-                        dollar,
+                        dollar, bearishDollar,
                     } = await updateWatchlistWithMetrics(response, scriptMap, portfolio, stats);
 
                     dispatch(setOrderMetrics(metrics));   
@@ -85,6 +86,7 @@ export function useMarketDataSocket({ wsUrl, request }) {
                     dispatch(setBearishSLTB(bearishSLTB));
                     dispatch(setBullishAnts(bullishAnts));
                     dispatch(setDollarBo(dollar));
+                    dispatch(setBearishDollarBo(bearishDollar));
                 }
             };
 

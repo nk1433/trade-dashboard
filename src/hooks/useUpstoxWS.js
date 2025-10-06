@@ -62,6 +62,7 @@ export const updateWatchlistWithMetrics = async (liveFeed, scriptMap, portfolio,
     if (!acc.bearishSLTB) acc.bearishSLTB = {};
     if (!acc.bullishAnts) acc.bullishAnts = {};
     if (!acc.dollar) acc.dollar = {};
+    if (!acc.bearishDollar) acc.bearishDollar = {};
 
     acc.metrics[instrumentKey] = metric;
 
@@ -107,15 +108,19 @@ export const updateWatchlistWithMetrics = async (liveFeed, scriptMap, portfolio,
       acc.bullishAnts[instrumentKey] = metric;
     }
 
-    if(latestDayFeed.close - latestDayFeed.open > 50 && currentVolume >= 100000){
+    if(latestDayFeed.close - latestDayFeed.open >= 50 && currentVolume >= 100000){
       acc.dollar[instrumentKey] = metric;
+    }
+
+    if(latestDayFeed.open - latestDayFeed.close >= 50 && currentVolume >= 100000){
+      acc.bearishDollar[instrumentKey] = metric;
     }
 
     return acc;
   }, Promise.resolve({
     metrics: {}, bullishMB: {}, bearishMB: {},
     bullishSLTB: {}, bearishSLTB: {}, bullishAnts: {},
-    dollar: {},
+    dollar: {}, bearishDollar: {}
   }));
 
   return results;
