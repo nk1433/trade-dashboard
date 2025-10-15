@@ -308,7 +308,7 @@
         "exchange": "NSE_EQ"
     },
     {
-        "instrument_key": "NSE_EQ|INE814H01011",
+        "instrument_key": "NSE_EQ|INE814H01029",
         "exchange_token": "17388",
         "tradingsymbol": "ADANIPOWER",
         "name": "ADANI POWER LTD",
@@ -1441,7 +1441,7 @@
         "exchange": "NSE_EQ"
     },
     {
-        "instrument_key": "NSE_EQ|INE672A01018",
+        "instrument_key": "NSE_EQ|INE672A01026",
         "exchange_token": "1621",
         "tradingsymbol": "TATAINVEST",
         "name": "TATA INVESTMENT CORP LTD",
