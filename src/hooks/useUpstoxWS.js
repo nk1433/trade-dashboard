@@ -31,6 +31,8 @@ export const updateWatchlistWithMetrics = async (liveFeed, scriptMap, portfolio,
     const closePrev2 = parseFloat(prevStats.closePrev2) || 0;
 
     const currentClose = latestDayFeed.close;
+    const currentLow = latestDayFeed.low;
+    const currentOpen = latestDayFeed.open;
     const currentVolume = latestDayFeed.vol;
     const currentMinuteVolume = latestMinuteFeed.vol;
 
@@ -102,8 +104,8 @@ export const updateWatchlistWithMetrics = async (liveFeed, scriptMap, portfolio,
     if (
       minVolume3d > 100000 &&
       trendIntensity >= 1.05 &&
-      priceRatio > -0.01 &&
-      priceRatio < 0.01
+      (currentOpen / currentClose) > 0.99 &&
+      (currentOpen / currentClose) <= 1.01
     ) {
       acc.bullishAnts[instrumentKey] = metric;
     }
