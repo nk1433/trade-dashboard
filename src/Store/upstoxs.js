@@ -34,7 +34,7 @@ export const computeMetrics = async (context) => {
     const changePercentage = ((ltp - currentDayOpen) / currentDayOpen) * 100;
     const allocation =
         ltp - currentDayOpen <= 0
-            ? {
+            ? { 
                 maxAllocationPercentage: "-",
                 riskRewardRatio: "-",
                 allocationSuggestions: [],

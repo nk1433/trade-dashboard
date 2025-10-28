@@ -6,8 +6,8 @@ import { updateWatchlistWithMetrics } from "./useUpstoxWS";
 import niftymidsmall400float from "../index/niftymidsmall400-float.json";
 import niftylargeCaps from '../index/niftylargecap.json';
 import { useSelector } from "react-redux";
-import { 
-    setOrderMetrics, setBearishMB, setBullishMB, 
+import {
+    setOrderMetrics, setBearishMB, setBullishMB,
     setBullishSLTB, setBearishSLTB,
     setBullishAnts,
     setDollarBo,
@@ -53,54 +53,56 @@ export function useMarketDataSocket({ wsUrl, request }) {
 
 
     useEffect(() => {
-        let ws;
-        const start = async () => {
-            await initProtobuf();
-            ws = new WebSocket(wsUrl);
+        if (Object.keys(stats).length) {
+            let ws;
+            const start = async () => {
+                await initProtobuf();
+                ws = new WebSocket(wsUrl);
 
-            ws.onopen = () => {
-                setIsConnected(true);
-                ws.send(Buffer.from(JSON.stringify(request)));
+                ws.onopen = () => {
+                    setIsConnected(true);
+                    ws.send(Buffer.from(JSON.stringify(request)));
+                };
+
+                ws.onclose = () => {
+                    setIsConnected(false);
+                };
+
+                ws.onmessage = async (event) => {
+                    const arrayBuffer = await blobToArrayBuffer(event.data);
+                    let buffer = Buffer.from(arrayBuffer);
+                    let response = decodeProfobuf(buffer);
+
+                    if (response.type === 1) {
+                        const {
+                            metrics, bullishMB, bearishMB,
+                            bullishSLTB, bearishSLTB, bullishAnts,
+                            dollar, bearishDollar,
+                        } = await updateWatchlistWithMetrics(response, scriptMap, portfolio, stats);
+
+                        dispatch(setOrderMetrics(metrics));
+                        dispatch(setBullishMB(bullishMB));
+                        dispatch(setBearishMB(bearishMB));
+                        dispatch(setBullishSLTB(bullishSLTB));
+                        dispatch(setBearishSLTB(bearishSLTB));
+                        dispatch(setBullishAnts(bullishAnts));
+                        dispatch(setDollarBo(dollar));
+                        dispatch(setBearishDollarBo(bearishDollar));
+                    }
+                };
+
+                ws.onerror = () => {
+                    setIsConnected(false);
+                };
             };
 
-            ws.onclose = () => {
-                setIsConnected(false);
+            if (wsUrl && request) start();
+
+            return () => {
+                if (ws) ws.close();
             };
-
-            ws.onmessage = async (event) => {
-                const arrayBuffer = await blobToArrayBuffer(event.data);
-                let buffer = Buffer.from(arrayBuffer);
-                let response = decodeProfobuf(buffer);
-
-                if (response.type === 1) {
-                    const { 
-                        metrics, bullishMB, bearishMB, 
-                        bullishSLTB, bearishSLTB, bullishAnts,
-                        dollar, bearishDollar,
-                    } = await updateWatchlistWithMetrics(response, scriptMap, portfolio, stats);
-
-                    dispatch(setOrderMetrics(metrics));   
-                    dispatch(setBullishMB(bullishMB)); 
-                    dispatch(setBearishMB(bearishMB)); 
-                    dispatch(setBullishSLTB(bullishSLTB));
-                    dispatch(setBearishSLTB(bearishSLTB));
-                    dispatch(setBullishAnts(bullishAnts));
-                    dispatch(setDollarBo(dollar));
-                    dispatch(setBearishDollarBo(bearishDollar));
-                }
-            };
-
-            ws.onerror = () => {
-                setIsConnected(false);
-            };
-        };
-
-        if (wsUrl && request) start();
-
-        return () => {
-            if (ws) ws.close();
-        };
-    }, [wsUrl, JSON.stringify(request)]);
+        }
+    }, [wsUrl, JSON.stringify(request), stats]);
 
     return { isConnected };
 };

@@ -199,13 +199,7 @@ const initialfilterModel = {
 };
 
 const WatchList = ({ scripts, type = 'dashboard' }) => {
-  const dispatch = useDispatch();
-
   const [filterModel, setFilterModel] = useState(initialfilterModel);
-
-  useEffect(() => {
-    dispatch(getStatsForScripts());
-  }, []);
 
   const columns = columnsConfig[type]
     .map(col => {
