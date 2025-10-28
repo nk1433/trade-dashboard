@@ -90,3 +90,5 @@ The following enhancements are planned:
 50. [ Bug ] - Stats api is making race condition
 51. [ Bug ] - Fix negative closing strength, fix through testcases to it.
 52. [ Bug ] - Fix inconsistency of 399/398
+53. [ Func ] - Introduce change column to identify the high tick change stocks.
+54. [ Func ] - Time series database/mongo for TI30
