@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Box, FormControl, FormControlLabel, Radio, RadioGroup, Typography } from '@mui/material';
+import { Box, FormControl, FormControlLabel, InputLabel, MenuItem, Radio, RadioGroup, Select, Typography } from '@mui/material';
 import { DataGrid } from '@mui/x-data-grid';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchMarketBreadth } from '../../Store/marketBreadth';
@@ -61,6 +61,26 @@ const columns = [
     )
   },
   {
+    field: 'up8Pct5d',
+    headerName: 'Up ≥8% (5D)',
+    width: 120,
+    align: 'center',
+    headerAlign: 'center',
+    renderCell: (params) => (
+      <div style={getCellStyle(params.value, 10)}>{params.value}</div>
+    )
+  },
+  {
+    field: 'down8Pct5d',
+    headerName: 'Down ≥8% (5D)',
+    width: 120,
+    align: 'center',
+    headerAlign: 'center',
+    renderCell: (params) => (
+      <div style={getCellStyle(params.value, 10)}>{params.value}</div>
+    )
+  },
+  {
     field: 'up20Pct5d',
     headerName: 'Up ≥20% (5D)',
     width: 120,
@@ -79,13 +99,6 @@ const columns = [
     renderCell: (params) => (
       <div style={getCellStyle(params.value, 10)}>{params.value}</div>
     )
-  },
-  {
-    field: 'totalStocks',
-    headerName: 'Total Stocks',
-    width: 120,
-    align: 'center',
-    headerAlign: 'center',
   },
   {
     field: 'intentScoreUp',
@@ -109,12 +122,31 @@ const columns = [
       <div style={getCellStyle(params.value, 5)}>{params.value.toFixed(2)}</div>
     )
   },
+  {
+    field: 'totalStocks',
+    headerName: 'Total Stocks',
+    width: 120,
+    align: 'center',
+    headerAlign: 'center',
+  },
+];
+
+const chartViewColumns = [
+  'fourPercentage',
+  'eightPercentage',
+  'twentyPercentage',
 ];
 
 const MarketBreadthTable = () => {
   const dispatch = useDispatch();
   const breadthData = useSelector(state => state.marketBreadth.data);
-  const [chartType, setChartType] = useState('mui');
+  const [chartType, setChartType] = useState('tv');
+
+  const [percantageChange, setPercentageChange] = useState(chartViewColumns[0]);
+
+  const handlePercentageChange = (event) => {
+    setPercentageChange(event.target.value);
+  };
 
   const handleChange = (event) => {
     setChartType(event.target.value);
@@ -139,16 +171,34 @@ const MarketBreadthTable = () => {
         </Typography>
 
         <FormControl component="fieldset">
-          <RadioGroup
-            row
-            aria-label="chart-type"
-            name="chart-type"
+          <InputLabel id="demo-simple-select-label">Chat View</InputLabel>
+          <Select
+            labelId="demo-simple-select-label"
+            id="demo-simple-select"
             value={chartType}
+            label="Chat View"
             onChange={handleChange}
           >
-            <FormControlLabel value="mui" control={<Radio />} label="MUI Bar Chart" />
-            <FormControlLabel value="tv" control={<Radio />} label="TradingView Chart" />
-          </RadioGroup>
+            <MenuItem value="mui">MUI</MenuItem>
+            <MenuItem value="tv">TV</MenuItem>
+          </Select>
+        </FormControl>
+
+        <FormControl>
+          <InputLabel id="demo-simple-select-label">Per Change</InputLabel>
+          <Select
+            labelId="demo-simple-select-label"
+            id="demo-simple-select"
+            value={percantageChange}
+            label="Per change"
+            onChange={handlePercentageChange}
+          >
+            {
+              chartViewColumns.map((field) => {
+                return <MenuItem key={field} value={field}>{field}</MenuItem>
+              })
+            }
+          </Select>
         </FormControl>
 
         {chartType === 'mui' ? (
@@ -172,7 +222,7 @@ const MarketBreadthTable = () => {
           </>
         ) : (
           <>
-            <BreadthTwoPaneChart data={rows} />
+            <BreadthTwoPaneChart data={rows} field={percantageChange} />
           </>
         )}
       </Box>

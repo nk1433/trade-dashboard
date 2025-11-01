@@ -9,7 +9,7 @@ export default function MarketBreadthBarChart({ data, seriesKey, chartTitle, bar
   return (
     <Box sx={{ maxWidth: 900, margin: 'auto', p: 2 }}>
       <Typography variant="h6" textAlign="center" gutterBottom>
-        {chartTitle}
+        {chartTitle} 
       </Typography>
 
       <BarChart

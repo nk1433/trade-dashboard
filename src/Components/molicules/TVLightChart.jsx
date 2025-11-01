@@ -1,7 +1,16 @@
-import React, { useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { createChart, HistogramSeries } from 'lightweight-charts';
-export default function BreadthTwoPaneChart({ data }) {
+import PropTypes from 'prop-types';
+
+const mapping = {
+    fourPercentage: ['up4Percent', 'down4Percent'],
+    eightPercentage: ['up8Pct5d', 'down8Pct5d'],
+    twentyPercentage: ['up20Pct5d', 'down20Pct5d'],
+}
+
+export default function BreadthTwoPaneChart({ data, field }) {
     const chartRef = useRef();
+    const [upSideColumn, downSideColumn] = mapping[field];
 
     useEffect(() => {
         const chart = createChart(chartRef.current, {
@@ -25,7 +34,7 @@ export default function BreadthTwoPaneChart({ data }) {
         upSeries.setData(
             data.map(item => ({
                 time: item.date,
-                value: item.up4Percent,
+                value: item[upSideColumn],
             }))
         );
 
@@ -36,7 +45,7 @@ export default function BreadthTwoPaneChart({ data }) {
         downSeries.setData(
             data.map(item => ({
                 time: item.date,
-                value: item.down4Percent,
+                value: item[downSideColumn],
             }))
         );
         chart.panes()[0].setHeight(250);
@@ -48,13 +57,12 @@ export default function BreadthTwoPaneChart({ data }) {
 
     return (
         <div style={{ width: '1000px', margin: 'auto' }}>
-            <div style={{ textAlign: 'center', fontWeight: 'bold', marginBottom: 12, marginTop: 12 }}>
-                Stocks Up ≥ 4% (Daily)
-            </div>
-            <div style={{ textAlign: 'center', fontWeight: 'bold', marginBottom: 24, marginTop: 12 }}>
-                Stocks Down ≤ -4% (Daily)
-            </div>
             <div ref={chartRef} />
         </div>
     );
 }
+
+BreadthTwoPaneChart.propTypes = {
+  data: PropTypes.array,
+  field: PropTypes.string,
+};
