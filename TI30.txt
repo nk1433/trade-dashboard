@@ -1,0 +1,29 @@
+                   ┌────────────────────────────┐
+                   │        EventBridge         │
+                   │  (Scheduled Trigger @ 9AM) │
+                   └─────────────┬──────────────┘
+                                 │
+                                 ▼
+                    ┌────────────────────────────┐
+                    │       ECS Fargate Task     │
+                    │ (Upstox Node.js Container) │
+                    │----------------------------│
+                    │ • Connects to Upstox WS API│
+                    │ • Streams selected stocks  │
+                    │ • Pushes to MongoDB        │
+                    │ • Exits after 30 minutes   │
+                    └──────┬──────────┬──────────┘
+                           │          │
+          ┌────────────────┘          └────────────────┐
+          ▼                                           ▼
+ ┌───────────────────────┐                   ┌────────────────────┐
+ │   AWS Secrets Manager │                   │  Amazon CloudWatch │
+ │ (Upstox token, DB URI)│                   │  Logs & Monitoring │
+ └───────────────────────┘                   └────────────────────┘
+
+                                 │
+                                 ▼
+                       ┌───────────────────────┐
+                       │   MongoDB Atlas DB    │
+                       │(Data stored for 30min)│
+                       └───────────────────────┘
