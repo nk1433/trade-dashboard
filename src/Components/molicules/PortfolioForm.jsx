@@ -20,8 +20,8 @@ const PortfolioForm = () => {
   };
 
   return (
-    <Box sx={{ padding: 2 }}>
-      <Typography variant="h5" gutterBottom>
+    <div className="geist-card" style={{ maxWidth: '600px', margin: '0 auto' }}>
+      <Typography variant="h5" gutterBottom style={{ fontWeight: 600, letterSpacing: '-0.02em' }}>
         Update Portfolio Settings
       </Typography>
 
@@ -36,6 +36,8 @@ const PortfolioForm = () => {
           disabled
           fullWidth
           margin="normal"
+          variant="outlined"
+          size="small"
         />
         <TextField
           label="Exit Percentage"
@@ -44,6 +46,8 @@ const PortfolioForm = () => {
           onChange={(e) => dispatch(updateExitPercentage(Number(e.target.value)))}
           fullWidth
           margin="normal"
+          variant="outlined"
+          size="small"
         />
         <TextField
           label="Risk Percentage"
@@ -52,18 +56,28 @@ const PortfolioForm = () => {
           onChange={(e) => dispatch(updateRiskPercentage(Number(e.target.value)))}
           fullWidth
           margin="normal"
+          variant="outlined"
+          size="small"
         />
-        <Button 
-          type="submit" 
-          variant="contained" 
-          color="primary" 
-          sx={{ marginTop: 2 }}
+        <Button
+          type="submit"
+          variant="contained"
+          disableElevation
+          sx={{
+            marginTop: 2,
+            backgroundColor: 'black',
+            color: 'white',
+            textTransform: 'none',
+            '&:hover': {
+              backgroundColor: '#333'
+            }
+          }}
           disabled={loading}
         >
-          Update
+          Update Settings
         </Button>
       </form>
-    </Box>
+    </div>
   );
 };
 

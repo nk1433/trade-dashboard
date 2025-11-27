@@ -118,6 +118,7 @@ export const updateWatchlistWithMetrics = async (liveFeed, scriptMap, portfolio,
       acc.bearishDollar[instrumentKey] = metric;
     }
 
+    //TODO: Include TI in checks.
     if((latestDayFeed.close / prevStats.fiftyTwoWeekLow) >= 1.8 && minVolume3d > 100000){
       acc.bullishAnts[instrumentKey] = metric;
     }

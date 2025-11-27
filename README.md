@@ -92,3 +92,4 @@ The following enhancements are planned:
 52. [ Bug ] - Fix inconsistency of 399/398
 53. [ Func ] - Introduce change column to identify the high tick change stocks.
 54. [ Func ] - Time series database/mongo for TI30
+55. [ Func ] - Export ws metrics to open search/ export to localhost for non persistance dashboards

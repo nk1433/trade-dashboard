@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, FormControl, FormControlLabel, FormLabel, Radio, RadioGroup } from '@mui/material';
+import { Box, FormControl, FormControlLabel, FormLabel, Radio, RadioGroup, Typography } from '@mui/material';
 
 const slimLabelSx = {
   '& .MuiFormControlLabel-label': {
@@ -16,68 +16,102 @@ const slimRadioSx = {
 };
 
 const WatchlistFilterForm = ({ selectedIndex, handleSelectionChange, counts }) => {
+  const filterGroups = [
+    {
+      label: 'Bullish',
+      items: [
+        { value: 'all', label: 'All', count: counts.all },
+        { value: 'bullishMB', label: 'MB', count: counts.bullishMB },
+        { value: 'bullishSLTB', label: 'SLTB', count: counts.bullishSLTB },
+        { value: 'bullishAnts', label: 'Ants', count: counts.bullishAnts },
+        { value: 'dollar', label: '$ Dollar', count: counts.dollar },
+      ]
+    },
+    {
+      label: 'Bearish',
+      items: [
+        { value: 'bearishMB', label: 'MB', count: counts.bearishMB },
+        { value: 'bearishSLTB', label: 'SLTB', count: counts.bearishSLTB },
+        { value: 'bearishDollar', label: '$ Dollar', count: counts.bearishDollar },
+      ]
+    }
+  ];
+
   return (
-    <FormControl component="fieldset" sx={{ mb: 2 }}>
-      <FormLabel component="legend" sx={{ fontSize: 14, mb: 0.7 }}>Select View</FormLabel>
-      <RadioGroup value={selectedIndex} onChange={handleSelectionChange}>
-        <Box display="flex" justifyContent="space-between" alignItems="flex-start" sx={{ mt: 1 }}>
-          {/* Bullish side */}
-          <Box display="flex" flexDirection="column" gap={0.4}>
-            <FormControlLabel
-              value="all"
-              control={<Radio sx={slimRadioSx} />}
-              label={`All - ${counts.all}`}
-              sx={slimLabelSx}
-            />
-            <FormControlLabel
-              value="bullishMB"
-              control={<Radio sx={slimRadioSx} />}
-              label={`Bullish MB - ${counts.bullishMB}`}
-              sx={slimLabelSx}
-            />
-            <FormControlLabel
-              value="bullishSLTB"
-              control={<Radio sx={slimRadioSx} />}
-              label={`Bullish SLTB - ${counts.bullishSLTB}`}
-              sx={slimLabelSx}
-            />
-            <FormControlLabel
-              value="bullishAnts"
-              control={<Radio sx={slimRadioSx} />}
-              label={`Bullish Ants - ${counts.bullishAnts}`}
-              sx={slimLabelSx}
-            />
-            <FormControlLabel
-              value="dollar"
-              control={<Radio sx={slimRadioSx} />}
-              label={`$ dollar - ${counts.dollar}`}
-              sx={slimLabelSx}
-            />
+    <div style={{ marginBottom: '2rem' }}>
+      <Box sx={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 2,
+        borderBottom: '1px solid var(--border-color)',
+        paddingBottom: 2
+      }}>
+        {filterGroups.map((group) => (
+          <Box key={group.label} sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <Typography variant="caption" sx={{
+              color: 'var(--text-secondary)',
+              fontWeight: 600,
+              textTransform: 'uppercase',
+              letterSpacing: '0.05em',
+              minWidth: '60px'
+            }}>
+              {group.label}
+            </Typography>
+            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+              {group.items.map((item) => {
+                const isActive = selectedIndex === item.value;
+                return (
+                  <button
+                    key={item.value}
+                    onClick={() => handleSelectionChange({ target: { value: item.value } })}
+                    style={{
+                      appearance: 'none',
+                      background: isActive ? 'black' : 'transparent',
+                      color: isActive ? 'white' : 'var(--text-secondary)',
+                      border: isActive ? '1px solid black' : '1px solid transparent',
+                      borderRadius: '9999px',
+                      padding: '0.25rem 0.75rem',
+                      fontSize: '0.875rem',
+                      fontWeight: 500,
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.375rem'
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!isActive) {
+                        e.currentTarget.style.backgroundColor = 'var(--bg-secondary)';
+                        e.currentTarget.style.color = 'var(--text-primary)';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!isActive) {
+                        e.currentTarget.style.backgroundColor = 'transparent';
+                        e.currentTarget.style.color = 'var(--text-secondary)';
+                      }
+                    }}
+                  >
+                    {item.label}
+                    <span style={{
+                      fontSize: '0.75rem',
+                      opacity: isActive ? 0.8 : 0.6,
+                      backgroundColor: isActive ? 'rgba(255,255,255,0.2)' : 'var(--bg-secondary)',
+                      padding: '0 4px',
+                      borderRadius: '4px',
+                      minWidth: '16px',
+                      textAlign: 'center'
+                    }}>
+                      {item.count}
+                    </span>
+                  </button>
+                );
+              })}
+            </Box>
           </Box>
-          {/* Bearish side */}
-          <Box display="flex" flexDirection="column" gap={0.4}>
-            <FormControlLabel
-              value="bearishMB"
-              control={<Radio sx={slimRadioSx} />}
-              label={`Bearish MB - ${counts.bearishMB}`}
-              sx={slimLabelSx}
-            />
-            <FormControlLabel
-              value="bearishSLTB"
-              control={<Radio sx={slimRadioSx} />}
-              label={`Bearish SLTB - ${counts.bearishSLTB}`}
-              sx={slimLabelSx}
-            />
-            <FormControlLabel
-              value="bearishDollar"
-              control={<Radio sx={slimRadioSx} />}
-              label={`Bearish $ dollar - ${counts.bearishDollar}`}
-              sx={slimLabelSx}
-            />
-          </Box>
-        </Box>
-      </RadioGroup>
-    </FormControl>
+        ))}
+      </Box>
+    </div>
   );
 };
 

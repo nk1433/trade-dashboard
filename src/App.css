@@ -1,8 +1,13 @@
 #root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
+  width: 100%;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  text-align: left;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 .logo {
@@ -11,9 +16,11 @@
   will-change: filter;
   transition: filter 300ms;
 }
+
 .logo:hover {
   filter: drop-shadow(0 0 2em #646cffaa);
 }
+
 .logo.react:hover {
   filter: drop-shadow(0 0 2em #61dafbaa);
 }
@@ -22,6 +29,7 @@
   from {
     transform: rotate(0deg);
   }
+
   to {
     transform: rotate(360deg);
   }
@@ -42,20 +50,31 @@
 }
 
 .modal {
-    /* Center the modal vertically */
+  /* Center the modal vertically */
   box-shadow: rgba(100, 100, 111, 0.3) 0px 7px 29px 0px;
   background-color: white;
   border: 2px solid rgb(240, 240, 240);
   border-radius: 12px;
-  position: absolute; /* Or 'fixed' depending on your layout needs */
-  width: 80%;        /* Example width, adjust as needed */
-  height: 50%;       /* Ensure initial height is also a percentage */
-  top: 10%;          /* Example top margin */
-  bottom: 10%;       /* Example bottom margin */
-  left: 10%;          /* Example left margin */
-  right: 10%;         /* Example right margin */
-  aspect-ratio: 1 / 1; /* This makes it a square, width will be equal to height (limited by the smaller of the two) */
-  max-width: 90%;     /* Optional: Set a maximum width */
-  max-height: 90vh;    /* Optional: Set a maximum height */
-  margin: auto;      /* Optional: To further center if using a fixed width/height and absolute positioning */
-};
+  position: absolute;
+  /* Or 'fixed' depending on your layout needs */
+  width: 80%;
+  /* Example width, adjust as needed */
+  height: 50%;
+  /* Ensure initial height is also a percentage */
+  top: 10%;
+  /* Example top margin */
+  bottom: 10%;
+  /* Example bottom margin */
+  left: 10%;
+  /* Example left margin */
+  right: 10%;
+  /* Example right margin */
+  aspect-ratio: 1 / 1;
+  /* This makes it a square, width will be equal to height (limited by the smaller of the two) */
+  max-width: 90%;
+  /* Optional: Set a maximum width */
+  max-height: 90vh;
+  /* Optional: Set a maximum height */
+  margin: auto;
+  /* Optional: To further center if using a fixed width/height and absolute positioning */
+}

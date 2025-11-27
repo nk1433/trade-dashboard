@@ -238,21 +238,38 @@ const WatchList = ({ scripts, type = 'dashboard' }) => {
   function handleCopyColumn(field) {
     const values = rows.map(row => row[field]);
     const textToCopy = values.join(','); // comma, no space
+
     navigator.clipboard.writeText(textToCopy)
       .then(() => alert(`Copied all values for ${field} column!`))
       .catch(() => alert('Copy failed.'));
   }
 
   return (
-    <Box sx={{ width: '100%', }}>
-      <Box sx={{ mb: 1 }}>
+    <div className="geist-card" style={{ padding: 0, overflow: 'hidden' }}>
+      <Box sx={{
+        p: 2,
+        borderBottom: '1px solid var(--border-color)',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        backgroundColor: 'var(--bg-secondary)'
+      }}>
         <Tooltip title="Copy all Script names">
-          <IconButton onClick={() => handleCopyColumn('symbol')}>
-            Copy to trading view
-            <ContentCopyIcon />
+          <IconButton
+            onClick={() => handleCopyColumn('symbol')}
+            size="small"
+            sx={{
+              borderRadius: '6px',
+              border: '1px solid var(--border-color)',
+              fontSize: '0.85rem',
+              padding: '4px 8px',
+              gap: 1
+            }}
+          >
+            Copy to TradingView
+            <ContentCopyIcon fontSize="small" />
           </IconButton>
         </Tooltip>
-        {/* Repeat button for other fields if desired */}
       </Box>
       <DataGrid
         filterModel={filterModel}
@@ -264,8 +281,26 @@ const WatchList = ({ scripts, type = 'dashboard' }) => {
         columns={columns}
         getRowId={row => row.id}
         pageSizeOptions={[5, 10, 25, { value: -1, label: 'All' }]}
+        sx={{
+          border: 'none',
+          '& .MuiDataGrid-cell': {
+            borderColor: 'var(--border-color)',
+          },
+          '& .MuiDataGrid-columnHeaders': {
+            backgroundColor: 'var(--bg-secondary)',
+            borderBottom: '1px solid var(--border-color)',
+            fontWeight: 600,
+            textTransform: 'uppercase',
+            fontSize: '0.75rem',
+            letterSpacing: '0.05em',
+            color: 'var(--text-secondary)'
+          },
+          '& .MuiDataGrid-row:hover': {
+            backgroundColor: 'var(--bg-secondary)',
+          }
+        }}
       />
-    </Box>
+    </div>
   );
 };
 

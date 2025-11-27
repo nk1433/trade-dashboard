@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Route, Routes, Link } from "react-router-dom";
+import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
 import PortfolioForm from "./PortfolioForm";
 import ClosedPositions from "./ClosedPositions";
 import DisplayScript from "./Scripts";
@@ -12,11 +12,13 @@ import TVChart from './TV.jsx';
 import HeatMap from './HeatMap.jsx';
 import ChartWithMarkers from './Visualize.jsx';
 import PlContributionCalendar from "./Contribution.jsx";
+import TVChartContainer from "../TradingView/TVChartContainer";
+import Layout from "./Layout";
 
 // Configuration for the routes in JSON format
 const routesConfig = [
   { path: "/pf-config", component: PortfolioForm, linkText: "Configs" },
-//   { path: "/table", component: PortfolioTable, linkText: "PF" },
+  //   { path: "/table", component: PortfolioTable, linkText: "PF" },
   { path: "/allocation-calculator", component: AllocationIntentForm, linkText: "Calculator" },
   { path: "/closed", component: ClosedPositions, linkText: "Closed" },
   { path: "/performance", component: PerformanceGraph, linkText: "Performance" },
@@ -29,32 +31,23 @@ const routesConfig = [
   { path: "/heat-map", component: HeatMap, linkText: "HeatMap" },
   { path: "/visualize", component: ChartWithMarkers, linkText: "Visualize" },
   { path: "/contribution", component: PlContributionCalendar, linkText: "Contribution" },
+  { path: "/tv-advanced", component: TVChartContainer, linkText: "TV Advanced" },
 ];
 
 const Navbar = () => {
   return (
     <Router>
-      <nav style={{ display: 'flex', justifyContent: 'center', alignItems: 'center'}}>
-        {routesConfig.map((route) => (
-          <Link
-            key={route.path}
-            to={route.path}
-            style={{ marginRight: "10px", color: 'black' }}
-          >
-            {route.linkText}
-          </Link>
-        ))}
-      </nav>
-     
-      <Routes>
-        {routesConfig.map((route) => (
-          <Route
-            key={route.path}
-            path={route.path}
-            element={<route.component />}
-          />
-        ))}
-      </Routes>
+      <Layout routes={routesConfig}>
+        <Routes>
+          {routesConfig.map((route) => (
+            <Route
+              key={route.path}
+              path={route.path}
+              element={<route.component />}
+            />
+          ))}
+        </Routes>
+      </Layout>
     </Router>
   );
 };

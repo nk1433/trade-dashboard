@@ -13,6 +13,7 @@ import {
     setDollarBo,
     setBearishDollarBo,
 } from "../Store/upstoxs";
+import socketEventEmitter from "../utils/socketEventEmitter";
 
 let protobufRoot = null;
 const initProtobuf = async () => {
@@ -74,6 +75,9 @@ export function useMarketDataSocket({ wsUrl, request }) {
                     let response = decodeProfobuf(buffer);
 
                     if (response.type === 1) {
+                        // Emit event for TradingView datafeed
+                        socketEventEmitter.emit('market-data', response);
+
                         const {
                             metrics, bullishMB, bearishMB,
                             bullishSLTB, bearishSLTB, bullishAnts,

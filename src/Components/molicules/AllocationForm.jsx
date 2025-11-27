@@ -64,12 +64,17 @@ const AllocationIntentForm = () => {
 
 
   return (
-    <>
-      <Typography variant="h4" gutterBottom sx={{ textAlign: "center" }}>
+    <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+      <Typography variant="h4" gutterBottom sx={{
+        textAlign: "center",
+        fontWeight: 700,
+        letterSpacing: '-0.03em',
+        marginBottom: 4
+      }}>
         Allocation Intent Calculator
       </Typography>
 
-      <Box sx={{ maxWidth: 600, margin: "auto", mb: 4 }}>
+      <div className="geist-card" style={{ maxWidth: '600px', margin: '0 auto 2rem auto' }}>
         <TextField
           label="Portfolio Percentage"
           type="number"
@@ -77,6 +82,8 @@ const AllocationIntentForm = () => {
           onChange={(e) => setPortfolioPercentage(Number(e.target.value))}
           fullWidth
           margin="normal"
+          variant="outlined"
+          size="small"
         />
         <TextField
           label="Portfolio Size"
@@ -85,6 +92,8 @@ const AllocationIntentForm = () => {
           onChange={(e) => setPfSize(Number(e.target.value))}
           fullWidth
           margin="normal"
+          variant="outlined"
+          size="small"
         />
         <TextField
           label="Entry Price"
@@ -93,6 +102,8 @@ const AllocationIntentForm = () => {
           onChange={(e) => setEntryPrice(Number(e.target.value))}
           fullWidth
           margin="normal"
+          variant="outlined"
+          size="small"
         />
         <TextField
           label="Exit Price"
@@ -101,6 +112,8 @@ const AllocationIntentForm = () => {
           onChange={(e) => setExitPrice(Number(e.target.value))}
           fullWidth
           margin="normal"
+          variant="outlined"
+          size="small"
         />
         <TextField
           label="Risk Percentage"
@@ -109,47 +122,63 @@ const AllocationIntentForm = () => {
           onChange={(e) => setRiskPercentage(Number(e.target.value))}
           fullWidth
           margin="normal"
+          variant="outlined"
+          size="small"
         />
 
-        <Button variant="contained" color="primary" fullWidth onClick={handleSubmit} sx={{ mt: 2 }}>
-          Calculate
+        <Button
+          variant="contained"
+          fullWidth
+          onClick={handleSubmit}
+          disableElevation
+          sx={{
+            mt: 2,
+            backgroundColor: 'black',
+            color: 'white',
+            textTransform: 'none',
+            fontWeight: 600,
+            '&:hover': {
+              backgroundColor: '#333'
+            }
+          }}
+        >
+          Calculate Allocation
         </Button>
-      </Box>
+      </div>
 
       {results && results.error && (
         <Typography color="error" sx={{ textAlign: "center" }}>{results.error}</Typography>
       )}
 
       {results && !results.error && (
-        <>
-          <Typography variant="h6" sx={{ textAlign: "center", mb: 2 }}>
-            Allocation Summary
-          </Typography>
-          <Paper sx={{ height: 150, maxWidth: 1100, margin: "auto", mb: 4 }}>
+        <div className="geist-card" style={{ padding: 0, overflow: 'hidden' }}>
+          <div style={{ padding: '1.5rem', borderBottom: '1px solid var(--border-color)' }}>
+            <Typography variant="h6" sx={{ fontWeight: 600, letterSpacing: '-0.02em', margin: 0 }}>
+              Allocation Summary
+            </Typography>
+          </div>
+          <div style={{ height: 150, width: '100%' }}>
             <DataGrid
               rows={mainRows}
               columns={columns}
               hideFooter
               disableColumnMenu
               getRowId={(row) => row.id}
+              sx={{
+                border: 'none',
+                '& .MuiDataGrid-cell': {
+                  borderColor: 'var(--border-color)',
+                },
+                '& .MuiDataGrid-columnHeaders': {
+                  backgroundColor: 'var(--bg-secondary)',
+                  borderBottom: '1px solid var(--border-color)',
+                },
+              }}
             />
-          </Paper>
-
-          {/* <Typography variant="h6" sx={{ textAlign: "center", mb: 2 }}>
-            Allocation Suggestions
-          </Typography> */}
-          {/* <Paper sx={{ height: 220, maxWidth: 600, margin: "auto" }}>
-            <DataGrid
-              rows={suggestionRows}
-              columns={allocationSuggestionColumns}
-              hideFooter
-              disableColumnMenu
-              getRowId={(row) => row.id}
-            />
-          </Paper> */}
-        </>
+          </div>
+        </div>
       )}
-    </>
+    </div>
   );
 };
 

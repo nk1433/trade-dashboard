@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box } from '@mui/material';
+import { Box, Typography } from '@mui/material';
 import WatchlistFilterForm from '../molicules/WatchlistFilterForm';
 import { useWatchlistFilter } from '../../hooks/useWatchlistFilter';
 import WatchList from './Table';
@@ -13,14 +13,23 @@ const Dashboard = () => {
   } = useWatchlistFilter();
 
   return (
-    <Box sx={{ p: 2 }}>
+    <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
+      <Typography variant="h4" gutterBottom sx={{
+        textAlign: "left",
+        fontWeight: 700,
+        letterSpacing: '-0.03em',
+        marginBottom: 3,
+        paddingLeft: 1
+      }}>
+        Watchlist
+      </Typography>
       <WatchlistFilterForm
         selectedIndex={selectedIndex}
         handleSelectionChange={handleSelectionChange}
         counts={counts}
       />
       <WatchList scripts={scriptsToShow} />
-    </Box>
+    </div>
   );
 };
 
