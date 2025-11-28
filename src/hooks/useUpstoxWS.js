@@ -26,6 +26,7 @@ export const updateWatchlistWithMetrics = async (liveFeed, scriptMap, portfolio,
     const prevDayClose = prevStats.lastPrice || 0;
     // Newly added metrics from stats
     const minVolume3d = prevStats.minVolume3d || 0;
+    const statsPriceChange = prevStats.priceChange || 0;
     const trendIntensity = parseFloat(prevStats.trendIntensity) || 0;
     const closePrev1 = parseFloat(prevStats.closePrev1) || 0;
     const closePrev2 = parseFloat(prevStats.closePrev2) || 0;
@@ -104,22 +105,26 @@ export const updateWatchlistWithMetrics = async (liveFeed, scriptMap, portfolio,
     if (
       minVolume3d > 100000 &&
       trendIntensity >= 1.05 &&
-      (currentOpen / currentClose) > 0.99 &&
-      (currentOpen / currentClose) <= 1.01
+      statsPriceChange > -1 &&
+      statsPriceChange < 1
     ) {
       acc.bullishAnts[instrumentKey] = metric;
     }
 
-    if(latestDayFeed.close - latestDayFeed.open >= 50 && currentVolume >= 100000){
+    if (latestDayFeed.close - latestDayFeed.open >= 50 && currentVolume >= 100000) {
       acc.dollar[instrumentKey] = metric;
     }
 
-    if(latestDayFeed.open - latestDayFeed.close >= 50 && currentVolume >= 100000){
+    if (latestDayFeed.open - latestDayFeed.close >= 50 && currentVolume >= 100000) {
       acc.bearishDollar[instrumentKey] = metric;
     }
 
     //TODO: Include TI in checks.
-    if((latestDayFeed.close / prevStats.fiftyTwoWeekLow) >= 1.8 && minVolume3d > 100000){
+    if ((latestDayFeed.close / prevStats.fiftyTwoWeekLow) >= 1.8 &&
+      minVolume3d > 100000 &&
+      statsPriceChange > -1 &&
+      statsPriceChange < 1
+    ) {
       acc.bullishAnts[instrumentKey] = metric;
     }
 
