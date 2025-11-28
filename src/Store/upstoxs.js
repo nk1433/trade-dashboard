@@ -34,7 +34,7 @@ export const computeMetrics = async (context) => {
     const changePercentage = ((ltp - currentDayOpen) / currentDayOpen) * 100;
     const allocation =
         ltp - currentDayOpen <= 0
-            ? { 
+            ? {
                 maxAllocationPercentage: "-",
                 riskRewardRatio: "-",
                 allocationSuggestions: [],
@@ -74,8 +74,11 @@ const getMarketQuote = async (instrumentKey) => {
 };
 
 const getStats = async () => {
+    const env = import.meta.env.VITE_ENV;
+    const baseUrl = env === 'DEV' ? 'http://localhost:3015' : import.meta.env.VITE_PROD_HOST;
+
     const stats = await fetch(
-        `http://localhost:3015/stats/all`,
+        `${baseUrl}/stats/all`,
         {
             headers: {
                 'Content-Type': 'application/json',
@@ -263,8 +266,8 @@ const orders = createSlice({
 });
 
 export default orders.reducer;
-export const { 
-    setOrderMetrics, setLiveFeed, setBullishMB, 
+export const {
+    setOrderMetrics, setLiveFeed, setBullishMB,
     setBearishMB, setBullishSLTB, setBearishSLTB,
     setBullishAnts, setDollarBo, setBearishDollarBo,
 } = orders.actions;

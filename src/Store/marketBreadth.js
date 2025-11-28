@@ -6,7 +6,9 @@ export const fetchMarketBreadth = createAsyncThunk(
   'marketBreadth/fetchMarketBreadth',
   async () => {
     // TODO: Use environment variable for base URL
-    const response = await axios.get('http://localhost:3015/market-breadth');
+    const env = import.meta.env.VITE_ENV;
+    const baseUrl = env === 'DEV' ? 'http://localhost:3015' : import.meta.env.VITE_PROD_HOST;
+    const response = await axios.get(`${baseUrl}/market-breadth`);
     return response.data.data || [];
   }
 );
