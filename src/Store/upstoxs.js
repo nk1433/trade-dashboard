@@ -75,6 +75,7 @@ const getMarketQuote = async (instrumentKey) => {
 
 const getStats = async () => {
     const env = import.meta.env.VITE_ENV;
+    console.log(env);
     const baseUrl = env === 'DEV' ? 'http://localhost:3015' : import.meta.env.VITE_PROD_HOST;
 
     const stats = await fetch(

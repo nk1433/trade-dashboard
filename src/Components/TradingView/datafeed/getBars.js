@@ -150,6 +150,8 @@ export const unsubscribeBars = (subscriberUID) => {
 };
 
 // Listen to socket events
+// Listen to socket events
+// Listen to socket events
 socketEventEmitter.on('market-data', (data) => {
   // data is the decoded protobuf message
   // Structure: { feeds: { "instrument_key": { ... } } }
@@ -157,22 +159,59 @@ socketEventEmitter.on('market-data', (data) => {
   if (!data || !data.feeds) return;
 
   Object.values(subscribers).forEach(subscriber => {
-    const { symbolInfo, onRealtimeCallback } = subscriber;
+    const { symbolInfo, onRealtimeCallback, resolution } = subscriber;
     const instrumentKey = symbolInfo.ticker;
 
     const feed = data.feeds[instrumentKey];
-    if (feed && feed.ff && feed.ff.marketFF && feed.ff.marketFF.ltpc && feed.ff.marketFF.ltpc.ltp) {
-      const ltp = feed.ff.marketFF.ltpc.ltp;
-      const tradeTime = parseInt(feed.ff.marketFF.ltpc.ltt); // Last trade time
 
-      onRealtimeCallback({
-        time: tradeTime,
-        close: ltp,
-        open: ltp, // Approximation for realtime tick
-        high: ltp,
-        low: ltp,
-        volume: 0 // Volume might be available elsewhere in the feed
-      });
+    // Check for fullFeed (used in useUpstoxWS) or ff (abbreviation)
+    const marketFF = feed?.fullFeed?.marketFF || feed?.ff?.marketFF;
+
+    if (marketFF) {
+      const ltp = marketFF.ltpc?.ltp;
+      const tradeTime = parseInt(marketFF.ltpc?.ltt); // Last trade time
+
+      // Try to get daily OHLC if available
+      const ohlcData = marketFF.marketOHLC?.ohlc;
+      const dailyOHLC = ohlcData ? ohlcData.find(d => d.interval === '1d') : null;
+
+      if (dailyOHLC && ltp) {
+        // If we have daily OHLC, use it for the candle shape
+        // For daily resolution, we must use the start of the day timestamp
+
+        // Calculate start of day timestamp (IST)
+        // Assuming tradeTime is in ms. If it's epoch, we can use it to find the day start.
+        // Upstox timestamps are usually in ms.
+
+        let barTime = dailyOHLC.ts; // Timestamp of the candle open usually
+
+        if (!barTime) {
+          // Fallback: Snap tradeTime to midnight
+          const tradeDate = new Date(tradeTime);
+          const dateStr = tradeDate.toISOString().split('T')[0];
+          barTime = new Date(dateStr).getTime();
+        }
+
+        onRealtimeCallback({
+          time: barTime,
+          open: dailyOHLC.open,
+          high: dailyOHLC.high,
+          low: dailyOHLC.low,
+          close: dailyOHLC.close, // or ltp, but dailyOHLC.close should be the latest price for the day
+          volume: dailyOHLC.vol
+        });
+      } else if (ltp) {
+        // Fallback if no daily OHLC (e.g. only LTP update)
+        // This will create a flat candle if used for a new bar
+        onRealtimeCallback({
+          time: tradeTime,
+          close: ltp,
+          open: ltp,
+          high: ltp,
+          low: ltp,
+          volume: 0
+        });
+      }
     }
   });
 });
