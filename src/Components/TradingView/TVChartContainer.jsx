@@ -2,8 +2,13 @@ import React, { useEffect, useRef, useState } from "react";
 import { widget } from "../../charting_library";
 import Datafeed from "./datafeed/datafeed_custom";
 import { useWatchlistFilter } from "../../hooks/useWatchlistFilter";
-import WatchlistFilterForm from "../molicules/WatchlistFilterForm";
-import { Box, Typography, List, ListItem, ListItemButton, ListItemText, Divider } from '@mui/material';
+import {
+  Box, Typography, Divider, IconButton, Menu, MenuItem,
+  Table, TableBody, TableCell, TableContainer, TableHead, TableRow
+} from '@mui/material';
+import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
+import AddIcon from '@mui/icons-material/Add';
+import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 
 const TVChartContainer = () => {
   const chartContainerRef = useRef();
@@ -76,16 +81,67 @@ const TVChartContainer = () => {
     }
   };
 
+  // Sorting logic
+  const [sortConfig, setSortConfig] = useState({ key: 'changePercentage', direction: 'desc' });
+  const [anchorEl, setAnchorEl] = useState(null);
+  const openMenu = Boolean(anchorEl);
+
+  const handleMenuClick = (event) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleMenuClose = (value) => {
+    setAnchorEl(null);
+    if (value) {
+      handleSelectionChange({ target: { value } });
+    }
+  };
+
+  const handleSort = (key) => {
+    let direction = 'asc';
+    if (sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
+
+  const sortedStockList = [...dynamicStockList].sort((a, b) => {
+    let aValue = a[sortConfig.key];
+    let bValue = b[sortConfig.key];
+
+    // Handle numeric conversions if needed
+    if (sortConfig.key === 'changePercentage' || sortConfig.key === 'ltp') {
+      aValue = parseFloat(aValue) || 0;
+      bValue = parseFloat(bValue) || 0;
+    }
+
+    // Calculate change if key is 'change'
+    if (sortConfig.key === 'change') {
+      aValue = (parseFloat(a.ltp) || 0) - (parseFloat(a.sl) || 0); // sl is currentDayOpen
+      bValue = (parseFloat(b.ltp) || 0) - (parseFloat(b.sl) || 0);
+    }
+
+    if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
+    if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
+    return 0;
+  });
+
+  const getListName = (index) => {
+    switch (index) {
+      case 'bullishMB': return 'Bullish MB';
+      case 'bearishMB': return 'Bearish MB';
+      case 'bullishSLTB': return 'Bullish SLTB';
+      case 'bearishSLTB': return 'Bearish SLTB';
+      case 'bullishAnts': return 'Bullish Ants';
+      case 'dollar': return 'Dollar BO';
+      case 'bearishDollar': return 'Bearish Dollar';
+      case 'all': return 'All Symbols';
+      default: return 'Watchlist';
+    }
+  };
+
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 60px)', width: '100%' }}>
-      <Box sx={{ p: 2, borderBottom: '1px solid var(--border-color)' }}>
-        <WatchlistFilterForm
-          selectedIndex={selectedIndex}
-          handleSelectionChange={handleSelectionChange}
-          counts={counts}
-        />
-      </Box>
-
       <Box sx={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
         {/* Chart Area */}
         <Box sx={{ flex: 1, position: 'relative' }}>
@@ -94,43 +150,123 @@ const TVChartContainer = () => {
 
         {/* Side Panel */}
         <Box sx={{
-          width: 280,
+          width: 320, // Slightly wider for table
           borderLeft: '1px solid var(--border-color)',
           bgcolor: 'var(--bg-secondary)',
-          overflowY: 'auto',
           display: 'flex',
           flexDirection: 'column'
         }}>
-          <Box sx={{ p: 2, borderBottom: '1px solid var(--border-color)' }}>
-            <Typography variant="subtitle1" fontWeight={600}>Watchlist</Typography>
-            <Typography variant="caption" color="text.secondary">
-              {dynamicStockList.length} Symbols
-            </Typography>
+          {/* Header with Dropdown */}
+          <Box sx={{
+            p: 1.5,
+            borderBottom: '1px solid var(--border-color)',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            bgcolor: 'var(--bg-primary)'
+          }}>
+            <Box
+              onClick={handleMenuClick}
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                cursor: 'pointer',
+                borderRadius: 1,
+                p: 0.5,
+                '&:hover': { bgcolor: 'rgba(0,0,0,0.05)' }
+              }}
+            >
+              <Typography variant="subtitle2" fontWeight={600} sx={{ mr: 0.5 }}>
+                {getListName(selectedIndex)}
+              </Typography>
+              <KeyboardArrowDownIcon fontSize="small" color="action" />
+            </Box>
+            <Menu
+              anchorEl={anchorEl}
+              open={openMenu}
+              onClose={() => handleMenuClose(null)}
+              MenuListProps={{ dense: true }}
+            >
+              <MenuItem onClick={() => handleMenuClose('all')}>All Symbols ({counts.all})</MenuItem>
+              <Divider />
+              <MenuItem onClick={() => handleMenuClose('bullishMB')}>Bullish MB ({counts.bullishMB})</MenuItem>
+              <MenuItem onClick={() => handleMenuClose('bearishMB')}>Bearish MB ({counts.bearishMB})</MenuItem>
+              <MenuItem onClick={() => handleMenuClose('bullishSLTB')}>Bullish SLTB ({counts.bullishSLTB})</MenuItem>
+              <MenuItem onClick={() => handleMenuClose('bearishSLTB')}>Bearish SLTB ({counts.bearishSLTB})</MenuItem>
+              <MenuItem onClick={() => handleMenuClose('bullishAnts')}>Bullish Ants ({counts.bullishAnts})</MenuItem>
+              <MenuItem onClick={() => handleMenuClose('dollar')}>Dollar BO ({counts.dollar})</MenuItem>
+              <MenuItem onClick={() => handleMenuClose('bearishDollar')}>Bearish Dollar ({counts.bearishDollar})</MenuItem>
+            </Menu>
+
+            <Box>
+              <IconButton size="small"><AddIcon fontSize="small" /></IconButton>
+              <IconButton size="small"><MoreHorizIcon fontSize="small" /></IconButton>
+            </Box>
           </Box>
-          <List disablePadding>
-            {dynamicStockList.map((stock, index) => (
-              <React.Fragment key={stock.instrumentKey || index}>
-                <ListItemButton
-                  selected={selectedSymbol === stock.symbol}
-                  onClick={() => handleStockClick(stock.symbol, stock.instrumentKey)}
-                  sx={{
-                    '&.Mui-selected': { bgcolor: 'rgba(0,0,0,0.05)' },
-                    '&:hover': { bgcolor: 'rgba(0,0,0,0.03)' }
-                  }}
-                >
-                  <ListItemText
-                    primary={stock.symbol}
-                    secondary={
-                      <Typography variant="caption" component="span">
-                        LTP: {stock.ltp || '-'} | Vol: {stock.relativeVolumePercentage ? `${stock.relativeVolumePercentage}%` : '-'}
-                      </Typography>
-                    }
-                  />
-                </ListItemButton>
-                <Divider component="li" />
-              </React.Fragment>
-            ))}
-          </List>
+
+          {/* Watchlist Table */}
+          <TableContainer sx={{ flex: 1, overflowY: 'auto' }}>
+            <Table stickyHeader size="small" aria-label="watchlist table">
+              <TableHead>
+                <TableRow>
+                  <TableCell
+                    onClick={() => handleSort('symbol')}
+                    sx={{ cursor: 'pointer', pl: 2, py: 1, bgcolor: 'var(--bg-secondary)', fontWeight: 600, fontSize: '0.75rem', color: 'text.secondary' }}
+                  >
+                    Symbol
+                  </TableCell>
+                  <TableCell
+                    align="right"
+                    onClick={() => handleSort('change')}
+                    sx={{ cursor: 'pointer', py: 1, bgcolor: 'var(--bg-secondary)', fontWeight: 600, fontSize: '0.75rem', color: 'text.secondary' }}
+                  >
+                    Chg
+                  </TableCell>
+                  <TableCell
+                    align="right"
+                    onClick={() => handleSort('changePercentage')}
+                    sx={{ cursor: 'pointer', pr: 2, py: 1, bgcolor: 'var(--bg-secondary)', fontWeight: 600, fontSize: '0.75rem', color: 'text.secondary' }}
+                  >
+                    Chg%
+                  </TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {sortedStockList.map((stock, index) => {
+                  const ltp = parseFloat(stock.ltp) || 0;
+                  const open = parseFloat(stock.sl) || 0; // Assuming sl is currentDayOpen based on upstoxs.js
+                  const change = ltp - open;
+                  const changePercent = parseFloat(stock.changePercentage) || 0;
+                  const isPositive = change >= 0;
+                  const color = isPositive ? '#089981' : '#F23645';
+
+                  return (
+                    <TableRow
+                      key={stock.instrumentKey || index}
+                      hover
+                      onClick={() => handleStockClick(stock.symbol, stock.instrumentKey)}
+                      selected={selectedSymbol === stock.symbol}
+                      sx={{
+                        cursor: 'pointer',
+                        '&.Mui-selected': { bgcolor: 'rgba(0,0,0,0.05)' },
+                        '&:hover': { bgcolor: 'rgba(0,0,0,0.03)' }
+                      }}
+                    >
+                      <TableCell component="th" scope="row" sx={{ pl: 2, py: 0.75, borderBottom: '1px solid var(--border-color)' }}>
+                        <Typography variant="body2" fontWeight={500}>{stock.symbol}</Typography>
+                      </TableCell>
+                      <TableCell align="right" sx={{ py: 0.75, borderBottom: '1px solid var(--border-color)', color: color }}>
+                        <Typography variant="body2">{change.toFixed(2)}</Typography>
+                      </TableCell>
+                      <TableCell align="right" sx={{ pr: 2, py: 0.75, borderBottom: '1px solid var(--border-color)', color: color }}>
+                        <Typography variant="body2">{changePercent.toFixed(2)}%</Typography>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </TableContainer>
         </Box>
       </Box>
     </Box>
