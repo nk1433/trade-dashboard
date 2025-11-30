@@ -6,8 +6,6 @@ import { usePortfolioDataSocket } from "./usePorfolio";
 import { usePortfolioSocket } from "./usePortfolioSocket";
 import niftylargeCap from '../index/niftylargecap.json';
 
-const token = import.meta.env.VITE_UPSTOXS_ACCESS_KEY;
-
 export const updateWatchlistWithMetrics = async (liveFeed, scriptMap, portfolio, stats) => {
   const entries = Object.entries(liveFeed.feeds);
 
@@ -138,13 +136,14 @@ export const updateWatchlistWithMetrics = async (liveFeed, scriptMap, portfolio,
   return results;
 };
 
-export const useUpstoxWS = () => {
+export const useUpstoxWS = (token) => {
   const scripts = niftymidsmall400float;
   const instruments = scripts.map((script) => script.instrument_key);
   const niftylargeCaps = niftylargeCap.map((script) => script.instrument_key);
 
   const { wsUrl } = useMarketFeedUrl(token);
   const { porfolioWsUrl } = usePortfolioSocket(token);
+
   useMarketDataSocket({
     wsUrl,
     request: {

@@ -4,6 +4,8 @@ import portfolioReducer from "./portfolio";
 import orders from "./upstoxs";
 import market from "./marketBreadth";
 
+import authReducer from "./authSlice";
+
 const store = configureStore({
     middleware: (getDefaultMiddleware) => getDefaultMiddleware({
         serializableCheck: false,
@@ -13,6 +15,7 @@ const store = configureStore({
         portfolio: portfolioReducer,
         orders: orders,
         marketBreadth: market,
+        auth: authReducer,
     },
 });
 

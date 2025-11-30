@@ -1,4 +1,4 @@
-import { Box, IconButton, Tooltip } from '@mui/material';
+import { Box, IconButton, Tooltip, Snackbar, Alert } from '@mui/material';
 import PropTypes from 'prop-types';
 import OrderDetailsPortal from './OrderDetails';
 import { DataGrid, GridLogicOperator } from '@mui/x-data-grid';
@@ -200,6 +200,15 @@ const initialfilterModel = {
 
 const WatchList = ({ scripts, type = 'dashboard' }) => {
   const [filterModel, setFilterModel] = useState(initialfilterModel);
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState('');
+
+  const handleCloseSnackbar = (event, reason) => {
+    if (reason === 'clickaway') {
+      return;
+    }
+    setSnackbarOpen(false);
+  };
 
   const columns = columnsConfig[type]
     .map(col => {
@@ -240,8 +249,14 @@ const WatchList = ({ scripts, type = 'dashboard' }) => {
     const textToCopy = values.join(','); // comma, no space
 
     navigator.clipboard.writeText(textToCopy)
-      .then(() => alert(`Copied all values for ${field} column!`))
-      .catch(() => alert('Copy failed.'));
+      .then(() => {
+        setSnackbarMessage('Copied to clipboard!');
+        setSnackbarOpen(true);
+      })
+      .catch(() => {
+        setSnackbarMessage('Copy failed.');
+        setSnackbarOpen(true);
+      });
   }
 
   return (
@@ -300,6 +315,16 @@ const WatchList = ({ scripts, type = 'dashboard' }) => {
           }
         }}
       />
+      <Snackbar
+        open={snackbarOpen}
+        autoHideDuration={5000}
+        onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+      >
+        <Alert onClose={handleCloseSnackbar} severity="success" sx={{ width: '100%', bgcolor: '#333', color: '#fff', '& .MuiAlert-icon': { color: '#4caf50' } }}>
+          {snackbarMessage}
+        </Alert>
+      </Snackbar>
     </div>
   );
 };

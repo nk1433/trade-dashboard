@@ -65,7 +65,7 @@ const getMarketQuote = async (instrumentKey) => {
         `https://api.upstox.com/v3/market-quote/ohlc?instrument_key=${instrumentKey}&interval=1d`,
         {
             headers: {
-                Authorization: `Bearer ${import.meta.env.VITE_UPSTOXS_ACCESS_KEY}`,
+                Authorization: `Bearer ${localStorage.getItem('upstox_access_token') || import.meta.env.VITE_UPSTOXS_ACCESS_KEY}`,
             },
         }
     );
