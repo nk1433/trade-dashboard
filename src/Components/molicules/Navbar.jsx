@@ -5,11 +5,13 @@ import Settings from "./Settings";
 import MarketBreadthTable from "./MarketBreadth.jsx";
 import MarketHighLowWormChart from "./Worm.jsx";
 import Redirect from "./Redirect";
+import ScanCriteriaManager from "../ScanCriteriaManager";
 
 // Configuration for the routes in JSON format
 const routesConfig = [
   { path: "/", component: Home, linkText: "Home" },
   { path: "/settings", component: Settings, linkText: "Settings" },
+  { path: "/scans", component: ScanCriteriaManager, linkText: "Scans" },
   { path: "/redirect", component: Redirect, linkText: "" }, // Hidden from nav
   { path: "/market-breadth", component: MarketBreadthTable, linkText: "MM" },
   { path: "/worm", component: MarketHighLowWormChart, linkText: "Worm" },

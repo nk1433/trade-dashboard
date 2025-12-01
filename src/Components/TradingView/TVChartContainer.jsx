@@ -10,6 +10,8 @@ import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
 import AddIcon from '@mui/icons-material/Add';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import { BACKEND_URL } from '../../utils/config';
+import niftylargecap from '../../index/niftylargecap.json';
+import niftymidsmall400 from '../../index/niftymidsmall400-float.json';
 
 const TVChartContainer = () => {
   const chartContainerRef = useRef();
@@ -24,64 +26,45 @@ const TVChartContainer = () => {
 
   useEffect(() => {
     const initWidget = async () => {
-      // let savedData = null;
-      // try {
-      //   // 1. List charts
-      //   const listRes = await fetch(`${BACKEND_URL}/api/tv/1.1/charts?client=trade-dashboard&user=${userId}`);
-      //   const listJson = await listRes.json();
-
-      //   if (listJson.status === "ok" && listJson.data && listJson.data.length > 0) {
-      //     // 2. Find latest chart
-      //     const latestChart = listJson.data.sort((a, b) => b.timestamp - a.timestamp)[0];
-
-      //     // 3. Get chart content
-      //     const chartRes = await fetch(`${BACKEND_URL}/api/tv/1.1/charts?client=trade-dashboard&user=${userId}&chart=${latestChart.id}`);
-      //     const chartJson = await chartRes.json();
-
-      //     if (chartJson.status === "ok") {
-      //       savedData = chartJson.data;
-      //       console.log("Loaded saved chart data:", savedData);
-      //     }
-      //   } else {
-      //     console.log("No saved charts found.");
-      //   }
-      // } catch (err) {
-      //   console.error("Error fetching saved chart:", err);
-      // }
-
       const widgetOptions = {
         symbol: "NSE_EQ|INE002A01018|RELIANCE", // Initial symbol with name
         datafeed: Datafeed,
+        interval: "1D",
         container: chartContainerRef.current,
         library_path: "/charting_library/",
-        interval: "1D",
         locale: "en",
         timezone: "Asia/Kolkata",
         disabled_features: [
           "use_localstorage_for_settings",
-          "header_symbol_search",
           "symbol_search_hot_key",
           "create_volume_indicator_by_default",
         ],
         enabled_features: ["watchlist_sections"],
-        // charts_storage_url: `${BACKEND_URL}/api/tv`,
-        // charts_storage_api_version: "1.1",
-        // client_id: "trade-dashboard",
-        // user_id: userId,
-        // load_last_chart: false,
-        widgetbar: {
-          watchlist: true,
-          watchlist_settings: {
-            default_symbols: ["AAPL", "IBM", "MSFT"],
-            readonly: true,
-          },
-        },
         fullscreen: false,
         autosize: true,
         studies_overrides: {},
         supports_marks: false,
         supports_timescale_marks: false,
         theme: "light",
+        symbol_search_complete: (symbol, searchResultItem) => {
+          return new Promise((resolve) => {
+            const allScripts = [...niftylargecap, ...niftymidsmall400];
+            const foundScript = allScripts.find(s => s.tradingsymbol === symbol || s.instrument_key === symbol);
+
+            if (foundScript) {
+              resolve({ symbol: foundScript.instrument_key, name: foundScript.name });
+            } else {
+              resolve({ symbol: symbol, name: symbol });
+            }
+          });
+        },
+        widgetbar: {
+          watchlist: true,
+          watchlist_settings: {
+            default_symbols: ["NSE_EQ|INE002A01018", "NSE_EQ|INE242A01010"],
+            readonly: true,
+          },
+        },
         overrides: {
           "paneProperties.background": "#ffffff",
           "paneProperties.vertGridProperties.color": "rgba(46, 46, 46, 0.06)",
@@ -96,10 +79,6 @@ const TVChartContainer = () => {
           "mainSeriesProperties.statusViewStyle.symbolTextSource": "ticker",
         },
       };
-
-      // if (savedData) {
-      //   widgetOptions.saved_data = savedData;
-      // }
 
       const tvWidget = new widget(widgetOptions);
       tvWidgetRef.current = tvWidget;

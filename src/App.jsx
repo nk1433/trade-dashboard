@@ -12,6 +12,7 @@ import Settings from './Components/molicules/Settings';
 import Redirect from './Components/molicules/Redirect';
 import MarketBreadthTable from './Components/molicules/MarketBreadth';
 import MarketHighLowWormChart from './Components/molicules/Worm';
+import ScanCriteriaManager from './Components/ScanCriteriaManager';
 
 import { useUpstoxWS } from './hooks/useUpstoxWS';
 import { getStatsForScripts } from './Store/upstoxs';
@@ -63,8 +64,13 @@ const App = () => {
       {/* Protected Routes wrapped in Navbar (Layout) */}
       <Route element={<ProtectedRoute><Navbar /></ProtectedRoute>}>
         <Route path="/" element={<Home />} />
+        import ScanCriteriaManager from './Components/ScanCriteriaManager';
+
+        // ... existing imports
+
         <Route path="/upstox-settings" element={<UpstoxSettings />} />
         <Route path="/settings" element={<Settings />} />
+        <Route path="/scans" element={<ScanCriteriaManager />} />
         <Route path="/redirect" element={<Redirect />} />
         <Route path="/market-breadth" element={<MarketBreadthTable />} />
         <Route path="/worm" element={<MarketHighLowWormChart />} />
