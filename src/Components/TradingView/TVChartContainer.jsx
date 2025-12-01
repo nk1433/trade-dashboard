@@ -9,62 +9,113 @@ import {
 import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
 import AddIcon from '@mui/icons-material/Add';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
+import { BACKEND_URL } from '../../utils/config';
 
 const TVChartContainer = () => {
   const chartContainerRef = useRef();
   const tvWidgetRef = useRef(null);
   const { selectedIndex, handleSelectionChange, scriptsToShow, counts } = useWatchlistFilter();
   const [selectedSymbol, setSelectedSymbol] = useState(null);
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  const userId = user._id || user.id || 'public_user_id';
 
   // Convert filtered scripts object into array for stock list
   const dynamicStockList = Object.values(scriptsToShow);
 
   useEffect(() => {
-    const widgetOptions = {
-      symbol: "NSE_EQ|INE002A01018|RELIANCE", // Initial symbol with name
-      datafeed: Datafeed,
-      container: chartContainerRef.current,
-      library_path: "/charting_library/",
-      interval: "1D",
-      locale: "en",
-      timezone: "Asia/Kolkata",
-      disabled_features: [
-        "use_localstorage_for_settings",
-        "header_symbol_search",
-        "symbol_search_hot_key",
-      ],
-      enabled_features: ["watchlist_sections"],
-      charts_storage_url: "https://saveload.tradingview.com",
-      charts_storage_api_version: "1.1",
-      client_id: "tradingview.com",
-      user_id: "public_user_id",
-      fullscreen: false,
-      autosize: true,
-      studies_overrides: {},
-      supports_marks: false,
-      supports_timescale_marks: false,
-      theme: "light",
-      overrides: {
-        "paneProperties.background": "#ffffff",
-        "paneProperties.vertGridProperties.color": "rgba(46, 46, 46, 0.06)",
-        "paneProperties.horzGridProperties.color": "rgba(46, 46, 46, 0.06)",
-        "mainSeriesProperties.candleStyle.upColor": "#ffffff",
-        "mainSeriesProperties.candleStyle.downColor": "#000000",
-        "mainSeriesProperties.candleStyle.borderUpColor": "#000000",
-        "mainSeriesProperties.candleStyle.borderDownColor": "#000000",
-        "mainSeriesProperties.candleStyle.wickUpColor": "#000000",
-        "mainSeriesProperties.candleStyle.wickDownColor": "#000000",
-        "mainSeriesProperties.statusViewStyle.showInterval": true,
-        "mainSeriesProperties.statusViewStyle.symbolTextSource": "ticker",
-      },
+    const initWidget = async () => {
+      // let savedData = null;
+      // try {
+      //   // 1. List charts
+      //   const listRes = await fetch(`${BACKEND_URL}/api/tv/1.1/charts?client=trade-dashboard&user=${userId}`);
+      //   const listJson = await listRes.json();
+
+      //   if (listJson.status === "ok" && listJson.data && listJson.data.length > 0) {
+      //     // 2. Find latest chart
+      //     const latestChart = listJson.data.sort((a, b) => b.timestamp - a.timestamp)[0];
+
+      //     // 3. Get chart content
+      //     const chartRes = await fetch(`${BACKEND_URL}/api/tv/1.1/charts?client=trade-dashboard&user=${userId}&chart=${latestChart.id}`);
+      //     const chartJson = await chartRes.json();
+
+      //     if (chartJson.status === "ok") {
+      //       savedData = chartJson.data;
+      //       console.log("Loaded saved chart data:", savedData);
+      //     }
+      //   } else {
+      //     console.log("No saved charts found.");
+      //   }
+      // } catch (err) {
+      //   console.error("Error fetching saved chart:", err);
+      // }
+
+      const widgetOptions = {
+        symbol: "NSE_EQ|INE002A01018|RELIANCE", // Initial symbol with name
+        datafeed: Datafeed,
+        container: chartContainerRef.current,
+        library_path: "/charting_library/",
+        interval: "1D",
+        locale: "en",
+        timezone: "Asia/Kolkata",
+        disabled_features: [
+          "use_localstorage_for_settings",
+          "header_symbol_search",
+          "symbol_search_hot_key",
+          "create_volume_indicator_by_default",
+        ],
+        enabled_features: ["watchlist_sections"],
+        // charts_storage_url: `${BACKEND_URL}/api/tv`,
+        // charts_storage_api_version: "1.1",
+        // client_id: "trade-dashboard",
+        // user_id: userId,
+        // load_last_chart: false,
+        widgetbar: {
+          watchlist: true,
+          watchlist_settings: {
+            default_symbols: ["AAPL", "IBM", "MSFT"],
+            readonly: true,
+          },
+        },
+        fullscreen: false,
+        autosize: true,
+        studies_overrides: {},
+        supports_marks: false,
+        supports_timescale_marks: false,
+        theme: "light",
+        overrides: {
+          "paneProperties.background": "#ffffff",
+          "paneProperties.vertGridProperties.color": "rgba(46, 46, 46, 0.06)",
+          "paneProperties.horzGridProperties.color": "rgba(46, 46, 46, 0.06)",
+          "mainSeriesProperties.candleStyle.upColor": "#ffffff",
+          "mainSeriesProperties.candleStyle.downColor": "#000000",
+          "mainSeriesProperties.candleStyle.borderUpColor": "#000000",
+          "mainSeriesProperties.candleStyle.borderDownColor": "#000000",
+          "mainSeriesProperties.candleStyle.wickUpColor": "#000000",
+          "mainSeriesProperties.candleStyle.wickDownColor": "#000000",
+          "mainSeriesProperties.statusViewStyle.showInterval": true,
+          "mainSeriesProperties.statusViewStyle.symbolTextSource": "ticker",
+        },
+      };
+
+      // if (savedData) {
+      //   widgetOptions.saved_data = savedData;
+      // }
+
+      const tvWidget = new widget(widgetOptions);
+      tvWidgetRef.current = tvWidget;
+
+      tvWidget.onChartReady(() => {
+        tvWidget.activeChart().createStudy('Volume', false, false);
+      });
     };
 
-    const tvWidget = new widget(widgetOptions);
-    tvWidgetRef.current = tvWidget;
+    initWidget();
 
     return () => {
-      tvWidget.remove();
-      tvWidgetRef.current = null;
+      if (tvWidgetRef.current) {
+        tvWidgetRef.current.remove();
+        tvWidgetRef.current = null;
+      }
     };
   }, []);
 

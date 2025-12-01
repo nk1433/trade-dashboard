@@ -30,13 +30,13 @@ const NotificationIcon = () => {
         prevCountRef.current = currentCount;
     }, [currentCount]);
 
-    // TEMP: Simulate notifications for verification
-    useEffect(() => {
-        const timer = setTimeout(() => {
-            setUnreadCount(3);
-        }, 1000);
-        return () => clearTimeout(timer);
-    }, []);
+    // TEMP: Simulate notifications for verification - REMOVED
+    // useEffect(() => {
+    //     const timer = setTimeout(() => {
+    //         setUnreadCount(3);
+    //     }, 1000);
+    //     return () => clearTimeout(timer);
+    // }, []);
 
     const handleClick = (event) => {
         setAnchorEl(event.currentTarget);

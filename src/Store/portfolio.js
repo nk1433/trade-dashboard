@@ -2,16 +2,24 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import axios from 'axios';
 
-const token = import.meta.env.VITE_UPSTOXS_ACCESS_KEY;
+import { BACKEND_URL } from '../utils/config';
 
 // Async thunk to fetch portfolio funds from API
 export const fetchPortfolioSize = createAsyncThunk(
   'portfolio/fetchPortfolioSize',
-  async (_, { rejectWithValue }) => {
+  async (_, { rejectWithValue, getState }) => {
     try {
+      const { auth } = getState();
+      const upstoxToken = auth.token;
+
+      if (!upstoxToken) {
+        return rejectWithValue('No valid Upstox token found in store');
+      }
+
+      // 2. Fetch funds using dynamic token
       const response = await axios.get('https://api.upstox.com/v2/user/get-funds-and-margin', {
         headers: {
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${upstoxToken}`,
           Accept: 'application/json',
         },
       });
@@ -39,7 +47,7 @@ const portfolioSlice = createSlice({
   name: 'portfolio',
   initialState,
   reducers: {
-     updatePortfolioSize: (state, action) => {
+    updatePortfolioSize: (state, action) => {
       state.portfolioSize = action.payload;
     },
     updateExitPercentage: (state, action) => {

@@ -34,34 +34,24 @@ const PublicRoute = ({ children }) => {
 
 import axios from 'axios';
 import { BACKEND_URL } from './utils/config';
-import { useState } from 'react';
+import { useSelector } from 'react-redux';
+import { fetchUpstoxToken } from './Store/authSlice';
 
 const App = () => {
   const dispatch = useDispatch();
   const location = useLocation();
-  const [upstoxToken, setUpstoxToken] = useState(null);
+  const { token: upstoxToken } = useSelector((state) => state.auth);
 
   useEffect(() => {
-    const checkAuthStatus = async () => {
-      try {
-        const token = localStorage.getItem('token');
-        if (!token) return;
+    if (!upstoxToken) {
+      dispatch(fetchUpstoxToken());
+    }
+  }, [dispatch, upstoxToken]);
 
-        const response = await axios.get(`${BACKEND_URL}/upstoxs/status`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-
-        if (response.data.status === 'valid' && response.data.accessToken) {
-          setUpstoxToken(response.data.accessToken);
-        }
-      } catch (error) {
-        console.error("Error checking auth status in App:", error);
-      }
-    };
-
-    checkAuthStatus();
+  // Fetch stats only once on mount
+  useEffect(() => {
     dispatch(getStatsForScripts());
-  }, [location.pathname]);
+  }, [dispatch]);
 
   useUpstoxWS(upstoxToken);
 
