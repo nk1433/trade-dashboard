@@ -14,6 +14,7 @@ import MarketBreadthTable from './Components/molicules/MarketBreadth';
 import MarketHighLowWormChart from './Components/molicules/Worm';
 
 import { useUpstoxWS } from './hooks/useUpstoxWS';
+import { getStatsForScripts } from './Store/upstoxs';
 
 const ProtectedRoute = ({ children }) => {
   const token = localStorage.getItem('token');
@@ -37,6 +38,7 @@ import { useState } from 'react';
 
 const App = () => {
   const dispatch = useDispatch();
+  const location = useLocation();
   const [upstoxToken, setUpstoxToken] = useState(null);
 
   useEffect(() => {
@@ -56,11 +58,12 @@ const App = () => {
         console.error("Error checking auth status in App:", error);
       }
     };
+
     checkAuthStatus();
-  }, []);
+    dispatch(getStatsForScripts());
+  }, [location.pathname]);
 
   useUpstoxWS(upstoxToken);
-  const location = useLocation();
 
   return (
     <Routes>

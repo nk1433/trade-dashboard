@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Buffer } from "buffer";
 import protobuf from "protobufjs";
 import { useDispatch } from "react-redux";
@@ -44,6 +44,7 @@ export function useMarketDataSocket({ wsUrl, request }) {
     const [isConnected, setIsConnected] = useState(false);
     const portfolio = useSelector((state) => state.portfolio);
     const stats = useSelector((state) => state.orders.stats);
+    const statsRef = useRef(stats);
     const dispatch = useDispatch();
     const scripts = [...niftymidsmall400float, ...niftylargeCaps];
     const scriptMap = scripts.reduce((acc, script) => {
@@ -52,61 +53,63 @@ export function useMarketDataSocket({ wsUrl, request }) {
         return acc;
     }, {});
 
+    // Keep statsRef updated
+    useEffect(() => {
+        statsRef.current = stats;
+    }, [stats]);
 
     useEffect(() => {
-        if (Object.keys(stats).length) {
-            let ws;
-            const start = async () => {
-                await initProtobuf();
-                ws = new WebSocket(wsUrl);
+        let ws;
+        const start = async () => {
+            await initProtobuf();
+            ws = new WebSocket(wsUrl);
 
-                ws.onopen = () => {
-                    setIsConnected(true);
-                    ws.send(Buffer.from(JSON.stringify(request)));
-                };
-
-                ws.onclose = () => {
-                    setIsConnected(false);
-                };
-
-                ws.onmessage = async (event) => {
-                    const arrayBuffer = await blobToArrayBuffer(event.data);
-                    let buffer = Buffer.from(arrayBuffer);
-                    let response = decodeProfobuf(buffer);
-
-                    if (response.type === 1) {
-                        // Emit event for TradingView datafeed
-                        socketEventEmitter.emit('market-data', response);
-
-                        const {
-                            metrics, bullishMB, bearishMB,
-                            bullishSLTB, bearishSLTB, bullishAnts,
-                            dollar, bearishDollar,
-                        } = await updateWatchlistWithMetrics(response, scriptMap, portfolio, stats);
-
-                        dispatch(setOrderMetrics(metrics));
-                        dispatch(setBullishMB(bullishMB));
-                        dispatch(setBearishMB(bearishMB));
-                        dispatch(setBullishSLTB(bullishSLTB));
-                        dispatch(setBearishSLTB(bearishSLTB));
-                        dispatch(setBullishAnts(bullishAnts));
-                        dispatch(setDollarBo(dollar));
-                        dispatch(setBearishDollarBo(bearishDollar));
-                    }
-                };
-
-                ws.onerror = () => {
-                    setIsConnected(false);
-                };
+            ws.onopen = () => {
+                setIsConnected(true);
+                ws.send(Buffer.from(JSON.stringify(request)));
             };
 
-            if (wsUrl && request) start();
-
-            return () => {
-                if (ws) ws.close();
+            ws.onclose = () => {
+                setIsConnected(false);
             };
-        }
-    }, [wsUrl, JSON.stringify(request), stats]);
+
+            ws.onmessage = async (event) => {
+                const arrayBuffer = await blobToArrayBuffer(event.data);
+                let buffer = Buffer.from(arrayBuffer);
+                let response = decodeProfobuf(buffer);
+
+                if (response.type === 1) {
+                    // Emit event for TradingView datafeed
+                    socketEventEmitter.emit('market-data', response);
+
+                    const {
+                        metrics, bullishMB, bearishMB,
+                        bullishSLTB, bearishSLTB, bullishAnts,
+                        dollar, bearishDollar,
+                    } = await updateWatchlistWithMetrics(response, scriptMap, portfolio, statsRef.current);
+
+                    dispatch(setOrderMetrics(metrics));
+                    dispatch(setBullishMB(bullishMB));
+                    dispatch(setBearishMB(bearishMB));
+                    dispatch(setBullishSLTB(bullishSLTB));
+                    dispatch(setBearishSLTB(bearishSLTB));
+                    dispatch(setBullishAnts(bullishAnts));
+                    dispatch(setDollarBo(dollar));
+                    dispatch(setBearishDollarBo(bearishDollar));
+                }
+            };
+
+            ws.onerror = () => {
+                setIsConnected(false);
+            };
+        };
+
+        if (wsUrl && request) start();
+
+        return () => {
+            if (ws) ws.close();
+        };
+    }, [wsUrl, JSON.stringify(request)]);
 
     return { isConnected };
 };
