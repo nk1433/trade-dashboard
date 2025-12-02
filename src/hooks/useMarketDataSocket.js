@@ -40,19 +40,13 @@ const decodeProfobuf = (buffer) => {
     return FeedResponse.decode(buffer);
 };
 
-import axios from "axios";
-import { BACKEND_URL } from "../utils/config";
-import { evaluateScan } from "../utils/scanEngine";
+
 
 export function useMarketDataSocket({ wsUrl, request }) {
     const [isConnected, setIsConnected] = useState(false);
-    const [scanCriteria, setScanCriteria] = useState([]);
-    const portfolio = useSelector((state) => state.portfolio);
     const { token } = useSelector((state) => state.auth); // Upstox Token
-    const appToken = localStorage.getItem('token'); // App Token
     const stats = useSelector((state) => state.orders.stats);
     const statsRef = useRef(stats);
-    const scanCriteriaRef = useRef([]);
     const dispatch = useDispatch();
     const scripts = [...niftymidsmall400float, ...niftylargeCaps];
     const scriptMap = scripts.reduce((acc, script) => {
@@ -66,38 +60,33 @@ export function useMarketDataSocket({ wsUrl, request }) {
         statsRef.current = stats;
     }, [stats]);
 
-    // Fetch scan criteria
-    useEffect(() => {
-        const fetchCriteria = async () => {
-            if (!appToken) return;
-            try {
-                const response = await axios.get(`${BACKEND_URL}/scans/criteria`, {
-                    headers: { Authorization: `Bearer ${appToken}` }
-                });
-                if (response.data.success) {
-                    setScanCriteria(response.data.data);
-                    scanCriteriaRef.current = response.data.data;
-                }
-            } catch (error) {
-                console.error("Error fetching scan criteria:", error);
-            }
-        };
-        fetchCriteria();
-    }, [appToken]);
+
 
     useEffect(() => {
         let ws;
+        let isMounted = true;
+        console.log("useMarketDataSocket: Effect triggered", { wsUrl, request });
+
         const start = async () => {
+            console.log("useMarketDataSocket: Starting connection...");
             await initProtobuf();
+            if (!isMounted) {
+                console.log("useMarketDataSocket: Component unmounted before initProtobuf finished");
+                return;
+            }
+
+            console.log("useMarketDataSocket: Connecting to", wsUrl);
             ws = new WebSocket(wsUrl);
 
             ws.onopen = () => {
-                setIsConnected(true);
+                console.log("useMarketDataSocket: Connected");
+                if (isMounted) setIsConnected(true);
                 ws.send(Buffer.from(JSON.stringify(request)));
             };
 
             ws.onclose = () => {
-                setIsConnected(false);
+                console.log("useMarketDataSocket: Disconnected");
+                if (isMounted) setIsConnected(false);
             };
 
             ws.onmessage = async (event) => {
@@ -109,20 +98,7 @@ export function useMarketDataSocket({ wsUrl, request }) {
                     // Emit event for TradingView datafeed
                     socketEventEmitter.emit('market-data', response);
 
-                    // Evaluate Dynamic Scans
-                    if (response.feeds) {
-                        Object.entries(response.feeds).forEach(([symbol, feed]) => {
-                            const ohlc = feed?.fullFeed?.marketFF?.marketOHLC?.ohlc?.find(x => x.interval === "1d");
-                            if (ohlc) {
-                                scanCriteriaRef.current.forEach(criteria => {
-                                    if (evaluateScan(criteria.criteria, ohlc)) {
-                                        console.log(`[SCAN HIT] ${criteria.name} triggered for ${symbol}`, ohlc);
-                                        // Potential TODO: Dispatch action to update UI with scan hits
-                                    }
-                                });
-                            }
-                        });
-                    }
+
 
                     const {
                         metrics, bullishMB, bearishMB,
@@ -146,9 +122,15 @@ export function useMarketDataSocket({ wsUrl, request }) {
             };
         };
 
-        if (wsUrl && request) start();
+        if (wsUrl && request) {
+            start();
+        } else {
+            console.log("useMarketDataSocket: Missing wsUrl or request", { wsUrl, request });
+        }
 
         return () => {
+            console.log("useMarketDataSocket: Cleaning up");
+            isMounted = false;
             if (ws) ws.close();
         };
     }, [wsUrl, JSON.stringify(request)]);
