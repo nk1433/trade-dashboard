@@ -18,7 +18,9 @@ import socketEventEmitter from "../utils/socketEventEmitter";
 let protobufRoot = null;
 const initProtobuf = async () => {
     if (!protobufRoot) {
-        protobufRoot = await protobuf.load("/MarketDataFeedV3.proto");
+        const protoUrl = `${import.meta.env.BASE_URL}MarketDataFeedV3.proto`;
+        console.log("useMarketDataSocket: Loading proto from", protoUrl);
+        protobufRoot = await protobuf.load(protoUrl);
     }
 };
 
