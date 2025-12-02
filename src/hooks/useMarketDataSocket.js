@@ -1,5 +1,4 @@
 import { useEffect, useState, useRef } from "react";
-import { Buffer } from "buffer";
 import protobuf from "protobufjs";
 import { useDispatch } from "react-redux";
 import { updateWatchlistWithMetrics } from "./useUpstoxWS";
@@ -18,9 +17,15 @@ import socketEventEmitter from "../utils/socketEventEmitter";
 let protobufRoot = null;
 const initProtobuf = async () => {
     if (!protobufRoot) {
-        const protoUrl = `${import.meta.env.BASE_URL}MarketDataFeedV3.proto`;
-        console.log("useMarketDataSocket: Loading proto from", protoUrl);
-        protobufRoot = await protobuf.load(protoUrl);
+        try {
+            const protoUrl = `${import.meta.env.BASE_URL}MarketDataFeedV3.proto`;
+            console.log("useMarketDataSocket: Loading proto from", protoUrl);
+            protobufRoot = await protobuf.load(protoUrl);
+            console.log("useMarketDataSocket: Protobuf loaded successfully");
+        } catch (error) {
+            console.error("useMarketDataSocket: Failed to load protobuf", error);
+            throw error;
+        }
     }
 };
 
@@ -83,7 +88,8 @@ export function useMarketDataSocket({ wsUrl, request }) {
             ws.onopen = () => {
                 console.log("useMarketDataSocket: Connected");
                 if (isMounted) setIsConnected(true);
-                ws.send(Buffer.from(JSON.stringify(request)));
+                const enc = new TextEncoder();
+                ws.send(enc.encode(JSON.stringify(request)));
             };
 
             ws.onclose = () => {
@@ -93,7 +99,7 @@ export function useMarketDataSocket({ wsUrl, request }) {
 
             ws.onmessage = async (event) => {
                 const arrayBuffer = await blobToArrayBuffer(event.data);
-                let buffer = Buffer.from(arrayBuffer);
+                let buffer = new Uint8Array(arrayBuffer);
                 let response = decodeProfobuf(buffer);
 
                 if (response.type === 1) {

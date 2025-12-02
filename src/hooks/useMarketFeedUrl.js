@@ -28,6 +28,7 @@ export function useMarketFeedUrl(token) {
                 const res = await response.json();
                 setWsUrl(res.data.authorizedRedirectUri);
             } catch (err) {
+                console.error("useMarketFeedUrl: Error fetching URL", err);
                 setError(err);
                 setWsUrl(null);
             } finally {
