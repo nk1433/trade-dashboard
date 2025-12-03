@@ -1,28 +1,59 @@
 import React, { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { TextField, Button, Box, Typography } from '@mui/material';
-import { updateExitPercentage, updateRiskPercentage, fetchPortfolioSize } from '../../Store/portfolio';
+import { TextField, Button, Box, Typography, Snackbar, Alert } from '@mui/material';
+import { updateExitPercentage, updateRiskPercentage, fetchPortfolioSize, updatePortfolioSize, saveUserSettings } from '../../Store/portfolio';
+import { setPaperCapital } from '../../Store/paperTradeSlice';
 
-const PortfolioForm = () => {
+const PortfolioForm = ({ tradingMode }) => {
   const dispatch = useDispatch();
-  const { portfolioSize, exitPercentage, riskPercentage, loading, error } = useSelector(state => state.portfolio);
+  const portfolioState = useSelector(state => state.portfolio);
+  const { loading, error } = portfolioState;
+
+  // Select settings based on the passed tradingMode prop
+  const activeSettings = tradingMode === 'PROD' ? portfolioState.prod : portfolioState.paper;
+  const { portfolioSize, exitPercentage, riskPercentage } = activeSettings || {};
+
+  const [snackbarOpen, setSnackbarOpen] = React.useState(false);
+  const [snackbarMessage, setSnackbarMessage] = React.useState('');
+
+  const handleCloseSnackbar = (event, reason) => {
+    if (reason === 'clickaway') {
+      return;
+    }
+    setSnackbarOpen(false);
+  };
 
   useEffect(() => {
-    dispatch(fetchPortfolioSize());
-  }, [dispatch]);
+    // Only fetch from API if in PROD mode
+    if (tradingMode === 'PROD') {
+      dispatch(fetchPortfolioSize());
+    }
+  }, [dispatch, tradingMode]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    // portfolioSize is from API, no manual update here
-    dispatch(updateExitPercentage(Number(exitPercentage)));
-    dispatch(updateRiskPercentage(Number(riskPercentage)));
-    alert('Portfolio settings updated!');
+    // Dispatch updates with the current mode
+    // Note: portfolioSize is read-only for PROD (from API), but editable for PAPER
+    if (tradingMode === 'PAPER') {
+      dispatch(updatePortfolioSize({ mode: 'paper', value: Number(portfolioSize) }));
+      dispatch(setPaperCapital(Number(portfolioSize)));
+    }
+    dispatch(updateExitPercentage({ mode: tradingMode === 'PROD' ? 'prod' : 'paper', value: Number(exitPercentage) }));
+    dispatch(updateRiskPercentage({ mode: tradingMode === 'PROD' ? 'prod' : 'paper', value: Number(riskPercentage) }));
+    const updatedSettings = {
+      prod: tradingMode === 'PROD' ? { ...portfolioState.prod, exitPercentage, riskPercentage } : portfolioState.prod,
+      paper: tradingMode === 'PAPER' ? { ...portfolioState.paper, portfolioSize, exitPercentage, riskPercentage } : portfolioState.paper
+    };
+    dispatch(saveUserSettings(updatedSettings));
+
+    setSnackbarMessage(`${tradingMode === 'PROD' ? 'Production' : 'Paper Trading'} settings updated!`);
+    setSnackbarOpen(true);
   };
 
   return (
     <div className="geist-card" style={{ maxWidth: '600px', margin: '0 auto' }}>
       <Typography variant="h5" gutterBottom style={{ fontWeight: 600, letterSpacing: '-0.02em' }}>
-        Update Portfolio Settings
+        Update Portfolio Settings ({tradingMode === 'PROD' ? 'Production' : 'Paper Trading'})
       </Typography>
 
       {loading && <Typography>Loading portfolio size...</Typography>}
@@ -30,20 +61,28 @@ const PortfolioForm = () => {
 
       <form onSubmit={handleSubmit}>
         <TextField
-          label="Portfolio Size (from API)"
+          label={tradingMode === 'PROD' ? "Portfolio Size (from API)" : "Paper Capital"}
           type="number"
-          value={portfolioSize}
-          disabled
+          value={portfolioSize || ''}
+          onChange={(e) => {
+            if (tradingMode === 'PAPER') {
+              const newVal = Number(e.target.value);
+              dispatch(updatePortfolioSize({ mode: 'paper', value: newVal }));
+              dispatch(setPaperCapital(newVal));
+            }
+          }}
+          disabled={tradingMode === 'PROD'}
           fullWidth
           margin="normal"
           variant="outlined"
           size="small"
+          helperText={tradingMode === 'PROD' ? "Synced from Upstox" : "Manually set for simulation"}
         />
         <TextField
           label="Exit Percentage"
           type="number"
-          value={exitPercentage}
-          onChange={(e) => dispatch(updateExitPercentage(Number(e.target.value)))}
+          value={exitPercentage || ''}
+          onChange={(e) => dispatch(updateExitPercentage({ mode: tradingMode === 'PROD' ? 'prod' : 'paper', value: Number(e.target.value) }))}
           fullWidth
           margin="normal"
           variant="outlined"
@@ -52,13 +91,14 @@ const PortfolioForm = () => {
         <TextField
           label="Risk Percentage"
           type="number"
-          value={riskPercentage}
-          onChange={(e) => dispatch(updateRiskPercentage(Number(e.target.value)))}
+          value={riskPercentage || ''}
+          onChange={(e) => dispatch(updateRiskPercentage({ mode: tradingMode === 'PROD' ? 'prod' : 'paper', value: Number(e.target.value) }))}
           fullWidth
           margin="normal"
           variant="outlined"
           size="small"
         />
+
         <Button
           type="submit"
           variant="contained"
@@ -77,6 +117,16 @@ const PortfolioForm = () => {
           Update Settings
         </Button>
       </form>
+      <Snackbar
+        open={snackbarOpen}
+        autoHideDuration={3000}
+        onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+      >
+        <Alert onClose={handleCloseSnackbar} severity="success" sx={{ width: '100%', bgcolor: '#333', color: '#fff', '& .MuiAlert-icon': { color: '#4caf50' } }}>
+          {snackbarMessage}
+        </Alert>
+      </Snackbar>
     </div>
   );
 };
