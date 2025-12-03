@@ -198,7 +198,7 @@ const initialfilterModel = {
   logicOperator: GridLogicOperator.And,
 };
 
-const WatchList = ({ scripts, type = 'dashboard' }) => {
+const WatchList = ({ scripts, type = 'dashboard', visibleColumns, onRowClick, compact = false }) => {
   const [filterModel, setFilterModel] = useState(initialfilterModel);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
@@ -259,33 +259,43 @@ const WatchList = ({ scripts, type = 'dashboard' }) => {
       });
   }
 
+  // Handle column visibility
+  const columnVisibilityModel = visibleColumns
+    ? columns.reduce((acc, col) => {
+      acc[col.field] = visibleColumns.includes(col.field);
+      return acc;
+    }, {})
+    : undefined;
+
   return (
-    <div className="geist-card" style={{ padding: 0, overflow: 'hidden' }}>
-      <Box sx={{
-        p: 2,
-        borderBottom: '1px solid var(--border-color)',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        backgroundColor: 'var(--bg-secondary)'
-      }}>
-        <Tooltip title="Copy all Script names">
-          <IconButton
-            onClick={() => handleCopyColumn('symbol')}
-            size="small"
-            sx={{
-              borderRadius: '6px',
-              border: '1px solid var(--border-color)',
-              fontSize: '0.85rem',
-              padding: '4px 8px',
-              gap: 1
-            }}
-          >
-            Copy to TradingView
-            <ContentCopyIcon fontSize="small" />
-          </IconButton>
-        </Tooltip>
-      </Box>
+    <div className="geist-card" style={{ padding: 0, overflow: 'hidden', height: '100%', display: 'flex', flexDirection: 'column' }}>
+      {!compact && (
+        <Box sx={{
+          p: 2,
+          borderBottom: '1px solid var(--border-color)',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          backgroundColor: 'var(--bg-secondary)'
+        }}>
+          <Tooltip title="Copy all Script names">
+            <IconButton
+              onClick={() => handleCopyColumn('symbol')}
+              size="small"
+              sx={{
+                borderRadius: '6px',
+                border: '1px solid var(--border-color)',
+                fontSize: '0.85rem',
+                padding: '4px 8px',
+                gap: 1
+              }}
+            >
+              Copy to TradingView
+              <ContentCopyIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+        </Box>
+      )}
       <DataGrid
         filterModel={filterModel}
         onFilterModelChange={setFilterModel}
@@ -296,6 +306,9 @@ const WatchList = ({ scripts, type = 'dashboard' }) => {
         columns={columns}
         getRowId={row => row.id}
         pageSizeOptions={[5, 10, 25, { value: -1, label: 'All' }]}
+        columnVisibilityModel={columnVisibilityModel}
+        onRowClick={onRowClick ? (params) => onRowClick(params.row) : undefined}
+        density={compact ? "compact" : "standard"}
         sx={{
           border: 'none',
           '& .MuiDataGrid-cell': {
@@ -312,6 +325,7 @@ const WatchList = ({ scripts, type = 'dashboard' }) => {
           },
           '& .MuiDataGrid-row:hover': {
             backgroundColor: 'var(--bg-secondary)',
+            cursor: onRowClick ? 'pointer' : 'default',
           }
         }}
       />
@@ -332,6 +346,9 @@ const WatchList = ({ scripts, type = 'dashboard' }) => {
 WatchList.propTypes = {
   scripts: PropTypes.object,
   type: PropTypes.string,
+  visibleColumns: PropTypes.arrayOf(PropTypes.string),
+  onRowClick: PropTypes.func,
+  compact: PropTypes.bool,
 };
 
 export default WatchList;
