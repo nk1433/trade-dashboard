@@ -52,6 +52,7 @@ const decodeProfobuf = (buffer) => {
 export function useMarketDataSocket({ wsUrl, request }) {
     const [isConnected, setIsConnected] = useState(false);
     const { token } = useSelector((state) => state.auth); // Upstox Token
+    const portfolio = useSelector((state) => state.portfolio);
     const stats = useSelector((state) => state.orders.stats);
     const statsRef = useRef(stats);
     const dispatch = useDispatch();
