@@ -1,23 +1,14 @@
 import { useState, useEffect } from 'react';
-import { useSelector } from 'react-redux';
-import { Box, Select, MenuItem, Typography, Button, Modal, Paper, Tabs, Tab } from '@mui/material';
+import { Box, Select, MenuItem, Typography, Button, Modal, Paper } from '@mui/material';
 import TVChartContainer from '../TradingView/TVChartContainer';
 import Watchlist from '../Watchlist/index';
-import PaperHoldings from '../PaperHoldings';
-import ProdHoldings from '../ProdHoldings';
 import axios from 'axios';
 import { BACKEND_URL } from '../../utils/config';
 
 const Home = () => {
-    const { tradingMode } = useSelector((state) => state.settings);
     const [view, setView] = useState('chart');
-    const [holdingsTab, setHoldingsTab] = useState(tradingMode === 'PROD' ? 'prod' : 'paper');
     const [authStatus, setAuthStatus] = useState('checking'); // checking, valid, expired, missing, no_config
     const [authConfig, setAuthConfig] = useState(null);
-
-    useEffect(() => {
-        setHoldingsTab(tradingMode === 'PROD' ? 'prod' : 'paper');
-    }, [tradingMode]);
 
     useEffect(() => {
         checkAuthStatus();
@@ -97,24 +88,12 @@ const Home = () => {
                 >
                     <MenuItem value="chart">Advanced</MenuItem>
                     <MenuItem value="watchlist">Dashboard</MenuItem>
-                    <MenuItem value="holdings">Holdings</MenuItem>
                 </Select>
             </Box>
 
             <Box sx={{ flex: 1, overflow: 'hidden' }}>
                 {view === 'chart' && <TVChartContainer />}
                 {view === 'watchlist' && <Watchlist />}
-                {view === 'holdings' && (
-                    <Box sx={{ width: '100%', height: '100%', overflow: 'auto' }}>
-                        <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}>
-                            <Tabs value={holdingsTab} onChange={(e, val) => setHoldingsTab(val)} aria-label="holdings tabs">
-                                <Tab label="Paper Holdings" value="paper" />
-                                <Tab label="Production Holdings" value="prod" />
-                            </Tabs>
-                        </Box>
-                        {/* {holdingsTab === 'paper' ? <PaperHoldings /> : <ProdHoldings />} */}
-                    </Box>
-                )}
             </Box>
         </Box>
     );

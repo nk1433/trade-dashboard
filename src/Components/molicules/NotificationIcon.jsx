@@ -4,7 +4,7 @@ import { IconButton, Badge, Popover, Typography, Box, List, ListItem, ListItemTe
 import NotificationsIcon from '@mui/icons-material/Notifications';
 
 const NotificationIcon = () => {
-    const { bullishBurst, bullishSLTB, bullishAnts } = useSelector((state) => state.orders);
+    const { bullishBurst, bullishSLTB } = useSelector((state) => state.orders);
     const [unreadCount, setUnreadCount] = useState(0);
     const [anchorEl, setAnchorEl] = useState(null);
     const prevCountRef = useRef(0);
@@ -14,7 +14,6 @@ const NotificationIcon = () => {
         const matches = [];
         if (bullishBurst) Object.entries(bullishBurst).forEach(([key, val]) => matches.push({ type: 'Bullish MB', symbol: val.symbol || key, ...val }));
         if (bullishSLTB) Object.entries(bullishSLTB).forEach(([key, val]) => matches.push({ type: 'Bullish SLTB', symbol: val.symbol || key, ...val }));
-        if (bullishAnts) Object.entries(bullishAnts).forEach(([key, val]) => matches.push({ type: 'Bullish Ants', symbol: val.symbol || key, ...val }));
         return matches;
     };
 

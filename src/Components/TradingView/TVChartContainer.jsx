@@ -201,7 +201,7 @@ const TVChartContainer = () => {
         }}>
           {/* Header with Dropdown */}
           <Box sx={{
-            p: 1.5,
+            p: 0.625, // 5px
             borderBottom: '1px solid var(--border-color)',
             display: 'flex',
             justifyContent: 'space-between',

@@ -82,7 +82,7 @@ const WatchList = ({ scripts, type = 'dashboard', visibleColumns, onRowClick, co
 
           return (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <span style={{ color }}>{params.row.symbol}</span>
+              <span>{params.row.symbol}</span>
               <Tooltip title="Copy script name">
                 <IconButton
                   size="small"
@@ -178,7 +178,7 @@ const WatchList = ({ scripts, type = 'dashboard', visibleColumns, onRowClick, co
           const isUp = params.row.isUpDay;
           const color = isUp ? "green" : "red";
 
-          return <span style={{ color }}>{params.value}%</span>;
+          return <span style={{ color }}>{params.value}</span>;
         }
       },
       { field: "relativeVolumePercentage", headerName: "R-vol % / 21 D" },
@@ -271,7 +271,7 @@ const WatchList = ({ scripts, type = 'dashboard', visibleColumns, onRowClick, co
 
           return (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <span style={{ color, fontSize: compact ? '0.75rem' : 'inherit', fontWeight: compact ? 600 : 'inherit' }}>{params.row.symbol}</span>
+              <span style={{ fontSize: compact ? '0.75rem' : 'inherit', fontWeight: compact ? 600 : 'inherit' }}>{params.row.symbol}</span>
               {!compact && (
                 <Tooltip title="Copy script name">
                   <IconButton
@@ -331,35 +331,6 @@ const WatchList = ({ scripts, type = 'dashboard', visibleColumns, onRowClick, co
 
   return (
     <div className="geist-card" style={{ padding: 0, overflow: 'hidden', height: '100%', display: 'flex', flexDirection: 'column' }}>
-      <Box sx={{
-        p: 2,
-        borderBottom: '1px solid var(--border-color)',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        backgroundColor: 'var(--bg-secondary)',
-        minHeight: '60px'
-      }}>
-        {!compact && (
-          <Tooltip title="Copy all Script names">
-            <IconButton
-              onClick={() => handleCopyColumn('symbol')}
-              size="small"
-              sx={{
-                borderRadius: '6px',
-                border: '1px solid var(--border-color)',
-                fontSize: '0.85rem',
-                padding: '4px 8px',
-                gap: 1
-              }}
-            >
-              Copy to TradingView
-              <ContentCopyIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
-        )}
-      </Box>
-
       <DataGrid
         filterModel={filterModel}
         onFilterModelChange={setFilterModel}
