@@ -18,6 +18,7 @@ import { fetchUserSettings } from './Store/portfolio';
 import { useUpstoxWS } from './hooks/useUpstoxWS';
 import { getStatsForScripts } from './Store/upstoxs';
 import HoldingsWrapper from './Components/HoldingsWrapper';
+import Scans from './Components/Scans';
 
 const ProtectedRoute = ({ children }) => {
   const token = localStorage.getItem('token');
@@ -69,6 +70,7 @@ const App = () => {
         <Route path="/market-breadth" element={<MarketBreadthTable />} />
         <Route path="/worm" element={<MarketHighLowWormChart />} />
         <Route path="/holdings" element={<HoldingsWrapper />} />
+        <Route path="/scans" element={<Scans />} />
         <Route path="/upstox/callback" element={<UpstoxCallback />} />
         <Route path="/upstoxs/redirect" element={<UpstoxCallback />} />
       </Route>
