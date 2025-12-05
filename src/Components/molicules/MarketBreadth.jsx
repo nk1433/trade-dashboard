@@ -5,6 +5,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { fetchMarketBreadth } from '../../Store/marketBreadth';
 import MarketBreadthBarChart from './MarketBreadthChart';
 import BreadthTwoPaneChart from './TVLightChart';
+import moment from 'moment';
 
 const getCellStyle = (value, positiveThreshold = 0.5) => {
   if (typeof value !== 'number') return {};
@@ -17,7 +18,12 @@ const getCellStyle = (value, positiveThreshold = 0.5) => {
 };
 
 const columns = [
-  { field: 'date', headerName: 'Date', width: 130 },
+  {
+    field: 'date',
+    headerName: 'Date',
+    width: 130,
+    valueFormatter: (params) => moment(params.value).format('DD-MM-YYYY')
+  },
   {
     field: 'up4Percent',
     headerName: 'Up ≥4% (Day)',
@@ -29,17 +35,6 @@ const columns = [
     )
   },
   {
-    field: 'strongCloseUpRatio',
-    headerName: 'Strong Close Up',
-    width: 140,
-    type: 'number',
-    align: 'center',
-    headerAlign: 'center',
-    renderCell: (params) => (
-      <div style={getCellStyle(params.value, 0.6)}>{(params.value * 100).toFixed(2)}%</div>
-    )
-  },
-  {
     field: 'down4Percent',
     headerName: 'Down ≥4% (Day)',
     width: 120,
@@ -47,17 +42,6 @@ const columns = [
     headerAlign: 'center',
     renderCell: (params) => (
       <div style={getCellStyle(params.value, 10)}>{params.value}</div>
-    )
-  },
-  {
-    field: 'strongCloseDownRatio',
-    headerName: 'Strong Close Down',
-    width: 140,
-    type: 'number',
-    align: 'center',
-    headerAlign: 'center',
-    renderCell: (params) => (
-      <div style={getCellStyle(params.value, 0.6)}>{(params.value * 100).toFixed(2)}%</div>
     )
   },
   {
@@ -78,6 +62,28 @@ const columns = [
     headerAlign: 'center',
     renderCell: (params) => (
       <div style={getCellStyle(params.value, 10)}>{params.value}</div>
+    )
+  },
+  {
+    field: 'strongCloseUpRatio',
+    headerName: 'Strong Close Up',
+    width: 140,
+    type: 'number',
+    align: 'center',
+    headerAlign: 'center',
+    renderCell: (params) => (
+      <div style={getCellStyle(params.value, 0.6)}>{(params.value * 100).toFixed(2)}%</div>
+    )
+  },
+  {
+    field: 'strongCloseDownRatio',
+    headerName: 'Strong Close Down',
+    width: 140,
+    type: 'number',
+    align: 'center',
+    headerAlign: 'center',
+    renderCell: (params) => (
+      <div style={getCellStyle(params.value, 0.6)}>{(params.value * 100).toFixed(2)}%</div>
     )
   },
   {
