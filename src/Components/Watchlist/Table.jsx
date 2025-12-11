@@ -6,6 +6,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import PropTypes from 'prop-types';
 import { updatePaperHoldingsLTP, executePaperOrder } from '../../Store/paperTradeSlice';
 import { formatToIndianUnits } from '../../utils';
+import OrderPanel from './OrderPanel';
 
 const columnMapping = {
   LTP: 'ltp',
@@ -33,6 +34,8 @@ const WatchList = ({ scripts, type = 'dashboard', visibleColumns, onRowClick, co
   const [filterModel, setFilterModel] = useState(initialfilterModel);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
+  const [orderPanelOpen, setOrderPanelOpen] = useState(false);
+  const [selectedScript, setSelectedScript] = useState(null);
 
   const dispatch = useDispatch();
   const tradingMode = useSelector((state) => state.settings?.tradingMode || 'PAPER');
@@ -97,82 +100,10 @@ const WatchList = ({ scripts, type = 'dashboard', visibleColumns, onRowClick, co
         sortable: false,
         filterable: false,
         renderCell: (params) => {
-          const handlePlaceOrder = async (event) => {
+          const handlePlaceOrder = (event) => {
             event.stopPropagation(); // prevent row selection on click
-
-            if (tradingMode === 'PAPER') {
-              const quantity = params.row.maxShareToBuy;
-              const price = params.row.ltp;
-              const symbol = params.row.symbol;
-
-              if (!quantity || quantity <= 0) {
-                setSnackbarMessage('Invalid quantity for paper trade');
-                setSnackbarOpen(true);
-                return;
-              }
-
-              const paperOrder = {
-                symbol,
-                quantity,
-                price,
-                type: 'BUY',
-                timestamp: new Date().toISOString(),
-                sl: params.row.sl || 0
-              };
-
-              dispatch(executePaperOrder(paperOrder));
-
-              setSnackbarMessage(`BUY ${quantity} ${symbol} @ ${Number(price).toFixed(2)}`);
-              setSnackbarOpen(true);
-              return;
-            }
-
-            const accessToken = 'Bearer ' + token; // replace with your token retrieval logic
-
-            // Prepare main market order payload
-            const mainOrderPayload = {
-              instrument_token: params.row.instrumentKey,
-              quantity: params.row.maxShareToBuy,
-              product: 'D', // delivery or as applicable
-              validity: 'DAY',
-              price: 0, // market order price
-              order_type: 'MARKET',
-              transaction_type: 'BUY',
-              disclosed_quantity: 0,
-              trigger_price: params.row.sl,
-              is_amo: false,
-              slice: true,
-            };
-
-            console.log(mainOrderPayload);
-
-            try {
-              // Place main order
-              const mainResponse = await fetch('http://localhost:3015/place-order', {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  accept: 'application/json',
-                  Authorization: accessToken,
-                },
-                body: JSON.stringify(mainOrderPayload),
-              });
-
-              if (!mainResponse.ok) {
-                const errorData = await mainResponse.json();
-                setSnackbarMessage('Main order failed: ' + (errorData.error?.message || JSON.stringify(errorData)));
-                setSnackbarOpen(true);
-                return;
-              }
-
-              const mainData = await mainResponse.json();
-              setSnackbarMessage('Main order placed successfully! Order IDs: ' + mainData.data.order_ids.join(', '));
-              setSnackbarOpen(true);
-
-            } catch (error) {
-              setSnackbarMessage('Error placing order: ' + error.message);
-              setSnackbarOpen(true);
-            }
+            setSelectedScript(params.row);
+            setOrderPanelOpen(true);
           };
 
           return (
@@ -388,6 +319,14 @@ const WatchList = ({ scripts, type = 'dashboard', visibleColumns, onRowClick, co
           {snackbarMessage}
         </Alert>
       </Snackbar>
+      <OrderPanel
+        open={orderPanelOpen}
+        onClose={() => setOrderPanelOpen(false)}
+        script={selectedScript}
+        currentPrice={selectedScript?.ltp}
+        tradingMode={tradingMode}
+        token={token}
+      />
     </div>
   );
 };

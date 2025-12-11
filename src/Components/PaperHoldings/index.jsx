@@ -1,11 +1,19 @@
-import React from 'react';
-import { useSelector } from 'react-redux';
-import { Box, Typography, Paper, Chip } from '@mui/material';
+import React, { useState } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
+import { Box, Typography, Paper, Chip, Button } from '@mui/material';
 import { DataGrid } from '@mui/x-data-grid';
 import { formatToIndianUnits } from '../../utils/index';
+import { executePaperOrder } from '../../Store/paperTradeSlice';
+import OrderPanel from '../Watchlist/OrderPanel';
 
 const PaperHoldings = () => {
+    const dispatch = useDispatch();
     const { capital, holdings } = useSelector((state) => state.paperTrade);
+    const tradingMode = useSelector((state) => state.settings?.tradingMode || 'PAPER');
+    const token = useSelector((state) => state.auth?.token);
+
+    const [orderPanelOpen, setOrderPanelOpen] = useState(false);
+    const [selectedScript, setSelectedScript] = useState(null);
 
     const totalInvested = holdings.reduce((acc, curr) => acc + curr.invested, 0);
     const totalCurrentValue = holdings.reduce((acc, curr) => acc + curr.currentValue, 0);
@@ -19,6 +27,29 @@ const PaperHoldings = () => {
         risk: item.sl ? (item.avgPrice - item.sl) * item.quantity : null,
         alloc: (item.invested / (capital + totalInvested)) * 100
     }));
+
+    const handleBuy = (row) => {
+        setSelectedScript({
+            symbol: row.symbol,
+            tradingSymbol: row.symbol,
+            ltp: row.ltp,
+            exchange: 'NSE', // Assuming NSE for now, or add to holding data
+            instrumentKey: row.instrumentKey // Ensure this is saved in holdings
+        });
+        setOrderPanelOpen(true);
+    };
+
+    const handleExit = (row) => {
+        if (window.confirm(`Are you sure you want to exit ${row.symbol}?`)) {
+            dispatch(executePaperOrder({
+                symbol: row.symbol,
+                quantity: row.quantity,
+                price: row.ltp,
+                type: 'SELL',
+                timestamp: Date.now()
+            }));
+        }
+    };
 
     const columns = [
         {
@@ -107,6 +138,35 @@ const PaperHoldings = () => {
                     <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
                         Risk
                     </Typography>
+                </Box>
+            ),
+        },
+        {
+            field: 'actions',
+            headerName: 'Actions',
+            flex: 1.5,
+            minWidth: 160,
+            sortable: false,
+            renderCell: (params) => (
+                <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', height: '100%' }}>
+                    <Button
+                        variant="outlined"
+                        size="small"
+                        color="primary"
+                        onClick={(e) => { e.stopPropagation(); handleBuy(params.row); }}
+                        sx={{ fontSize: '0.7rem', py: 0.5, minWidth: 'auto' }}
+                    >
+                        Buy
+                    </Button>
+                    <Button
+                        variant="outlined"
+                        size="small"
+                        color="error"
+                        onClick={(e) => { e.stopPropagation(); handleExit(params.row); }}
+                        sx={{ fontSize: '0.7rem', py: 0.5, minWidth: 'auto' }}
+                    >
+                        Exit
+                    </Button>
                 </Box>
             ),
         },
@@ -203,6 +263,14 @@ const PaperHoldings = () => {
                     }}
                 />
             </Box>
+            <OrderPanel
+                open={orderPanelOpen}
+                onClose={() => setOrderPanelOpen(false)}
+                script={selectedScript}
+                currentPrice={selectedScript?.ltp}
+                tradingMode={tradingMode}
+                token={token}
+            />
         </Box>
     );
 };
