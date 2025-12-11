@@ -1,18 +1,13 @@
+import React, { useState, useMemo, useEffect } from 'react';
 import { Box, IconButton, Tooltip, Snackbar, Alert } from '@mui/material';
-import PropTypes from 'prop-types';
-import OrderDetailsPortal from './OrderDetails';
 import { DataGrid, GridLogicOperator } from '@mui/x-data-grid';
-import { useEffect, useState, useMemo } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import { getStatsForScripts } from '../../Store/upstoxs';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
-import { formatToIndianUnits } from '../../utils/index';
-import { executePaperOrder, updatePaperHoldingsLTP } from '../../Store/paperTradeSlice';
-
-const token = import.meta.env.VITE_UPSTOXS_ACCESS_KEY;
+import { useDispatch, useSelector } from 'react-redux';
+import PropTypes from 'prop-types';
+import { updatePaperHoldingsLTP, executePaperOrder } from '../../Store/paperTradeSlice';
+import { formatToIndianUnits } from '../../utils';
 
 const columnMapping = {
-  Script: 'scriptName',
   LTP: 'ltp',
   SL: 'sl',
   Shares: 'maxShareToBuy',
@@ -30,9 +25,7 @@ const columnMapping = {
 };
 
 const initialfilterModel = {
-  items: [
-    { id: 1, field: 'barClosingStrength', operator: '>=', value: '70' }
-  ],
+  items: [],
   logicOperator: GridLogicOperator.And,
 };
 
@@ -43,6 +36,7 @@ const WatchList = ({ scripts, type = 'dashboard', visibleColumns, onRowClick, co
 
   const dispatch = useDispatch();
   const tradingMode = useSelector((state) => state.settings?.tradingMode || 'PAPER');
+  const token = useSelector((state) => state.auth?.token);
 
   const handleCloseSnackbar = (event, reason) => {
     if (reason === 'clickaway') {
@@ -107,14 +101,29 @@ const WatchList = ({ scripts, type = 'dashboard', visibleColumns, onRowClick, co
             event.stopPropagation(); // prevent row selection on click
 
             if (tradingMode === 'PAPER') {
-              dispatch(executePaperOrder({
-                symbol: params.row.symbol,
-                quantity: params.row.maxShareToBuy,
-                price: params.row.ltp,
+              const quantity = params.row.maxShareToBuy;
+              const price = params.row.ltp;
+              const symbol = params.row.symbol;
+
+              if (!quantity || quantity <= 0) {
+                setSnackbarMessage('Invalid quantity for paper trade');
+                setSnackbarOpen(true);
+                return;
+              }
+
+              const paperOrder = {
+                symbol,
+                quantity,
+                price,
                 type: 'BUY',
-                timestamp: Date.now()
-              }));
-              alert(`[PAPER TRADING] Order placed for ${params.row.symbol} at ₹${params.row.ltp}`);
+                timestamp: new Date().toISOString(),
+                sl: params.row.sl || 0
+              };
+
+              dispatch(executePaperOrder(paperOrder));
+
+              setSnackbarMessage(`BUY ${quantity} ${symbol} @ ${Number(price).toFixed(2)}`);
+              setSnackbarOpen(true);
               return;
             }
 
@@ -135,7 +144,7 @@ const WatchList = ({ scripts, type = 'dashboard', visibleColumns, onRowClick, co
               slice: true,
             };
 
-            console.log(mainOrderPayload)
+            console.log(mainOrderPayload);
 
             try {
               // Place main order
@@ -151,15 +160,18 @@ const WatchList = ({ scripts, type = 'dashboard', visibleColumns, onRowClick, co
 
               if (!mainResponse.ok) {
                 const errorData = await mainResponse.json();
-                alert('Main order failed: ' + (errorData.error?.message || JSON.stringify(errorData)));
+                setSnackbarMessage('Main order failed: ' + (errorData.error?.message || JSON.stringify(errorData)));
+                setSnackbarOpen(true);
                 return;
               }
 
               const mainData = await mainResponse.json();
-              alert('Main order placed successfully! Order IDs: ' + mainData.data.order_ids.join(', '));
+              setSnackbarMessage('Main order placed successfully! Order IDs: ' + mainData.data.order_ids.join(', '));
+              setSnackbarOpen(true);
 
             } catch (error) {
-              alert('Error placing order: ' + error.message);
+              setSnackbarMessage('Error placing order: ' + error.message);
+              setSnackbarOpen(true);
             }
           };
 
@@ -177,8 +189,9 @@ const WatchList = ({ scripts, type = 'dashboard', visibleColumns, onRowClick, co
         renderCell: (params) => {
           const isUp = params.row.isUpDay;
           const color = isUp ? "green" : "red";
+          const value = params.value != null ? Number(params.value).toFixed(2) : '-';
 
-          return <span style={{ color }}>{params.value}</span>;
+          return <span style={{ color }}>{value}%</span>;
         }
       },
       { field: "relativeVolumePercentage", headerName: "R-vol % / 21 D" },
@@ -216,8 +229,9 @@ const WatchList = ({ scripts, type = 'dashboard', visibleColumns, onRowClick, co
         renderCell: (params) => {
           const isUp = params.row.isUpDay;
           const color = isUp ? "green" : "red";
+          const value = params.value != null ? Number(params.value).toFixed(2) : '-';
 
-          return <span style={{ color }}>{params.value}</span>;
+          return <span style={{ color }}>{value}</span>;
         },
       },
       {
@@ -235,7 +249,7 @@ const WatchList = ({ scripts, type = 'dashboard', visibleColumns, onRowClick, co
       { field: "allocPer", headerName: "Size" },
       { field: "riskPercentage", headerName: "Risk" },
     ],
-  }), [tradingMode]);
+  }), [tradingMode, token]);
 
   const columns = columnsConfig[type]
     .map(col => {
@@ -324,7 +338,7 @@ const WatchList = ({ scripts, type = 'dashboard', visibleColumns, onRowClick, co
   // Handle column visibility
   const columnVisibilityModel = visibleColumns
     ? columns.reduce((acc, col) => {
-      acc[col.field] = visibleColumns.includes(col.field);
+      acc[col.field] = visibleColumns.includes(col.field) || col.field === 'placeOrder'; // Force placeOrder to be visible
       return acc;
     }, {})
     : undefined;

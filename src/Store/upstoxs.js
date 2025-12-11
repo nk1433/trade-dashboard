@@ -30,16 +30,22 @@ export const computeMetrics = async (context) => {
 
     const avgVolume = avgVolume21d;
     const previousDayClose = lastPrice;
-
     const changePercentage = ((ltp - currentDayOpen) / currentDayOpen) * 100;
-    const allocation =
-        ltp - currentDayOpen <= 0
-            ? {
-                maxAllocationPercentage: "-",
-                riskRewardRatio: "-",
-                allocationSuggestions: [],
-            }
-            : calculateAllocationIntent(15, size, ltp, currentDayOpen, riskOfPortfolio);
+
+    let allocation;
+    if (ltp > currentDayOpen) {
+        allocation = calculateAllocationIntent(15, size, ltp, currentDayOpen, riskOfPortfolio);
+    } else {
+        // Fallback for down days: Use 1% SL to calculate quantity
+        const fallbackSL = ltp * 0.99;
+        const fallbackAllocation = calculateAllocationIntent(15, size, ltp, fallbackSL, riskOfPortfolio);
+        allocation = {
+            ...fallbackAllocation,
+            maxAllocationPercentage: "-",
+            riskRewardRatio: "-",
+            allocationSuggestions: [],
+        };
+    }
 
     return {
         scriptName,
@@ -105,6 +111,13 @@ export const calculateMetricsForScript = createAsyncThunk('Orders/calculateMetri
 
     const { portfolioSize, riskPercentage: riskPercentageOfPortfolio } = activeSettings;
 
+    console.log('calculateMetricsForScript Debug:', {
+        tradingMode,
+        activeSettings,
+        portfolioSize,
+        riskPercentageOfPortfolio
+    });
+
     const results = await Promise.all(
         scripts.map(async (script) => {
             try {
@@ -122,7 +135,7 @@ export const calculateMetricsForScript = createAsyncThunk('Orders/calculateMetri
                     return instrument_token === instrumentKey;
                 });
 
-                return await computeMetrics({
+                const result = await computeMetrics({
                     scriptName,
                     instrumentKey,
                     size,
@@ -135,6 +148,9 @@ export const calculateMetricsForScript = createAsyncThunk('Orders/calculateMetri
                     ltp,
                     stats,
                 });
+
+                console.log(`Metrics for ${scriptName}:`, result);
+                return result;
 
             } catch (err) {
                 console.error(`Error fetching data for ${script.name}`, err);

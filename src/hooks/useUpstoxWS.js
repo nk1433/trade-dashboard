@@ -8,7 +8,7 @@ import niftylargeCap from '../index/niftylargecap.json';
 import { isUpstoxsWs } from "../utils/config";
 import { useSandboxWS } from "./useSandboxWS";
 
-export const updateWatchlistWithMetrics = async (liveFeed, scriptMap, portfolio, stats) => {
+export const updateWatchlistWithMetrics = async (liveFeed, scriptMap, portfolio, stats, tradingMode = 'PAPER') => {
   const entries = Object.entries(liveFeed.feeds);
 
   const results = await entries.reduce(async (accP, [instrumentKey, script]) => {
@@ -42,12 +42,17 @@ export const updateWatchlistWithMetrics = async (liveFeed, scriptMap, portfolio,
     // Volume surge rate (minute vs daily)
     const volSurgeRate = currentVolume > 0 ? (currentMinuteVolume / currentVolume) * 100 : 0;
 
+    // Select portfolio settings based on trading mode
+    const activePortfolio = portfolio[tradingMode === 'PRODUCTION' ? 'prod' : 'paper'] || portfolio.paper;
+    const portfolioSize = activePortfolio?.portfolioSize || 0;
+    const riskPercentage = activePortfolio?.riskPercentage || 0.25;
+
     const metric = await computeMetrics({
       scriptName: scriptMap[instrumentKey]?.name || '',
       symbol: scriptMap[instrumentKey]?.tradingsymbol,
       instrumentKey,
-      size: portfolio.portfolioSize,
-      riskOfPortfolio: portfolio.riskPercentage,
+      size: portfolioSize,
+      riskOfPortfolio: riskPercentage,
       currentDayOpen: latestDayFeed.open,
       lowPrice: latestDayFeed.low,
       currentVolume,

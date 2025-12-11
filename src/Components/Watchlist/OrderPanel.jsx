@@ -11,11 +11,14 @@ import {
     FormControlLabel,
     Divider,
     IconButton,
-    InputAdornment
+    InputAdornment,
+    Snackbar,
+    Alert
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import { useDispatch } from 'react-redux';
 import { placeSLMOrder } from '../../Store/upstoxs'; // We might need a more generic action later
+import { executePaperOrder } from '../../Store/paperTradeSlice';
 
 const OrderPanel = ({ open, onClose, script, currentPrice = 0 }) => {
     const dispatch = useDispatch();
@@ -84,6 +87,9 @@ const OrderPanel = ({ open, onClose, script, currentPrice = 0 }) => {
     }, [riskAmount, rewardAmount]);
 
 
+    const [snackbarOpen, setSnackbarOpen] = useState(false);
+    const [snackbarMessage, setSnackbarMessage] = useState('');
+
     const handlePlaceOrder = () => {
         const orderData = {
             ...script,
@@ -99,9 +105,22 @@ const OrderPanel = ({ open, onClose, script, currentPrice = 0 }) => {
         };
 
         console.log("Placing Paper Order:", orderData);
-        alert(`PAPER TRADE EXECUTED\n\n${side} ${quantity} ${script?.tradingSymbol || 'Stock'}\nType: ${orderType}\nPrice: ${orderType === 'MARKET' ? 'MKT' : price}\n\nRisk: ₹${riskAmount.toFixed(2)}\nReward: ₹${rewardAmount.toFixed(2)}`);
 
-        onClose();
+        dispatch(executePaperOrder({
+            symbol: script?.tradingSymbol || script?.symbol, // Ensure symbol is passed
+            quantity: Number(quantity),
+            price: orderType === 'MARKET' ? (currentPrice || script?.ltp) : Number(price),
+            type: side,
+            timestamp: Date.now()
+        }));
+
+        setSnackbarMessage(`PAPER TRADE EXECUTED: ${side} ${quantity} ${script?.tradingSymbol || 'Stock'}`);
+        setSnackbarOpen(true);
+
+        // Delay closing to show toast
+        setTimeout(() => {
+            onClose();
+        }, 1500);
     };
 
     const themeColor = side === 'BUY' ? '#2962ff' : '#f23645'; // TradingView Blue / Red
@@ -288,7 +307,18 @@ const OrderPanel = ({ open, onClose, script, currentPrice = 0 }) => {
                     {side} {script?.tradingSymbol}
                 </Button>
             </Box>
-        </Drawer>
+
+            <Snackbar
+                open={snackbarOpen}
+                autoHideDuration={1500}
+                onClose={() => setSnackbarOpen(false)}
+                anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+            >
+                <Alert severity="success" sx={{ width: '100%' }}>
+                    {snackbarMessage}
+                </Alert>
+            </Snackbar>
+        </Drawer >
     );
 };
 

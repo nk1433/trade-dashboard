@@ -1,65 +1,67 @@
-import { createSlice } from "@reduxjs/toolkit";
+import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
+import axios from 'axios';
+import { BACKEND_URL } from '../utils/config';
+
+// Async Thunks
+
+// Place a paper order (persisted in backend)
+export const executePaperOrder = createAsyncThunk(
+    'paperTrade/executePaperOrder',
+    async (orderData, { rejectWithValue }) => {
+        try {
+            const userStr = localStorage.getItem('user');
+            if (!userStr) throw new Error('User not found');
+            const user = JSON.parse(userStr);
+
+            const response = await axios.post(`${BACKEND_URL}/api/paper-trade/place-order`, {
+                ...orderData,
+                userId: user.id || user._id
+            });
+            return response.data.data; // Returns { trade, portfolio }
+        } catch (error) {
+            return rejectWithValue(error.response?.data?.error || error.message);
+        }
+    }
+);
+
+// Fetch paper trades and portfolio state
+export const fetchPaperTradesAsync = createAsyncThunk(
+    'paperTrade/fetchPaperTrades',
+    async (_, { rejectWithValue }) => {
+        try {
+            const userStr = localStorage.getItem('user');
+            if (!userStr) throw new Error('User not found');
+            const user = JSON.parse(userStr);
+
+            const [tradesResponse, portfolioResponse] = await Promise.all([
+                axios.get(`${BACKEND_URL}/api/paper-trade/trades`, { params: { userId: user.id || user._id } }),
+                axios.get(`${BACKEND_URL}/api/paper-trade/portfolio`, { params: { userId: user.id || user._id } })
+            ]);
+
+            return {
+                trades: tradesResponse.data.data,
+                portfolio: portfolioResponse.data.data
+            };
+        } catch (error) {
+            return rejectWithValue(error.response?.data?.error || error.message);
+        }
+    }
+);
 
 const initialState = {
-    capital: 100000, // 1 Lakh initial capital
-    holdings: [], // Array of { symbol, quantity, avgPrice, ltp, pnl, invested, currentValue }
-    orders: [], // Array of { id, symbol, type, quantity, price, timestamp, status }
+    capital: 1000000, // Default, will be updated from backend
+    holdings: [],
+    orders: [],
+    loading: false,
+    error: null,
 };
 
 const paperTradeSlice = createSlice({
     name: "paperTrade",
     initialState,
     reducers: {
-        executePaperOrder: (state, action) => {
-            const { symbol, quantity, price, type, timestamp } = action.payload;
-            const totalCost = quantity * price;
-
-            if (type === 'BUY') {
-                if (state.capital >= totalCost) {
-                    state.capital -= totalCost;
-
-                    // Add to orders
-                    state.orders.push({
-                        id: Date.now(),
-                        symbol,
-                        type,
-                        quantity,
-                        price,
-                        timestamp,
-                        status: 'EXECUTED'
-                    });
-
-                    // Update holdings
-                    const existingHolding = state.holdings.find(h => h.symbol === symbol);
-                    if (existingHolding) {
-                        const totalQuantity = existingHolding.quantity + quantity;
-                        const totalInvested = (existingHolding.quantity * existingHolding.avgPrice) + totalCost;
-                        existingHolding.quantity = totalQuantity;
-                        existingHolding.avgPrice = totalInvested / totalQuantity;
-                        existingHolding.invested = totalInvested;
-                    } else {
-                        state.holdings.push({
-                            symbol,
-                            quantity,
-                            avgPrice: price,
-                            invested: totalCost,
-                            ltp: price, // Initial LTP is buy price
-                            currentValue: totalCost,
-                            pnl: 0,
-                            pnlPercentage: 0
-                        });
-                    }
-                } else {
-                    // Insufficient funds logic (could be handled in UI or here)
-                    console.warn("Insufficient funds for paper trade");
-                }
-            }
-            // Implement SELL logic later if needed
-        },
         updatePaperHoldingsLTP: (state, action) => {
-            // action.payload is a map of symbol -> ltp
             const ltpMap = action.payload;
-
             state.holdings.forEach(holding => {
                 if (ltpMap[holding.symbol]) {
                     holding.ltp = ltpMap[holding.symbol];
@@ -70,7 +72,7 @@ const paperTradeSlice = createSlice({
             });
         },
         resetPaperAccount: (state) => {
-            state.capital = 100000;
+            state.capital = 1000000;
             state.holdings = [];
             state.orders = [];
         },
@@ -78,7 +80,71 @@ const paperTradeSlice = createSlice({
             state.capital = action.payload;
         }
     },
+    extraReducers: (builder) => {
+        builder
+            // Execute Order
+            .addCase(executePaperOrder.pending, (state) => {
+                state.loading = true;
+                state.error = null;
+            })
+            .addCase(executePaperOrder.fulfilled, (state, action) => {
+                state.loading = false;
+                const { trade, portfolio } = action.payload;
+
+                // Update capital and holdings from backend response
+                state.capital = portfolio.capital;
+                state.holdings = portfolio.holdings.map(h => {
+                    // Preserve existing LTP/PnL calculations if available, or initialize
+                    const existing = state.holdings.find(eh => eh.symbol === h.symbol);
+                    return {
+                        ...h,
+                        ltp: existing ? existing.ltp : h.avgPrice,
+                        currentValue: existing ? (h.quantity * existing.ltp) : h.invested,
+                        pnl: existing ? ((h.quantity * existing.ltp) - h.invested) : 0,
+                        pnlPercentage: existing ? (((h.quantity * existing.ltp) - h.invested) / h.invested * 100) : 0
+                    };
+                });
+
+                // Add new trade to orders list
+                state.orders.unshift({
+                    id: trade._id,
+                    ...trade
+                });
+            })
+            .addCase(executePaperOrder.rejected, (state, action) => {
+                state.loading = false;
+                state.error = action.payload;
+            })
+
+            // Fetch Trades & Portfolio
+            .addCase(fetchPaperTradesAsync.pending, (state) => {
+                state.loading = true;
+                state.error = null;
+            })
+            .addCase(fetchPaperTradesAsync.fulfilled, (state, action) => {
+                state.loading = false;
+                const { trades, portfolio } = action.payload;
+
+                state.capital = portfolio.capital;
+                state.orders = trades.map(t => ({ id: t._id, ...t }));
+
+                // Merge fetched holdings with current state (to keep LTP updates if any)
+                // But initially, just load them. LTP updates come from socket/polling.
+                state.holdings = portfolio.holdings.map(h => ({
+                    ...h,
+                    ltp: h.avgPrice, // Default to avgPrice until next LTP update
+                    currentValue: h.invested,
+                    pnl: 0,
+                    pnlPercentage: 0
+                }));
+            })
+            .addCase(fetchPaperTradesAsync.rejected, (state, action) => {
+                state.loading = false;
+                state.error = action.payload;
+            });
+    }
 });
 
-export const { executePaperOrder, updatePaperHoldingsLTP, resetPaperAccount, setPaperCapital } = paperTradeSlice.actions;
+export const { updatePaperHoldingsLTP, resetPaperAccount, setPaperCapital } = paperTradeSlice.actions;
+export const { savePaperTradeAsync } = paperTradeSlice.actions; // Deprecated but kept for export compatibility if needed
 export default paperTradeSlice.reducer;

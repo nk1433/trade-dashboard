@@ -15,6 +15,7 @@ import niftylargeCaps from '../index/niftylargecap.json';
 
 export const useSandboxWS = ({ request }) => {
     const dispatch = useDispatch();
+    const tradingMode = useSelector((state) => state.settings?.tradingMode || 'PAPER');
     const portfolio = useSelector((state) => state.portfolio);
     const stats = useSelector((state) => state.orders.stats);
     const statsRef = useRef(stats);
@@ -40,23 +41,34 @@ export const useSandboxWS = ({ request }) => {
         console.log("useSandboxWS: Starting Sandbox Feed...");
 
         // Initialize prices if empty or if stats are now available
-        if (Object.keys(currentPricesRef.current).length === 0 || (stats && Object.keys(stats).length > 0 && Object.keys(currentPricesRef.current).every(k => currentPricesRef.current[k] === 100))) {
+        // Ensure we always have all 10 scripts in currentPricesRef
+        const missingKeys = scripts.filter(s => !currentPricesRef.current[s.instrument_key]);
+
+        if (missingKeys.length > 0 || (stats && Object.keys(stats).length > 0 && Object.keys(currentPricesRef.current).every(k => currentPricesRef.current[k] === 100))) {
+            console.log(`useSandboxWS: Initializing/Updating prices. Missing: ${missingKeys.length}`);
+
             scripts.forEach(script => {
                 const instrumentKey = script.instrument_key;
-                let initialPrice = 100;
 
-                // Priority 1: Use lastPrice from stats (Previous Day Close / LTP)
-                if (stats && stats[instrumentKey] && stats[instrumentKey].lastPrice) {
-                    initialPrice = stats[instrumentKey].lastPrice;
-                }
-                // Priority 2: Use last_price from JSON
-                else if (script.last_price) {
-                    initialPrice = script.last_price;
-                }
+                // Only update if missing or if we are doing a full re-init with stats
+                if (!currentPricesRef.current[instrumentKey] || (stats && Object.keys(stats).length > 0 && currentPricesRef.current[instrumentKey] === 100)) {
+                    let initialPrice = 100;
 
-                currentPricesRef.current[instrumentKey] = initialPrice;
+                    // Priority 1: Use lastPrice from stats (Previous Day Close / LTP)
+                    if (stats && stats[instrumentKey] && stats[instrumentKey].lastPrice) {
+                        initialPrice = stats[instrumentKey].lastPrice;
+                    }
+                    // Priority 2: Use last_price from JSON
+                    else if (script.last_price) {
+                        initialPrice = script.last_price;
+                    }
+
+                    currentPricesRef.current[instrumentKey] = initialPrice;
+                }
             });
         }
+
+        console.log(`useSandboxWS: Current Prices Count: ${Object.keys(currentPricesRef.current).length}`);
 
         const intervalId = setInterval(async () => {
             // Generate Mock Data
@@ -70,7 +82,7 @@ export const useSandboxWS = ({ request }) => {
                 metrics, bullishMB, bearishMB,
                 bullishSLTB, bearishSLTB, bullishAnts,
                 dollar, bearishDollar,
-            } = await updateWatchlistWithMetrics(response, scriptMap, portfolio, statsRef.current);
+            } = await updateWatchlistWithMetrics(response, scriptMap, portfolio, statsRef.current, tradingMode);
 
             // Dispatch to Redux
             dispatch(setOrderMetrics(metrics));
