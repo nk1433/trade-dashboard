@@ -5,6 +5,8 @@ import niftymidsmall400float from "../index/niftymidsmall400-float.json";
 import { usePortfolioDataSocket } from "./usePorfolio";
 import { usePortfolioSocket } from "./usePortfolioSocket";
 import niftylargeCap from '../index/niftylargecap.json';
+import { isUpstoxsWs } from "../utils/config";
+import { useSandboxWS } from "./useSandboxWS";
 
 export const updateWatchlistWithMetrics = async (liveFeed, scriptMap, portfolio, stats) => {
   const entries = Object.entries(liveFeed.feeds);
@@ -144,16 +146,23 @@ export const useUpstoxWS = (token) => {
   const { wsUrl } = useMarketFeedUrl(token);
   const { porfolioWsUrl } = usePortfolioSocket(token);
 
+  const request = {
+    guid: "someguid",
+    method: "sub",
+    data: {
+      mode: "full",
+      instrumentKeys: [...instruments, ...niftylargeCaps],
+    },
+  };
+
   useMarketDataSocket({
-    wsUrl,
-    request: {
-      guid: "someguid",
-      method: "sub",
-      data: {
-        mode: "full",
-        instrumentKeys: [...instruments, ...niftylargeCaps],
-      },
-    }
+    wsUrl: isUpstoxsWs ? wsUrl : null, // Disable if sandbox
+    request: isUpstoxsWs ? request : null
   });
+
+  useSandboxWS({
+    request: !isUpstoxsWs ? request : null // Enable if sandbox
+  });
+
   usePortfolioDataSocket({ porfolioWsUrl });
 };

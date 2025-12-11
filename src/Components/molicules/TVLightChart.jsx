@@ -28,13 +28,15 @@ export default function BreadthTwoPaneChart({ data, field }) {
             },
         });
 
+        const sortedData = [...data].sort((a, b) => new Date(a.date) - new Date(b.date));
+
         const upSeries = chart.addSeries(HistogramSeries, {
             color: 'green',
             priceFormat: { type: 'volume' },
         }, 0);
         upSeries.setData(
-            data.map(item => ({
-                time: moment(item.date).format('YYYY-MM-DD'),
+            sortedData.map(item => ({
+                time: item.date.split('T')[0],
                 value: item[upSideColumn],
             }))
         );
@@ -44,8 +46,8 @@ export default function BreadthTwoPaneChart({ data, field }) {
             priceFormat: { type: 'volume' },
         }, 1);
         downSeries.setData(
-            data.map(item => ({
-                time: moment(item.date).format('YYYY-MM-DD'),
+            sortedData.map(item => ({
+                time: item.date.split('T')[0],
                 value: item[downSideColumn],
             }))
         );

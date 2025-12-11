@@ -1,11 +1,6 @@
-const getBackendUrl = () => {
-    // Use VITE_DEV_HOST when env is not prod or equals to dev
-    const envHosts = {
-        DEV: import.meta.env.VITE_DEV_HOST,
-        PROD: import.meta.env.VITE_PROD_HOST
-    };
+export const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3015';
 
-    return envHosts[import.meta.env.VITE_ENV || 'DEV'];
-};
-
-export const BACKEND_URL = getBackendUrl();
+// Flag to toggle between Live Upstox WebSocket and Sandbox Simulated Feed
+// Set to false to use the Sandbox Feed (Simulated Data)
+// Set to true to use the Live Upstox WebSocket
+export const isUpstoxsWs = import.meta.env.VITE_IS_SANDBOX === 'false'; 

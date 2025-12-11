@@ -22,7 +22,15 @@ const columns = [
     field: 'date',
     headerName: 'Date',
     width: 130,
-    valueFormatter: (params) => moment(params.value).format('DD-MM-YYYY')
+    valueFormatter: (value) => {
+      if (!value) return '';
+      if (typeof value === 'string') {
+        const datePart = value.split('T')[0];
+        const [year, month, day] = datePart.split('-');
+        return `${day}/${month}/${year}`;
+      }
+      return moment(value).format('DD/MM/YYYY');
+    }
   },
   {
     field: 'up4Percent',
@@ -162,12 +170,14 @@ const MarketBreadthTable = () => {
     dispatch(fetchMarketBreadth());
   }, [dispatch]);
 
+  console.log('Breadth Data:', breadthData);
+
   const rows = breadthData.map((item, index) => ({
     id: item.date || index,
     ...item,
   }));
 
-  rows.sort((a, b) => new Date(a.date) - new Date(b.date));
+  // rows.sort((a, b) => new Date(a.date) - new Date(b.date));
 
   return (
     <Box sx={{ width: '100%', paddingTop: '20px', pb: 4, bgcolor: '#f8f9fa', minHeight: '100vh' }}>

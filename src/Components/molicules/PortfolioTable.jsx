@@ -30,7 +30,7 @@ const PortfolioTable = () => {
     totalAllocatedAmount,
     totalAllocatedPercentage,
   } = calculateMetrics(positions.filter(({ type }) => type !== "closed"), portfolioSize, exitPercentage);
-  updatedData.sort((a, b) => b.risk - a.risk);
+  // updatedData.sort((a, b) => b.risk - a.risk);
 
   return (
     <div>

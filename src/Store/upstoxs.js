@@ -138,11 +138,18 @@ export const calculateMetricsForScript = createAsyncThunk('Orders/calculateMetri
 
             } catch (err) {
                 console.error(`Error fetching data for ${script.name}`, err);
+                return null;
             }
         }),
     );
 
-    return results;
+    // Filter out nulls and convert to object map
+    return results.reduce((acc, metric) => {
+        if (metric) {
+            acc[metric.instrumentKey] = metric;
+        }
+        return acc;
+    }, {});
 });
 
 export const fetchHoldings = createAsyncThunk('Orders/fetchHoldings', async (_, { getState }) => {
