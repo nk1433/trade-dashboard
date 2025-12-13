@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { generateMockFeed } from "../utils/mockFeedGenerator";
-import { updateWatchlistWithMetrics } from "./useUpstoxWS";
+import { updateWatchlistWithMetrics } from "../Store/upstoxs";
 import {
     setOrderMetrics, setBearishMB, setBullishMB,
     setBullishSLTB, setBearishSLTB,

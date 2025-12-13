@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import protobuf from "protobufjs";
 import { useDispatch } from "react-redux";
-import { updateWatchlistWithMetrics } from "./useUpstoxWS";
+import { updateWatchlistWithMetrics } from "../Store/upstoxs";
 import niftymidsmall400float from "../index/niftymidsmall400-float.json";
 import niftylargeCaps from '../index/niftylargecap.json';
 import { useSelector } from "react-redux";

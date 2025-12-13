@@ -102,70 +102,220 @@ export const getStatsForScripts = createAsyncThunk('Orders/getStats', async () =
     return response.data;
 });
 
-export const calculateMetricsForScript = createAsyncThunk('Orders/calculateMetricsForScript', async (scripts, state) => {
-    const { portfolio, settings } = state.getState();
-    const { orders: { stats } } = state.getState();
+export const updateWatchlistWithMetrics = async (liveFeed, scriptMap, portfolio, stats, tradingMode = 'PAPER') => {
+    const entries = Object.entries(liveFeed.feeds);
 
-    const tradingMode = settings?.tradingMode || 'PAPER';
-    const activeSettings = tradingMode === 'PROD' ? portfolio.prod : portfolio.paper;
+    const results = await entries.reduce(async (accP, [instrumentKey, script]) => {
+        const acc = await accP;
 
-    const { portfolioSize, riskPercentage: riskPercentageOfPortfolio } = activeSettings;
+        // Get daily OHLC feed
+        const latestDayFeed = script.fullFeed?.marketFF?.marketOHLC?.ohlc.find(feed => feed.interval === '1d');
+        // Get latest minute OHLC feed
+        const latestMinuteFeed = script.fullFeed?.marketFF?.marketOHLC?.ohlc.find(feed => feed.interval === 'I1');
 
-    console.log('calculateMetricsForScript Debug:', {
-        tradingMode,
-        activeSettings,
-        portfolioSize,
-        riskPercentageOfPortfolio
-    });
+        if (!latestDayFeed || !latestMinuteFeed) return acc;
 
-    const results = await Promise.all(
-        scripts.map(async (script) => {
-            try {
-                const { instrument_key: instrumentKey, name: scriptName } = script;
+        const prevStats = stats[instrumentKey] || {};
+        const prevDayVolume = prevStats.prevDayVolume || 0;
+        const prevDayClose = prevStats.lastPrice || 0;
+        // Newly added metrics from stats
+        const minVolume3d = prevStats.minVolume3d || 0;
+        const statsPriceChange = prevStats.priceChange || 0;
+        const trendIntensity = parseFloat(prevStats.trendIntensity) || 0;
+        const closePrev1 = parseFloat(prevStats.closePrev1) || 0;
+        const closePrev2 = parseFloat(prevStats.closePrev2) || 0;
 
-                const size = parseFloat(portfolioSize);
-                const riskOfPortfolio = parseFloat(riskPercentageOfPortfolio);
+        const currentClose = latestDayFeed.close;
+        const currentLow = latestDayFeed.low;
+        // const currentOpen = latestDayFeed.open;
+        const currentVolume = latestDayFeed.vol;
+        const currentMinuteVolume = latestMinuteFeed.vol;
 
-                const marketQuote = await getMarketQuote(instrumentKey);
+        const priceRatio = prevDayClose > 0 ? currentClose / prevDayClose : 0;
 
-                const {
-                    live_ohlc: { open: currentDayOpen, low: lowPrice, volume: currentVolume, ts: lastTradingDay, high },
-                    last_price: ltp,
-                } = Object.values(marketQuote.data).find(({ instrument_token }) => {
-                    return instrument_token === instrumentKey;
-                });
+        // Volume surge rate (minute vs daily)
+        const volSurgeRate = currentVolume > 0 ? (currentMinuteVolume / currentVolume) * 100 : 0;
 
-                const result = await computeMetrics({
-                    scriptName,
-                    instrumentKey,
-                    size,
-                    riskOfPortfolio,
-                    currentDayOpen,
-                    lowPrice,
-                    currentVolume,
-                    lastTradingDay,
-                    high,
-                    ltp,
-                    stats,
-                });
+        // Select portfolio settings based on trading mode
+        const activePortfolio = portfolio[tradingMode === 'PRODUCTION' ? 'prod' : 'paper'] || portfolio.paper;
+        const portfolioSize = activePortfolio?.portfolioSize || 0;
+        const riskPercentage = activePortfolio?.riskPercentage || 0.25;
 
-                console.log(`Metrics for ${scriptName}:`, result);
-                return result;
+        const metric = await computeMetrics({
+            scriptName: scriptMap[instrumentKey]?.name || '',
+            symbol: scriptMap[instrumentKey]?.tradingsymbol,
+            instrumentKey,
+            size: portfolioSize,
+            riskOfPortfolio: riskPercentage,
+            currentDayOpen: latestDayFeed.open,
+            lowPrice: latestDayFeed.low,
+            currentVolume,
+            high: latestDayFeed.high,
+            ltp: currentClose,
+            stats,
+            volSurgeRate,
+            currentMinuteVolume,
+        });
 
-            } catch (err) {
-                console.error(`Error fetching data for ${script.name}`, err);
-                return null;
-            }
-        }),
-    );
+        if (!acc.metrics) acc.metrics = {};
+        if (!acc.bullishMB) acc.bullishMB = {};
+        if (!acc.bearishMB) acc.bearishMB = {};
+        if (!acc.bullishSLTB) acc.bullishSLTB = {};
+        if (!acc.bearishSLTB) acc.bearishSLTB = {};
+        if (!acc.bullishAnts) acc.bullishAnts = {};
+        if (!acc.dollar) acc.dollar = {};
+        if (!acc.bearishDollar) acc.bearishDollar = {};
 
-    // Filter out nulls and convert to object map
-    return results.reduce((acc, metric) => {
-        if (metric) {
-            acc[metric.instrumentKey] = metric;
+        acc.metrics[instrumentKey] = metric;
+
+        if (priceRatio >= 1.04 && currentVolume > prevDayVolume && currentVolume >= 100000) {
+            acc.bullishMB[instrumentKey] = metric;
         }
+
+        if (priceRatio <= 0.96 && currentVolume > prevDayVolume && currentVolume >= 100000) {
+            acc.bearishMB[instrumentKey] = metric;
+        }
+
+        if (
+            minVolume3d > 100000 &&
+            trendIntensity >= 1.05 &&
+            latestDayFeed.close > latestDayFeed.open &&
+            latestDayFeed.close > closePrev1 &&
+            latestDayFeed.close / closePrev1 > closePrev1 / closePrev2 &&
+            closePrev1 / closePrev2 < 1.02 &&
+            closePrev1 > closePrev2 &&
+            latestDayFeed.close > 100
+        ) {
+            acc.bullishSLTB[instrumentKey] = metric;
+        }
+
+        if (
+            closePrev1 / closePrev2 >= 0.98 &&
+            latestDayFeed.close / closePrev1 < closePrev1 / closePrev2 &&
+            latestDayFeed.close < closePrev1 &&
+            latestDayFeed.close < latestDayFeed.open &&
+            minVolume3d >= 100000 &&
+            (latestDayFeed.close - latestDayFeed.low) / (latestDayFeed.high - latestDayFeed.low) < 0.2 &&
+            latestDayFeed.close > 100
+        ) {
+            acc.bearishSLTB[instrumentKey] = metric;
+        }
+
+        if (
+            minVolume3d > 100000 &&
+            trendIntensity >= 1.05 &&
+            statsPriceChange > -1 &&
+            statsPriceChange < 1
+        ) {
+            acc.bullishAnts[instrumentKey] = metric;
+        }
+
+        if (latestDayFeed.close - latestDayFeed.open >= 50 && currentVolume >= 100000) {
+            acc.dollar[instrumentKey] = metric;
+        }
+
+        if (latestDayFeed.open - latestDayFeed.close >= 50 && currentVolume >= 100000) {
+            acc.bearishDollar[instrumentKey] = metric;
+        }
+
+        //TODO: Include TI in checks.
+        if ((latestDayFeed.close / prevStats.fiftyTwoWeekLow) >= 1.8 &&
+            minVolume3d > 100000 &&
+            statsPriceChange > -1 &&
+            statsPriceChange < 1
+        ) {
+            acc.bullishAnts[instrumentKey] = metric;
+        }
+
         return acc;
-    }, {});
+    }, Promise.resolve({
+        metrics: {}, bullishMB: {}, bearishMB: {},
+        bullishSLTB: {}, bearishSLTB: {}, bullishAnts: {},
+        dollar: {}, bearishDollar: {}
+    }));
+
+    return results;
+};
+
+
+// Updated thunk that mimics the WebSocket structure to reuse updateWatchlistWithMetrics
+export const fetchAndCalculateInitialMetrics = createAsyncThunk('Orders/fetchAndCalculateInitialMetrics', async (scripts, state) => {
+    const { portfolio, settings, orders: { stats } } = state.getState();
+    const tradingMode = settings?.tradingMode || 'PAPER';
+
+    // Helper to get OHLC data
+    const getOHLC = async (instrumentKey, interval) => {
+        try {
+            const response = await fetch(
+                `https://api.upstox.com/v3/market-quote/ohlc?instrument_key=${instrumentKey}&interval=${interval}`,
+                {
+                    headers: {
+                        Authorization: `Bearer ${localStorage.getItem('upstox_access_token') || import.meta.env.VITE_UPSTOXS_ACCESS_KEY}`,
+                    },
+                }
+            );
+            return await response.json();
+        } catch (e) {
+            console.error(`Error fetching ${interval} for ${instrumentKey}`, e);
+            return null;
+        }
+    };
+
+    // Construct "liveFeed" structure from REST API data
+    const feeds = {};
+    const scriptMap = {};
+
+    await Promise.all(scripts.map(async (script) => {
+        const { instrument_key: instrumentKey, name, trading_symbol: tradingsymbol } = script;
+
+        // Populate scriptMap
+        scriptMap[instrumentKey] = { name, tradingsymbol };
+
+        // Fetch 1d and 1min data concurrently
+        const [dayData, minuteData] = await Promise.all([
+            getOHLC(instrumentKey, '1d'),
+            getOHLC(instrumentKey, '1minute')
+        ]);
+
+        const formatOHLC = (apiData, interval) => {
+            if (!apiData?.data) return null;
+            // apiData.data is a map { "NSE_EQ|...": { ohlc: ... } } usually for market-quote
+
+            const dataItem = Object.values(apiData.data || {}).find(item => item.instrument_token === instrumentKey);
+            if (!dataItem) return null;
+
+            return {
+                interval: interval,
+                open: dataItem.live_ohlc.open,
+                high: dataItem.live_ohlc.high,
+                low: dataItem.live_ohlc.low,
+                close: dataItem.live_ohlc.close || dataItem.last_price,
+                vol: dataItem.live_ohlc.volume,
+                ts: dataItem.live_ohlc.ts,
+            };
+        };
+
+        const dayFeed = formatOHLC(dayData, '1d');
+        const minuteFeed = formatOHLC(minuteData, 'I1');
+
+        if (dayFeed && minuteFeed) {
+            feeds[instrumentKey] = {
+                fullFeed: {
+                    marketFF: {
+                        marketOHLC: {
+                            ohlc: [dayFeed, minuteFeed]
+                        }
+                    }
+                }
+            };
+        }
+    }));
+
+    const liveFeed = { feeds };
+
+    // Call the shared function
+    const metrics = await updateWatchlistWithMetrics(liveFeed, scriptMap, portfolio, stats, tradingMode);
+    return metrics;
 });
 
 export const fetchHoldings = createAsyncThunk('Orders/fetchHoldings', async (_, { getState }) => {
@@ -300,8 +450,17 @@ const orders = createSlice({
         builder.addCase(placeSLMOrder.fulfilled, (state, action) => {
             state.orders.push(action.payload);
         });
-        builder.addCase(calculateMetricsForScript.fulfilled, (state, action) => {
-            state.orderMetrics = action.payload;
+        builder.addCase(fetchAndCalculateInitialMetrics.fulfilled, (state, action) => {
+            const { metrics, bullishMB, bearishMB, bullishSLTB, bearishSLTB, bullishAnts, dollar, bearishDollar } = action.payload;
+
+            state.orderMetrics = metrics;
+            state.bullishBurst = bullishMB;
+            state.bearishBurst = bearishMB;
+            state.bullishSLTB = bullishSLTB;
+            state.bearishSLTB = bearishSLTB;
+            state.bullishAnts = bullishAnts;
+            state.dollar = dollar;
+            state.bearishDollar = bearishDollar;
         });
         builder.addCase(getStatsForScripts.fulfilled, (state, action) => {
             state.stats = action.payload;

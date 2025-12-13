@@ -59,8 +59,8 @@ const App = () => {
     // Fetch initial metrics for a subset of scripts to ensure watchlist is not empty (e.g. for testing)
     import('./index/niftymidsmall400-float.json').then((module) => {
       const scripts = module.default.slice(0, 20); // Fetch top 20
-      import('./Store/upstoxs').then(({ calculateMetricsForScript }) => {
-        dispatch(calculateMetricsForScript(scripts));
+      import('./Store/upstoxs').then(({ fetchAndCalculateInitialMetrics }) => {
+        dispatch(fetchAndCalculateInitialMetrics(scripts));
       });
     });
   }, [dispatch]);
