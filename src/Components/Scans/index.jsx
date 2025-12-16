@@ -110,7 +110,7 @@ const Scans = () => {
             width: 120,
             valueFormatter: (value) => {
                 if (!value) return '';
-                return moment(value.replace('Z', '')).format('h:mm a');
+                return moment(value).format('h:mm a');
             }
         },
     ];
