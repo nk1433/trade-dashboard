@@ -6,6 +6,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { fetchMarketBreadth } from '../../Store/marketBreadth';
 import MarketBreadthBarChart from './MarketBreadthChart';
 import BreadthTwoPaneChart from './TVLightChart';
+import { commonSelectSx, commonInputLabelSx } from '../../utils/themeStyles';
 import moment from 'moment';
 
 const getCellStyle = (value, positiveThreshold = 0.5) => {
@@ -191,22 +192,24 @@ const MarketBreadthTable = () => {
           </Typography>
           <Box sx={{ display: 'flex', gap: 2 }}>
             <FormControl size="small" sx={{ minWidth: 150, bgcolor: 'white' }}>
-              <InputLabel>Chart View</InputLabel>
+              <InputLabel sx={commonInputLabelSx}>Chart View</InputLabel>
               <Select
                 value={chartType}
                 label="Chart View"
                 onChange={handleChange}
+                sx={commonSelectSx}
               >
                 <MenuItem value="mui">MUI Charts</MenuItem>
                 <MenuItem value="tv">TradingView</MenuItem>
               </Select>
             </FormControl>
             <FormControl size="small" sx={{ minWidth: 180, bgcolor: 'white' }}>
-              <InputLabel>Per Change</InputLabel>
+              <InputLabel sx={commonInputLabelSx}>Per Change</InputLabel>
               <Select
                 value={percantageChange}
                 label="Per Change"
                 onChange={handlePercentageChange}
+                sx={commonSelectSx}
               >
                 {
                   chartViewColumns.map((option) => {

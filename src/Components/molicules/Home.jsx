@@ -4,6 +4,7 @@ import TVChartContainer from '../TradingView/TVChartContainer';
 import Watchlist from '../Watchlist/index';
 import axios from 'axios';
 import { BACKEND_URL } from '../../utils/config';
+import { commonSelectSx } from '../../utils/themeStyles';
 
 const Home = () => {
     const [view, setView] = useState('chart');
@@ -44,7 +45,7 @@ const Home = () => {
     };
 
     return (
-        <Box sx={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column' }}>
+        <Box sx={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column', position: 'relative' }}>
             {/* Auth Warning Modal/Banner */}
             {(authStatus === 'expired' || authStatus === 'missing') && (
                 <Paper sx={{ p: 2, mb: 2, bgcolor: '#fff3e0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -68,23 +69,12 @@ const Home = () => {
                 </Paper>
             )}
 
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, px: 1 }}>
-                {view === 'chart' && (
-                    <Typography variant="h4" sx={{
-                        textAlign: "left",
-                        fontWeight: 700,
-                        letterSpacing: '-0.03em',
-                    }}>
-                        Advanced
-                    </Typography>
-                )}
-                {view === 'watchlist' && <Box />} {/* Spacer to keep dropdown on right if needed, or just let it flow */}
-
+            <Box sx={{ position: 'absolute', top: 2, right: 10, zIndex: 1000 }}>
                 <Select
                     value={view}
                     onChange={(e) => setView(e.target.value)}
                     size="small"
-                    sx={{ height: 32, fontSize: '0.875rem', minWidth: 150, bgcolor: 'white', ml: 'auto' }}
+                    sx={{ height: 32, fontSize: '0.875rem', minWidth: 150, bgcolor: 'white', ...commonSelectSx }}
                 >
                     <MenuItem value="chart">Advanced</MenuItem>
                     <MenuItem value="watchlist">Dashboard</MenuItem>

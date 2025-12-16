@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { TextField, Button, Typography, Box, Paper } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
 import { calculateAllocationIntent } from "../../utils/calculateMetrics";
+import { commonInputProps } from "../../utils/themeStyles";
 import { useSelector } from "react-redux";
 
 const columns = [
@@ -84,6 +85,7 @@ const AllocationIntentForm = () => {
           margin="normal"
           variant="outlined"
           size="small"
+          {...commonInputProps}
         />
         <TextField
           label="Portfolio Size"
@@ -94,6 +96,7 @@ const AllocationIntentForm = () => {
           margin="normal"
           variant="outlined"
           size="small"
+          {...commonInputProps}
         />
         <TextField
           label="Entry Price"
@@ -104,6 +107,7 @@ const AllocationIntentForm = () => {
           margin="normal"
           variant="outlined"
           size="small"
+          {...commonInputProps}
         />
         <TextField
           label="Exit Price"
@@ -114,6 +118,7 @@ const AllocationIntentForm = () => {
           margin="normal"
           variant="outlined"
           size="small"
+          {...commonInputProps}
         />
         <TextField
           label="Risk Percentage"
@@ -124,6 +129,7 @@ const AllocationIntentForm = () => {
           margin="normal"
           variant="outlined"
           size="small"
+          {...commonInputProps}
         />
 
         <Button

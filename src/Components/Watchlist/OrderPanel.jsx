@@ -20,6 +20,7 @@ import {
 import CloseIcon from '@mui/icons-material/Close';
 import { useDispatch } from 'react-redux';
 import { executePaperOrder } from '../../Store/paperTradeSlice';
+import { commonInputProps } from '../../utils/themeStyles';
 
 const OrderPanel = ({ open, onClose, script, currentPrice = 0, tradingMode, token }) => {
     const dispatch = useDispatch();
@@ -171,7 +172,10 @@ const OrderPanel = ({ open, onClose, script, currentPrice = 0, tradingMode, toke
         }
     };
 
+
+
     const themeColor = '#000000'; // Monochrome Black
+
 
     return (
         <Drawer
@@ -281,47 +285,7 @@ const OrderPanel = ({ open, onClose, script, currentPrice = 0, tradingMode, toke
                                 onChange={(e) => setQuantity(e.target.value)}
                                 size="small"
                                 fullWidth
-                                slotProps={{
-                                    inputLabel: {
-                                        shrink: true,
-                                        sx: {
-                                            fontSize: '0.85rem',
-                                            '&.Mui-focused': {
-                                                color: '#000',  // label color
-                                            }
-                                        }
-                                    },
-                                    input: {
-                                        sx: {
-                                            fontSize: '0.9rem',
-                                            '&:focus': {
-                                                outline: 'none',
-                                            },
-                                            '&:focus-visible': {
-                                                outline: 'none',
-                                            }
-                                        }
-                                    }
-                                }}
-                                sx={{
-                                    '& .MuiOutlinedInput-root': {
-                                        // remove blue shadow / outline
-                                        '&.Mui-focused': {
-                                            boxShadow: 'none !important',
-                                            outline: 'none !important',
-                                        },
-
-                                        // border color when focused
-                                        '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                                            borderColor: '#000 !important',
-                                        },
-
-                                        // default border
-                                        '& .MuiOutlinedInput-notchedOutline': {
-                                            borderColor: '#ccc',
-                                        }
-                                    }
-                                }}
+                                {...commonInputProps}
                             />
 
                         </Box>
@@ -334,8 +298,7 @@ const OrderPanel = ({ open, onClose, script, currentPrice = 0, tradingMode, toke
                                     onChange={(e) => setPrice(e.target.value)}
                                     size="small"
                                     fullWidth
-                                    InputLabelProps={{ shrink: true, style: { fontSize: '0.85rem' } }}
-                                    InputProps={{ style: { fontSize: '0.9rem' } }}
+                                    {...commonInputProps}
                                 />
                             </Box>
                         )}
@@ -352,8 +315,7 @@ const OrderPanel = ({ open, onClose, script, currentPrice = 0, tradingMode, toke
                             onChange={(e) => setTriggerPrice(e.target.value)}
                             size="small"
                             fullWidth
-                            InputLabelProps={{ shrink: true, style: { fontSize: '0.85rem' } }}
-                            InputProps={{ style: { fontSize: '0.9rem' } }}
+                            {...commonInputProps}
                         />
                     )}
                 </Box>
