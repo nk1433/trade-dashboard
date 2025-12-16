@@ -1,3 +1,5 @@
+import niftylargecap from '../../../index/niftylargecap.json';
+import niftymidsmall400 from '../../../index/niftymidsmall400-float.json';
 
 export const resolveSymbol = (
   symbolName,
@@ -22,7 +24,26 @@ export const resolveSymbol = (
     } else {
       // Format: Exchange|Token (fallback if no name provided)
       ticker = symbolName;
-      name = symbolName; // Or try to extract something better if possible
+
+      // Try to resolve name from our indices if possible
+      const allScripts = [...niftylargecap, ...niftymidsmall400];
+      const found = allScripts.find(s => s.instrument_key === symbolName);
+
+      if (found) {
+        name = found.tradingsymbol;
+        description = found.name;
+      } else {
+        name = symbolName;
+      }
+    }
+  } else {
+    // Try to find the symbol in our local indices to get the correct Instrument Key
+    const allScripts = [...niftylargecap, ...niftymidsmall400];
+    const found = allScripts.find(s => s.tradingsymbol === symbolName || s.name === symbolName);
+    if (found) {
+      ticker = found.instrument_key;
+      name = found.tradingsymbol;
+      description = found.name || found.tradingsymbol;
     }
   }
 
