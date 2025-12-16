@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Box, FormControl, InputLabel, MenuItem, Select, Typography, Paper } from '@mui/material';
+import { ArrowUpward, ArrowDownward } from '@mui/icons-material';
 import { DataGrid } from '@mui/x-data-grid';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchMarketBreadth } from '../../Store/marketBreadth';
@@ -146,9 +147,9 @@ const columns = [
 ];
 
 const chartViewColumns = [
-  'fourPercentage',
-  'eightPercentage',
-  'twentyPercentage',
+  { value: 'fourPercentage', label: '4%' },
+  { value: 'eightPercentage', label: '8%' },
+  { value: 'twentyPercentage', label: '20%' },
 ];
 
 const MarketBreadthTable = () => {
@@ -156,7 +157,7 @@ const MarketBreadthTable = () => {
   const breadthData = useSelector(state => state.marketBreadth.data);
   const [chartType, setChartType] = useState('tv');
 
-  const [percantageChange, setPercentageChange] = useState(chartViewColumns[0]);
+  const [percantageChange, setPercentageChange] = useState(chartViewColumns[0].value);
 
   const handlePercentageChange = (event) => {
     setPercentageChange(event.target.value);
@@ -208,8 +209,15 @@ const MarketBreadthTable = () => {
                 onChange={handlePercentageChange}
               >
                 {
-                  chartViewColumns.map((field) => {
-                    return <MenuItem key={field} value={field}>{field}</MenuItem>
+                  chartViewColumns.map((option) => {
+                    return (
+                      <MenuItem key={option.value} value={option.value}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                          <ArrowUpward fontSize="small" sx={{ color: 'green' }} />
+                          <Typography variant="body2" sx={{ fontWeight: 'bold' }}>{option.label}</Typography>
+                        </Box>
+                      </MenuItem>
+                    )
                   })
                 }
               </Select>
