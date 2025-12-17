@@ -97,9 +97,13 @@ export const getStatsForScripts = createAsyncThunk('Orders/getStats', async () =
 });
 
 export const calculateMetricsForScript = createAsyncThunk('Orders/calculateMetricsForScript', async (scripts, state) => {
-    const { portfolio } = state.getState();
+    const { portfolio, settings } = state.getState();
     const { orders: { stats } } = state.getState();
-    const { portfolioSize, riskPercentage: riskPercentageOfPortfolio } = portfolio;
+
+    const tradingMode = settings?.tradingMode || 'PAPER';
+    const activeSettings = tradingMode === 'PROD' ? portfolio.prod : portfolio.paper;
+
+    const { portfolioSize, riskPercentage: riskPercentageOfPortfolio } = activeSettings;
 
     const results = await Promise.all(
         scripts.map(async (script) => {
@@ -139,6 +143,21 @@ export const calculateMetricsForScript = createAsyncThunk('Orders/calculateMetri
     );
 
     return results;
+});
+
+export const fetchHoldings = createAsyncThunk('Orders/fetchHoldings', async (_, { getState }) => {
+    const { auth } = getState();
+    const token = auth.token; // Upstox token
+
+    const response = await fetch('https://api.upstox.com/v2/portfolio/long-term-holdings', {
+        headers: {
+            'Authorization': `Bearer ${token}`,
+            'Accept': 'application/json'
+        }
+    });
+
+    const data = await response.json();
+    return data.data || [];
 });
 
 export const placeSLMOrder = createAsyncThunk('Orders/placeSLMOrder', async (script) => {
@@ -191,6 +210,7 @@ const orders = createSlice({
         bullishAnts: [],
         dollar: [],
         bearishDollar: [],
+        holdings: [],
     },
     reducers: {
         setOrderMetrics(state, action) {
@@ -262,6 +282,13 @@ const orders = createSlice({
         });
         builder.addCase(getStatsForScripts.fulfilled, (state, action) => {
             state.stats = action.payload;
+        });
+        builder.addCase(fetchHoldings.fulfilled, (state, action) => {
+            state.holdings = action.payload || [];
+        });
+        builder.addCase(fetchHoldings.rejected, (state, action) => {
+            state.holdings = [];
+            console.error('Fetch holdings failed:', action.error);
         });
     },
 });

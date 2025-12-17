@@ -4,75 +4,131 @@ import Datafeed from "./datafeed/datafeed_custom";
 import { useWatchlistFilter } from "../../hooks/useWatchlistFilter";
 import {
   Box, Typography, Divider, IconButton, Menu, MenuItem,
-  Table, TableBody, TableCell, TableContainer, TableHead, TableRow
+  Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
+  Checkbox, FormControlLabel, Popover, FormGroup
 } from '@mui/material';
 import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
 import AddIcon from '@mui/icons-material/Add';
+import SettingsIcon from '@mui/icons-material/Settings';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
+import { BACKEND_URL } from '../../utils/config';
+import niftylargecap from '../../index/niftylargecap.json';
+import niftymidsmall400 from '../../index/niftymidsmall400-float.json';
+
+import WatchList from "../Watchlist/Table";
+
+const AVAILABLE_COLUMNS = [
+  { id: 'scriptName', label: 'Script', minWidth: 100 },
+  { id: 'ltp', label: 'LTP', minWidth: 70 },
+  { id: 'changePercentage', label: 'Chg%', minWidth: 60 },
+  { id: 'barClosingStrength', label: 'Str%', minWidth: 60 },
+  { id: 'relativeVolumePercentage', label: 'RVol%', minWidth: 60 },
+  { id: 'gapPercentage', label: 'Gap%', minWidth: 60 },
+  { id: 'currentMinuteVolume', label: 'VolROC%', minWidth: 70 },
+  { id: 'sl', label: 'SL', minWidth: 60 },
+  { id: 'maxShareToBuy', label: 'Shares', minWidth: 60 },
+  { id: 'lossInMoney', label: 'Loss', minWidth: 60 },
+  { id: 'avgValueVolume21d', label: 'AvgVol', minWidth: 80 },
+  { id: 'placeOrder', label: 'Order', minWidth: 80 },
+];
 
 const TVChartContainer = () => {
   const chartContainerRef = useRef();
   const tvWidgetRef = useRef(null);
   const { selectedIndex, handleSelectionChange, scriptsToShow, counts } = useWatchlistFilter();
   const [selectedSymbol, setSelectedSymbol] = useState(null);
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  const userId = user._id || user.id || 'public_user_id';
 
-  // Convert filtered scripts object into array for stock list
-  const dynamicStockList = Object.values(scriptsToShow);
+  // Column Customization State
+  const [visibleColumns, setVisibleColumns] = useState(['scriptName', 'ltp', 'changePercentage']);
+  const [settingsAnchorEl, setSettingsAnchorEl] = useState(null);
 
   useEffect(() => {
-    const widgetOptions = {
-      symbol: "NSE_EQ|INE002A01018|RELIANCE", // Initial symbol with name
-      datafeed: Datafeed,
-      container: chartContainerRef.current,
-      library_path: "/charting_library/",
-      interval: "1D",
-      locale: "en",
-      timezone: "Asia/Kolkata",
-      disabled_features: [
-        "use_localstorage_for_settings",
-        "header_symbol_search",
-        "symbol_search_hot_key",
-      ],
-      enabled_features: ["watchlist_sections"],
-      charts_storage_url: "https://saveload.tradingview.com",
-      charts_storage_api_version: "1.1",
-      client_id: "tradingview.com",
-      user_id: "public_user_id",
-      fullscreen: false,
-      autosize: true,
-      studies_overrides: {},
-      supports_marks: false,
-      supports_timescale_marks: false,
-      theme: "light",
-      overrides: {
-        "paneProperties.background": "#ffffff",
-        "paneProperties.vertGridProperties.color": "rgba(46, 46, 46, 0.06)",
-        "paneProperties.horzGridProperties.color": "rgba(46, 46, 46, 0.06)",
-        "mainSeriesProperties.candleStyle.upColor": "#ffffff",
-        "mainSeriesProperties.candleStyle.downColor": "#000000",
-        "mainSeriesProperties.candleStyle.borderUpColor": "#000000",
-        "mainSeriesProperties.candleStyle.borderDownColor": "#000000",
-        "mainSeriesProperties.candleStyle.wickUpColor": "#000000",
-        "mainSeriesProperties.candleStyle.wickDownColor": "#000000",
-        "mainSeriesProperties.statusViewStyle.showInterval": true,
-        "mainSeriesProperties.statusViewStyle.symbolTextSource": "ticker",
-      },
+    const initWidget = async () => {
+      const widgetOptions = {
+        symbol: "NSE_EQ|INE002A01018|RELIANCE", // Initial symbol with name
+        datafeed: Datafeed,
+        interval: "1D",
+        container: chartContainerRef.current,
+        library_path: "/charting_library/",
+        locale: "en",
+        timezone: "Asia/Kolkata",
+        disabled_features: [
+          "use_localstorage_for_settings",
+          "symbol_search_hot_key",
+          "create_volume_indicator_by_default",
+        ],
+        enabled_features: ["watchlist_sections"],
+        fullscreen: false,
+        autosize: true,
+        studies_overrides: {},
+        supports_marks: false,
+        supports_timescale_marks: false,
+        theme: "light",
+        symbol_search_complete: (symbol, searchResultItem) => {
+          return new Promise((resolve) => {
+            const allScripts = [...niftylargecap, ...niftymidsmall400];
+            const foundScript = allScripts.find(s => s.tradingsymbol === symbol || s.instrument_key === symbol);
+
+            if (foundScript) {
+              resolve({ symbol: foundScript.instrument_key, name: foundScript.name });
+            } else {
+              resolve({ symbol: symbol, name: symbol });
+            }
+          });
+        },
+        widgetbar: {
+          watchlist: true,
+          watchlist_settings: {
+            default_symbols: ["NSE_EQ|INE002A01018", "NSE_EQ|INE242A01010"],
+            readonly: true,
+          },
+        },
+        overrides: {
+          "paneProperties.background": "#ffffff",
+          "paneProperties.vertGridProperties.color": "rgba(46, 46, 46, 0.06)",
+          "paneProperties.horzGridProperties.color": "rgba(46, 46, 46, 0.06)",
+          "mainSeriesProperties.candleStyle.upColor": "#ffffff",
+          "mainSeriesProperties.candleStyle.downColor": "#000000",
+          "mainSeriesProperties.candleStyle.borderUpColor": "#000000",
+          "mainSeriesProperties.candleStyle.borderDownColor": "#000000",
+          "mainSeriesProperties.candleStyle.wickUpColor": "#000000",
+          "mainSeriesProperties.candleStyle.wickDownColor": "#000000",
+          "mainSeriesProperties.statusViewStyle.showInterval": true,
+          "mainSeriesProperties.statusViewStyle.symbolTextSource": "ticker",
+        },
+      };
+
+      const tvWidget = new widget(widgetOptions);
+      tvWidgetRef.current = tvWidget;
+
+      tvWidget.onChartReady(() => {
+        tvWidget.activeChart().createStudy('Volume', false, false);
+        // Minimize the volume pane (assuming it's the second pane)
+        const panes = tvWidget.activeChart().getPanes();
+        if (panes.length > 1) {
+          panes[1].setHeight(80);
+        }
+      });
     };
 
-    const tvWidget = new widget(widgetOptions);
-    tvWidgetRef.current = tvWidget;
+    initWidget();
 
     return () => {
-      tvWidget.remove();
-      tvWidgetRef.current = null;
+      if (tvWidgetRef.current) {
+        tvWidgetRef.current.remove();
+        tvWidgetRef.current = null;
+      }
     };
   }, []);
 
-  const handleStockClick = (symbol, instrumentKey) => {
+  const handleStockClick = (row) => {
+    const symbol = row.symbol;
+    const instrumentKey = row.instrumentKey;
     setSelectedSymbol(symbol);
     if (tvWidgetRef.current) {
       // Construct composite symbol: InstrumentKey|TradingSymbol
-      // Example: NSE_EQ|INE002A01018|RELIANCE
       const compositeSymbol = `${instrumentKey}|${symbol}`;
 
       tvWidgetRef.current.onChartReady(() => {
@@ -81,8 +137,6 @@ const TVChartContainer = () => {
     }
   };
 
-  // Sorting logic
-  const [sortConfig, setSortConfig] = useState({ key: 'changePercentage', direction: 'desc' });
   const [anchorEl, setAnchorEl] = useState(null);
   const openMenu = Boolean(anchorEl);
 
@@ -97,34 +151,23 @@ const TVChartContainer = () => {
     }
   };
 
-  const handleSort = (key) => {
-    let direction = 'asc';
-    if (sortConfig.key === key && sortConfig.direction === 'asc') {
-      direction = 'desc';
-    }
-    setSortConfig({ key, direction });
+  const handleSettingsClick = (event) => {
+    setSettingsAnchorEl(event.currentTarget);
   };
 
-  const sortedStockList = [...dynamicStockList].sort((a, b) => {
-    let aValue = a[sortConfig.key];
-    let bValue = b[sortConfig.key];
+  const handleSettingsClose = () => {
+    setSettingsAnchorEl(null);
+  };
 
-    // Handle numeric conversions if needed
-    if (sortConfig.key === 'changePercentage' || sortConfig.key === 'ltp') {
-      aValue = parseFloat(aValue) || 0;
-      bValue = parseFloat(bValue) || 0;
-    }
-
-    // Calculate change if key is 'change'
-    if (sortConfig.key === 'change') {
-      aValue = (parseFloat(a.ltp) || 0) - (parseFloat(a.sl) || 0); // sl is currentDayOpen
-      bValue = (parseFloat(b.ltp) || 0) - (parseFloat(b.sl) || 0);
-    }
-
-    if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
-    if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
-    return 0;
-  });
+  const handleColumnToggle = (columnId) => {
+    setVisibleColumns(prev => {
+      if (prev.includes(columnId)) {
+        return prev.filter(id => id !== columnId);
+      } else {
+        return [...prev, columnId];
+      }
+    });
+  };
 
   const getListName = (index) => {
     switch (index) {
@@ -150,7 +193,7 @@ const TVChartContainer = () => {
 
         {/* Side Panel */}
         <Box sx={{
-          width: 320, // Slightly wider for table
+          width: 380, // Wider for DataGrid
           borderLeft: '1px solid var(--border-color)',
           bgcolor: 'var(--bg-secondary)',
           display: 'flex',
@@ -158,7 +201,7 @@ const TVChartContainer = () => {
         }}>
           {/* Header with Dropdown */}
           <Box sx={{
-            p: 1.5,
+            p: 0.625, // 5px
             borderBottom: '1px solid var(--border-color)',
             display: 'flex',
             justifyContent: 'space-between',
@@ -199,74 +242,47 @@ const TVChartContainer = () => {
             </Menu>
 
             <Box>
+              <IconButton size="small" onClick={handleSettingsClick}><SettingsIcon fontSize="small" /></IconButton>
+              <Popover
+                open={Boolean(settingsAnchorEl)}
+                anchorEl={settingsAnchorEl}
+                onClose={handleSettingsClose}
+                anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+              >
+                <Box sx={{ p: 2, maxHeight: 300, overflowY: 'auto' }}>
+                  <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>Columns</Typography>
+                  <FormGroup>
+                    {AVAILABLE_COLUMNS.map((col) => (
+                      <FormControlLabel
+                        key={col.id}
+                        control={
+                          <Checkbox
+                            size="small"
+                            checked={visibleColumns.includes(col.id)}
+                            onChange={() => handleColumnToggle(col.id)}
+                          />
+                        }
+                        label={<Typography variant="body2">{col.label}</Typography>}
+                      />
+                    ))}
+                  </FormGroup>
+                </Box>
+              </Popover>
               <IconButton size="small"><AddIcon fontSize="small" /></IconButton>
               <IconButton size="small"><MoreHorizIcon fontSize="small" /></IconButton>
             </Box>
           </Box>
 
           {/* Watchlist Table */}
-          <TableContainer sx={{ flex: 1, overflowY: 'auto' }}>
-            <Table stickyHeader size="small" aria-label="watchlist table">
-              <TableHead>
-                <TableRow>
-                  <TableCell
-                    onClick={() => handleSort('symbol')}
-                    sx={{ cursor: 'pointer', pl: 2, py: 1, bgcolor: 'var(--bg-secondary)', fontWeight: 600, fontSize: '0.75rem', color: 'text.secondary' }}
-                  >
-                    Symbol
-                  </TableCell>
-                  <TableCell
-                    align="right"
-                    onClick={() => handleSort('change')}
-                    sx={{ cursor: 'pointer', py: 1, bgcolor: 'var(--bg-secondary)', fontWeight: 600, fontSize: '0.75rem', color: 'text.secondary' }}
-                  >
-                    Chg
-                  </TableCell>
-                  <TableCell
-                    align="right"
-                    onClick={() => handleSort('changePercentage')}
-                    sx={{ cursor: 'pointer', pr: 2, py: 1, bgcolor: 'var(--bg-secondary)', fontWeight: 600, fontSize: '0.75rem', color: 'text.secondary' }}
-                  >
-                    Chg%
-                  </TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {sortedStockList.map((stock, index) => {
-                  const ltp = parseFloat(stock.ltp) || 0;
-                  const open = parseFloat(stock.sl) || 0; // Assuming sl is currentDayOpen based on upstoxs.js
-                  const change = ltp - open;
-                  const changePercent = parseFloat(stock.changePercentage) || 0;
-                  const isPositive = change >= 0;
-                  const color = isPositive ? '#089981' : '#F23645';
-
-                  return (
-                    <TableRow
-                      key={stock.instrumentKey || index}
-                      hover
-                      onClick={() => handleStockClick(stock.symbol, stock.instrumentKey)}
-                      selected={selectedSymbol === stock.symbol}
-                      sx={{
-                        cursor: 'pointer',
-                        '&.Mui-selected': { bgcolor: 'rgba(0,0,0,0.05)' },
-                        '&:hover': { bgcolor: 'rgba(0,0,0,0.03)' }
-                      }}
-                    >
-                      <TableCell component="th" scope="row" sx={{ pl: 2, py: 0.75, borderBottom: '1px solid var(--border-color)' }}>
-                        <Typography variant="body2" fontWeight={500}>{stock.symbol}</Typography>
-                      </TableCell>
-                      <TableCell align="right" sx={{ py: 0.75, borderBottom: '1px solid var(--border-color)', color: color }}>
-                        <Typography variant="body2">{change.toFixed(2)}</Typography>
-                      </TableCell>
-                      <TableCell align="right" sx={{ pr: 2, py: 0.75, borderBottom: '1px solid var(--border-color)', color: color }}>
-                        <Typography variant="body2">{changePercent.toFixed(2)}%</Typography>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </TableContainer>
+          <Box sx={{ flex: 1, overflow: 'hidden' }}>
+            <WatchList
+              scripts={scriptsToShow}
+              visibleColumns={visibleColumns}
+              onRowClick={handleStockClick}
+              compact={true}
+            />
+          </Box>
         </Box>
       </Box>
     </Box>

@@ -1,7 +1,8 @@
 import React, { useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
-import { loginSuccess } from '../../Store/authSlice';
+
+// import { loginSuccess } from '../../Store/authSlice';
 import { Box, Typography, CircularProgress } from '@mui/material';
 
 const Redirect = () => {

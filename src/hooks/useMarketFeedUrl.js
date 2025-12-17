@@ -6,7 +6,10 @@ export function useMarketFeedUrl(token) {
     const [error, setError] = useState(null);
 
     useEffect(() => {
-        if (!token) return;
+        if (!token) {
+            setWsUrl(null);
+            return;
+        }
         setLoading(true);
         setError(null);
 
@@ -25,6 +28,7 @@ export function useMarketFeedUrl(token) {
                 const res = await response.json();
                 setWsUrl(res.data.authorizedRedirectUri);
             } catch (err) {
+                console.error("useMarketFeedUrl: Error fetching URL", err);
                 setError(err);
                 setWsUrl(null);
             } finally {

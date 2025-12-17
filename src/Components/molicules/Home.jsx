@@ -75,7 +75,7 @@ const Home = () => {
                         fontWeight: 700,
                         letterSpacing: '-0.03em',
                     }}>
-                        TV Advanced
+                        Advanced
                     </Typography>
                 )}
                 {view === 'watchlist' && <Box />} {/* Spacer to keep dropdown on right if needed, or just let it flow */}
@@ -86,17 +86,14 @@ const Home = () => {
                     size="small"
                     sx={{ height: 32, fontSize: '0.875rem', minWidth: 150, bgcolor: 'white', ml: 'auto' }}
                 >
-                    <MenuItem value="chart">TV Advanced</MenuItem>
-                    <MenuItem value="watchlist">Watchlist Table</MenuItem>
+                    <MenuItem value="chart">Advanced</MenuItem>
+                    <MenuItem value="watchlist">Dashboard</MenuItem>
                 </Select>
             </Box>
 
             <Box sx={{ flex: 1, overflow: 'hidden' }}>
-                {view === 'chart' ? (
-                    <TVChartContainer />
-                ) : (
-                    <Watchlist />
-                )}
+                {view === 'chart' && <TVChartContainer />}
+                {view === 'watchlist' && <Watchlist />}
             </Box>
         </Box>
     );

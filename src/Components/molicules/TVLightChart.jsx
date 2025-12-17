@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { createChart, HistogramSeries } from 'lightweight-charts';
 import PropTypes from 'prop-types';
+import moment from 'moment';
 
 const mapping = {
     fourPercentage: ['up4Percent', 'down4Percent'],
@@ -33,7 +34,7 @@ export default function BreadthTwoPaneChart({ data, field }) {
         }, 0);
         upSeries.setData(
             data.map(item => ({
-                time: item.date,
+                time: moment(item.date).format('YYYY-MM-DD'),
                 value: item[upSideColumn],
             }))
         );
@@ -44,7 +45,7 @@ export default function BreadthTwoPaneChart({ data, field }) {
         }, 1);
         downSeries.setData(
             data.map(item => ({
-                time: item.date,
+                time: moment(item.date).format('YYYY-MM-DD'),
                 value: item[downSideColumn],
             }))
         );
@@ -53,7 +54,7 @@ export default function BreadthTwoPaneChart({ data, field }) {
         chart.timeScale().fitContent();
 
         return () => chart.remove();
-    }, [data]);
+    }, [data, upSideColumn, downSideColumn]);
 
     return (
         <div style={{ width: '1000px', margin: 'auto' }}>
@@ -63,6 +64,6 @@ export default function BreadthTwoPaneChart({ data, field }) {
 }
 
 BreadthTwoPaneChart.propTypes = {
-  data: PropTypes.array,
-  field: PropTypes.string,
+    data: PropTypes.array,
+    field: PropTypes.string,
 };

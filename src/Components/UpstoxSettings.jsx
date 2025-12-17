@@ -34,6 +34,12 @@ const UpstoxSettings = () => {
             }
         } catch (error) {
             console.error('Error fetching configs:', error);
+            if (error.response && error.response.status === 401) {
+                // Token expired or invalid
+                localStorage.removeItem('token');
+                localStorage.removeItem('user');
+                navigate('/login');
+            }
         }
     };
 

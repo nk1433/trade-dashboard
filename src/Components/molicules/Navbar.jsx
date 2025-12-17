@@ -5,6 +5,8 @@ import Settings from "./Settings";
 import MarketBreadthTable from "./MarketBreadth.jsx";
 import MarketHighLowWormChart from "./Worm.jsx";
 import Redirect from "./Redirect";
+import HoldingsWrapper from "../HoldingsWrapper/index.jsx";
+import Scans from "../Scans/index.jsx";
 
 // Configuration for the routes in JSON format
 const routesConfig = [
@@ -13,6 +15,8 @@ const routesConfig = [
   { path: "/redirect", component: Redirect, linkText: "" }, // Hidden from nav
   { path: "/market-breadth", component: MarketBreadthTable, linkText: "MM" },
   { path: "/worm", component: MarketHighLowWormChart, linkText: "Worm" },
+  { path: "/holdings", component: HoldingsWrapper, linkText: "Holdings" },
+  { path: "/scans", component: Scans, linkText: "Scans" },
 ];
 
 const Navbar = () => {

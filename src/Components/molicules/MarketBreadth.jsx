@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
-import { Box, FormControl, FormControlLabel, InputLabel, MenuItem, Radio, RadioGroup, Select, Typography } from '@mui/material';
+import { Box, FormControl, InputLabel, MenuItem, Select, Typography, Paper } from '@mui/material';
 import { DataGrid } from '@mui/x-data-grid';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchMarketBreadth } from '../../Store/marketBreadth';
 import MarketBreadthBarChart from './MarketBreadthChart';
 import BreadthTwoPaneChart from './TVLightChart';
+import moment from 'moment';
 
 const getCellStyle = (value, positiveThreshold = 0.5) => {
   if (typeof value !== 'number') return {};
@@ -17,7 +18,12 @@ const getCellStyle = (value, positiveThreshold = 0.5) => {
 };
 
 const columns = [
-  { field: 'date', headerName: 'Date', width: 130 },
+  {
+    field: 'date',
+    headerName: 'Date',
+    width: 130,
+    valueFormatter: (params) => moment(params.value).format('DD-MM-YYYY')
+  },
   {
     field: 'up4Percent',
     headerName: 'Up ≥4% (Day)',
@@ -29,17 +35,6 @@ const columns = [
     )
   },
   {
-    field: 'strongCloseUpRatio',
-    headerName: 'Strong Close Up',
-    width: 140,
-    type: 'number',
-    align: 'center',
-    headerAlign: 'center',
-    renderCell: (params) => (
-      <div style={getCellStyle(params.value, 0.6)}>{(params.value * 100).toFixed(2)}%</div>
-    )
-  },
-  {
     field: 'down4Percent',
     headerName: 'Down ≥4% (Day)',
     width: 120,
@@ -47,17 +42,6 @@ const columns = [
     headerAlign: 'center',
     renderCell: (params) => (
       <div style={getCellStyle(params.value, 10)}>{params.value}</div>
-    )
-  },
-  {
-    field: 'strongCloseDownRatio',
-    headerName: 'Strong Close Down',
-    width: 140,
-    type: 'number',
-    align: 'center',
-    headerAlign: 'center',
-    renderCell: (params) => (
-      <div style={getCellStyle(params.value, 0.6)}>{(params.value * 100).toFixed(2)}%</div>
     )
   },
   {
@@ -78,6 +62,28 @@ const columns = [
     headerAlign: 'center',
     renderCell: (params) => (
       <div style={getCellStyle(params.value, 10)}>{params.value}</div>
+    )
+  },
+  {
+    field: 'strongCloseUpRatio',
+    headerName: 'Strong Close Up',
+    width: 140,
+    type: 'number',
+    align: 'center',
+    headerAlign: 'center',
+    renderCell: (params) => (
+      <div style={getCellStyle(params.value, 0.6)}>{(params.value * 100).toFixed(2)}%</div>
+    )
+  },
+  {
+    field: 'strongCloseDownRatio',
+    headerName: 'Strong Close Down',
+    width: 140,
+    type: 'number',
+    align: 'center',
+    headerAlign: 'center',
+    renderCell: (params) => (
+      <div style={getCellStyle(params.value, 0.6)}>{(params.value * 100).toFixed(2)}%</div>
     )
   },
   {
@@ -164,92 +170,109 @@ const MarketBreadthTable = () => {
   rows.sort((a, b) => new Date(a.date) - new Date(b.date));
 
   return (
-    <Box sx={{ width: '100%', paddingTop: '50px' }}>
-      <Box sx={{ maxWidth: 1200, margin: 'auto', p: 2 }}>
-        <Typography variant="h6" sx={{ mb: 2 }}>
-          Select Chart Type:
-        </Typography>
+    <Box sx={{ width: '100%', paddingTop: '20px', pb: 4, bgcolor: '#f8f9fa', minHeight: '100vh' }}>
+      <Box sx={{ maxWidth: 1400, margin: 'auto', p: 3 }}>
 
-        <FormControl component="fieldset">
-          <InputLabel id="demo-simple-select-label">Chat View</InputLabel>
-          <Select
-            labelId="demo-simple-select-label"
-            id="demo-simple-select"
-            value={chartType}
-            label="Chat View"
-            onChange={handleChange}
-          >
-            <MenuItem value="mui">MUI</MenuItem>
-            <MenuItem value="tv">TV</MenuItem>
-          </Select>
-        </FormControl>
+        {/* Header Section */}
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+          <Typography variant="h5" sx={{ fontWeight: 600, color: '#1a1a1a' }}>
+            Market Breadth
+          </Typography>
+          <Box sx={{ display: 'flex', gap: 2 }}>
+            <FormControl size="small" sx={{ minWidth: 150, bgcolor: 'white' }}>
+              <InputLabel>Chart View</InputLabel>
+              <Select
+                value={chartType}
+                label="Chart View"
+                onChange={handleChange}
+              >
+                <MenuItem value="mui">MUI Charts</MenuItem>
+                <MenuItem value="tv">TradingView</MenuItem>
+              </Select>
+            </FormControl>
+            <FormControl size="small" sx={{ minWidth: 180, bgcolor: 'white' }}>
+              <InputLabel>Per Change</InputLabel>
+              <Select
+                value={percantageChange}
+                label="Per Change"
+                onChange={handlePercentageChange}
+              >
+                {
+                  chartViewColumns.map((field) => {
+                    return <MenuItem key={field} value={field}>{field}</MenuItem>
+                  })
+                }
+              </Select>
+            </FormControl>
+          </Box>
+        </Box>
 
-        <FormControl>
-          <InputLabel id="demo-simple-select-label">Per Change</InputLabel>
-          <Select
-            labelId="demo-simple-select-label"
-            id="demo-simple-select"
-            value={percantageChange}
-            label="Per change"
-            onChange={handlePercentageChange}
-          >
-            {
-              chartViewColumns.map((field) => {
-                return <MenuItem key={field} value={field}>{field}</MenuItem>
-              })
-            }
-          </Select>
-        </FormControl>
-
-        {chartType === 'mui' ? (
-          <>
-            <Box sx={{ mb: 4 }}>
-              <MarketBreadthBarChart
-                data={breadthData}
-                seriesKey="up4Percent"
-                chartTitle="Market Breadth: Stocks Up ≥ 4% (Daily)"
-                barColor="green"
-              />
+        {/* Chart Section */}
+        <Paper sx={{ p: 3, mb: 4, borderRadius: 2, boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
+          {chartType === 'mui' ? (
+            <>
+              <Box sx={{ mb: 4 }}>
+                <MarketBreadthBarChart
+                  data={breadthData}
+                  seriesKey="up4Percent"
+                  chartTitle="Market Breadth: Stocks Up ≥ 4% (Daily)"
+                  barColor="green"
+                />
+              </Box>
+              <Box>
+                <MarketBreadthBarChart
+                  data={breadthData}
+                  seriesKey="down4Percent"
+                  chartTitle="Market Breadth: Stocks Down ≥ 4% (Daily)"
+                  barColor="red"
+                />
+              </Box>
+            </>
+          ) : (
+            <Box sx={{ height: 500 }}>
+              <BreadthTwoPaneChart data={rows} field={percantageChange} />
             </Box>
-            <Box sx={{ mb: 4 }}>
-              <MarketBreadthBarChart
-                data={breadthData}
-                seriesKey="down4Percent"
-                chartTitle="Market Breadth: Stocks Down ≥ 4% (Daily)"
-                barColor="red"
-              />
-            </Box>
-          </>
-        ) : (
-          <>
-            <BreadthTwoPaneChart data={rows} field={percantageChange} />
-          </>
-        )}
-      </Box>
+          )}
+        </Paper>
 
-      <Box sx={{ height: '500px', marginBottom: 4 }}>
-        <DataGrid
-          rows={[...rows].sort((a, b) => new Date(b.date) - new Date(a.date))}
-          columns={columns}
-          pageSize={10}
-          rowsPerPageOptions={[10, 25, 50, 100]}
-          disableSelectionOnClick
-        />
-      </Box>
-      <Box sx={{ marginTop: 4, textAlign: 'left' }}>
-        <div>
-          <b>Things/Insight‘s from Stockbee, Magic number‘s as associated to US markets:</b>
-        </div>
-        <ul>
-          <li>You can miss few % points. Waiting for green is confirmation but can be late. Dollar cost averaging down may be one way to handle.</li>
-          <li>Readings below 20 lead to bottoms.</li>
-          <li>Extremely positive/negative breadth is used for market timing.</li>
-          <li>If you see major breadth deterioration and series of 700 plus days on 4% plus down then it is likely to develop into larger correction.</li>
-          <li>Signs of extreme bearishness in Primary indicator. If I see number of stocks up 25% in Q below 300 I will be bullish. At the moment not enough bearishness.</li>
-          <li>Yes. Abnormal strength tends to resolve in consolidation or pullback.</li>
-          <li>Excessively positive breadth is not immediately bearish. Unlikely excessively bearish breadth, which gives very good signal on bullish side , excessive positive has no good signalling record.</li>
-          <li>Extremely bearish breadth = bullish and start of a bounce or bottom. Short term extremely bullish breadth = pullback. For tops there are no reliable indicators as it is gradual process. I look for extremes in breadth on any time frames to reduce or add risks. Rest of the time breadth is not much useful.</li>
-        </ul>
+        {/* Table Section */}
+        <Paper sx={{ height: 600, mb: 4, borderRadius: 2, boxShadow: '0 2px 8px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
+          <DataGrid
+            rows={[...rows].sort((a, b) => new Date(b.date) - new Date(a.date))}
+            columns={columns}
+            pageSize={25}
+            rowsPerPageOptions={[10, 25, 50, 100]}
+            disableSelectionOnClick
+            density="compact"
+            sx={{
+              border: 'none',
+              '& .MuiDataGrid-columnHeaders': {
+                backgroundColor: '#f5f5f5',
+                fontWeight: 600,
+              },
+              '& .MuiDataGrid-cell': {
+                borderBottom: '1px solid #f0f0f0',
+              }
+            }}
+          />
+        </Paper>
+
+        {/* Insights Section */}
+        <Paper sx={{ p: 3, bgcolor: '#fff', borderRadius: 2, borderLeft: '4px solid #000', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
+          <Typography variant="h6" sx={{ fontWeight: 600, mb: 2, color: '#000' }}>
+            Market Insights (Stockbee)
+          </Typography>
+          <Box component="ul" sx={{ m: 0, pl: 2, '& li': { mb: 1, color: '#444', lineHeight: 1.6 } }}>
+            <li>You can miss few % points. Waiting for green is confirmation but can be late. Dollar cost averaging down may be one way to handle.</li>
+            <li>Readings below 20 lead to bottoms.</li>
+            <li>Extremely positive/negative breadth is used for market timing.</li>
+            <li>If you see major breadth deterioration and series of 700 plus days on 4% plus down then it is likely to develop into larger correction.</li>
+            <li>Signs of extreme bearishness in Primary indicator. If I see number of stocks up 25% in Q below 300 I will be bullish. At the moment not enough bearishness.</li>
+            <li>Yes. Abnormal strength tends to resolve in consolidation or pullback.</li>
+            <li>Excessively positive breadth is not immediately bearish. Unlikely excessively bearish breadth, which gives very good signal on bullish side , excessive positive has no good signalling record.</li>
+            <li>Extremely bearish breadth = bullish and start of a bounce or bottom. Short term extremely bullish breadth = pullback. For tops there are no reliable indicators as it is gradual process. I look for extremes in breadth on any time frames to reduce or add risks. Rest of the time breadth is not much useful.</li>
+          </Box>
+        </Paper>
       </Box>
     </Box>
   );

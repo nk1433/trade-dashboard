@@ -1,5 +1,4 @@
-import { useEffect, useState } from "react";
-import { Buffer } from "buffer";
+import { useEffect, useState, useRef } from "react";
 import protobuf from "protobufjs";
 import { useDispatch } from "react-redux";
 import { updateWatchlistWithMetrics } from "./useUpstoxWS";
@@ -18,7 +17,15 @@ import socketEventEmitter from "../utils/socketEventEmitter";
 let protobufRoot = null;
 const initProtobuf = async () => {
     if (!protobufRoot) {
-        protobufRoot = await protobuf.load("/MarketDataFeedV3.proto");
+        try {
+            const protoUrl = `${import.meta.env.BASE_URL}MarketDataFeedV3.proto`;
+            console.log("useMarketDataSocket: Loading proto from", protoUrl);
+            protobufRoot = await protobuf.load(protoUrl);
+            console.log("useMarketDataSocket: Protobuf loaded successfully");
+        } catch (error) {
+            console.error("useMarketDataSocket: Failed to load protobuf", error);
+            throw error;
+        }
     }
 };
 
@@ -40,10 +47,14 @@ const decodeProfobuf = (buffer) => {
     return FeedResponse.decode(buffer);
 };
 
+
+
 export function useMarketDataSocket({ wsUrl, request }) {
     const [isConnected, setIsConnected] = useState(false);
+    const { token } = useSelector((state) => state.auth); // Upstox Token
     const portfolio = useSelector((state) => state.portfolio);
     const stats = useSelector((state) => state.orders.stats);
+    const statsRef = useRef(stats);
     const dispatch = useDispatch();
     const scripts = [...niftymidsmall400float, ...niftylargeCaps];
     const scriptMap = scripts.reduce((acc, script) => {
@@ -52,61 +63,86 @@ export function useMarketDataSocket({ wsUrl, request }) {
         return acc;
     }, {});
 
+    // Keep statsRef updated
+    useEffect(() => {
+        statsRef.current = stats;
+    }, [stats]);
+
+
 
     useEffect(() => {
-        if (Object.keys(stats).length) {
-            let ws;
-            const start = async () => {
-                await initProtobuf();
-                ws = new WebSocket(wsUrl);
+        let ws;
+        let isMounted = true;
+        console.log("useMarketDataSocket: Effect triggered", { wsUrl, request });
 
-                ws.onopen = () => {
-                    setIsConnected(true);
-                    ws.send(Buffer.from(JSON.stringify(request)));
-                };
+        const start = async () => {
+            console.log("useMarketDataSocket: Starting connection...");
+            await initProtobuf();
+            if (!isMounted) {
+                console.log("useMarketDataSocket: Component unmounted before initProtobuf finished");
+                return;
+            }
 
-                ws.onclose = () => {
-                    setIsConnected(false);
-                };
+            console.log("useMarketDataSocket: Connecting to", wsUrl);
+            ws = new WebSocket(wsUrl);
 
-                ws.onmessage = async (event) => {
-                    const arrayBuffer = await blobToArrayBuffer(event.data);
-                    let buffer = Buffer.from(arrayBuffer);
-                    let response = decodeProfobuf(buffer);
-
-                    if (response.type === 1) {
-                        // Emit event for TradingView datafeed
-                        socketEventEmitter.emit('market-data', response);
-
-                        const {
-                            metrics, bullishMB, bearishMB,
-                            bullishSLTB, bearishSLTB, bullishAnts,
-                            dollar, bearishDollar,
-                        } = await updateWatchlistWithMetrics(response, scriptMap, portfolio, stats);
-
-                        dispatch(setOrderMetrics(metrics));
-                        dispatch(setBullishMB(bullishMB));
-                        dispatch(setBearishMB(bearishMB));
-                        dispatch(setBullishSLTB(bullishSLTB));
-                        dispatch(setBearishSLTB(bearishSLTB));
-                        dispatch(setBullishAnts(bullishAnts));
-                        dispatch(setDollarBo(dollar));
-                        dispatch(setBearishDollarBo(bearishDollar));
-                    }
-                };
-
-                ws.onerror = () => {
-                    setIsConnected(false);
-                };
+            ws.onopen = () => {
+                console.log("useMarketDataSocket: Connected");
+                if (isMounted) setIsConnected(true);
+                const enc = new TextEncoder();
+                ws.send(enc.encode(JSON.stringify(request)));
             };
 
-            if (wsUrl && request) start();
-
-            return () => {
-                if (ws) ws.close();
+            ws.onclose = () => {
+                console.log("useMarketDataSocket: Disconnected");
+                if (isMounted) setIsConnected(false);
             };
+
+            ws.onmessage = async (event) => {
+                const arrayBuffer = await blobToArrayBuffer(event.data);
+                let buffer = new Uint8Array(arrayBuffer);
+                let response = decodeProfobuf(buffer);
+
+                if (response.type === 1) {
+                    // Emit event for TradingView datafeed
+                    socketEventEmitter.emit('market-data', response);
+
+
+
+                    const {
+                        metrics, bullishMB, bearishMB,
+                        bullishSLTB, bearishSLTB, bullishAnts,
+                        dollar, bearishDollar,
+                    } = await updateWatchlistWithMetrics(response, scriptMap, portfolio, statsRef.current);
+
+                    dispatch(setOrderMetrics(metrics));
+                    dispatch(setBullishMB(bullishMB));
+                    dispatch(setBearishMB(bearishMB));
+                    dispatch(setBullishSLTB(bullishSLTB));
+                    dispatch(setBearishSLTB(bearishSLTB));
+                    dispatch(setBullishAnts(bullishAnts));
+                    dispatch(setDollarBo(dollar));
+                    dispatch(setBearishDollarBo(bearishDollar));
+                }
+            };
+
+            ws.onerror = () => {
+                setIsConnected(false);
+            };
+        };
+
+        if (wsUrl && request) {
+            start();
+        } else {
+            console.log("useMarketDataSocket: Missing wsUrl or request", { wsUrl, request });
         }
-    }, [wsUrl, JSON.stringify(request), stats]);
+
+        return () => {
+            console.log("useMarketDataSocket: Cleaning up");
+            isMounted = false;
+            if (ws) ws.close();
+        };
+    }, [wsUrl, JSON.stringify(request)]);
 
     return { isConnected };
 };

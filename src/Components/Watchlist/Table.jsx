@@ -2,176 +2,14 @@ import { Box, IconButton, Tooltip, Snackbar, Alert } from '@mui/material';
 import PropTypes from 'prop-types';
 import OrderDetailsPortal from './OrderDetails';
 import { DataGrid, GridLogicOperator } from '@mui/x-data-grid';
-import { useEffect, useState } from 'react';
-import { useDispatch } from 'react-redux';
+import { useEffect, useState, useMemo } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import { getStatsForScripts } from '../../Store/upstoxs';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import { formatToIndianUnits } from '../../utils/index';
+import { executePaperOrder, updatePaperHoldingsLTP } from '../../Store/paperTradeSlice';
 
 const token = import.meta.env.VITE_UPSTOXS_ACCESS_KEY;
-
-const columnsConfig = {
-  dashboard: [
-    {
-      field: "scriptName",
-      headerName: "Script",
-      width: 300, // widened for icon
-      renderCell: (params) => {
-        const isUp = params.row.isUpDay;
-        const color = isUp ? "green" : "red";
-
-        // Copy to clipboard handler
-        const handleCopy = (e) => {
-          e.stopPropagation(); // prevent row select on click
-          navigator.clipboard.writeText(params.row.symbol)
-            .then(() => { /* optionally show a success message */ })
-            .catch(() => { /* optionally handle errors */ });
-        };
-
-        return (
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <span style={{ color }}>{params.row.symbol}</span>
-            <Tooltip title="Copy script name">
-              <IconButton
-                size="small"
-                onClick={handleCopy}
-                aria-label="copy script name"
-              >
-                <ContentCopyIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-          </Box>
-        );
-      },
-    },
-    {
-      field: 'placeOrder',
-      headerName: 'Place Order',
-      width: 130,
-      sortable: false,
-      filterable: false,
-      renderCell: (params) => {
-        const handlePlaceOrder = async (event) => {
-          event.stopPropagation(); // prevent row selection on click
-
-          const accessToken = 'Bearer ' + token; // replace with your token retrieval logic
-
-          // Prepare main market order payload
-          const mainOrderPayload = {
-            instrument_token: params.row.instrumentKey,
-            quantity: params.row.maxShareToBuy,
-            product: 'D', // delivery or as applicable
-            validity: 'DAY',
-            price: 0, // market order price
-            order_type: 'MARKET',
-            transaction_type: 'BUY',
-            disclosed_quantity: 0,
-            trigger_price: params.row.sl,
-            is_amo: false,
-            slice: true,
-          };
-
-          console.log(mainOrderPayload)
-
-          try {
-            // Place main order
-            const mainResponse = await fetch('http://localhost:3015/place-order', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                accept: 'application/json',
-                Authorization: accessToken,
-              },
-              body: JSON.stringify(mainOrderPayload),
-            });
-
-            if (!mainResponse.ok) {
-              const errorData = await mainResponse.json();
-              alert('Main order failed: ' + (errorData.error?.message || JSON.stringify(errorData)));
-              return;
-            }
-
-            const mainData = await mainResponse.json();
-            alert('Main order placed successfully! Order IDs: ' + mainData.data.order_ids.join(', '));
-
-          } catch (error) {
-            alert('Error placing order: ' + error.message);
-          }
-        };
-
-        return (
-          <button type="button" onClick={handlePlaceOrder}>
-            Place Order
-          </button>
-        );
-      }
-    },
-    { field: "barClosingStrength", headerName: "Closing Strength %", type: 'number', },
-    {
-      field: "changePercentage",
-      headerName: "Change %",
-      renderCell: (params) => {
-        const isUp = params.row.isUpDay;
-        const color = isUp ? "green" : "red";
-
-        return <span style={{ color }}>{params.value}%</span>;
-      }
-    },
-    { field: "relativeVolumePercentage", headerName: "R-vol % / 21 D" },
-    {
-      field: "gapPercentage",
-      headerName: "Gap %",
-      renderCell: (params) => {
-        const gapupPer = params.row.gapPercentage;
-        const color = gapupPer > 0 ? "green" : "red";
-
-        return <span style={{ color }}>{params.value}%</span>;
-      }
-    },
-    {
-      field: "currentMinuteVolume",
-      headerName: "Volume ROC %",
-      width: 130,
-      renderCell: (params) => {
-        const color = params.value > 0 ? "green" : "red";
-        return <span style={{ color }}>{params.value?.toFixed(2)}%</span>;
-      }
-    },
-    {
-      field: "strongStart",
-      headerName: "Strong Start",
-      renderCell: (params) => <>{params.row.strongStart ? "Yes" : "-"}</>,
-    },
-    { field: "sl", headerName: "SL" },
-    { field: "maxShareToBuy", headerName: "Shares" },
-    { field: "maxAllocationPercentage", headerName: "Max Alloc" },
-    { field: "lossInMoney", headerName: "Loss" },
-    {
-      field: "ltp",
-      headerName: "LTP",
-      renderCell: (params) => {
-        const isUp = params.row.isUpDay;
-        const color = isUp ? "green" : "red";
-
-        return <span style={{ color }}>{params.value}</span>;
-      },
-    },
-    {
-      field: "avgValueVolume21d",
-      headerName: "Avg Value Vol (21 D)",
-      width: 150,
-      renderCell: (params) => {
-        return <span>{formatToIndianUnits(params.value)}</span>;
-      }
-    }
-
-    //TODO: Create a fallback(-), percentage(%) components.
-  ],
-  allocationSuggestions: [
-    { field: "allocPer", headerName: "Size" },
-    { field: "riskPercentage", headerName: "Risk" },
-  ],
-};
 
 const columnMapping = {
   Script: 'scriptName',
@@ -198,10 +36,13 @@ const initialfilterModel = {
   logicOperator: GridLogicOperator.And,
 };
 
-const WatchList = ({ scripts, type = 'dashboard' }) => {
+const WatchList = ({ scripts, type = 'dashboard', visibleColumns, onRowClick, compact = false }) => {
   const [filterModel, setFilterModel] = useState(initialfilterModel);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
+
+  const dispatch = useDispatch();
+  const tradingMode = useSelector((state) => state.settings?.tradingMode || 'PAPER');
 
   const handleCloseSnackbar = (event, reason) => {
     if (reason === 'clickaway') {
@@ -209,6 +50,192 @@ const WatchList = ({ scripts, type = 'dashboard' }) => {
     }
     setSnackbarOpen(false);
   };
+
+  // Update Paper Holdings LTP whenever scripts change
+  useEffect(() => {
+    if (scripts) {
+      const ltpMap = {};
+      Object.values(scripts).forEach(script => {
+        ltpMap[script.symbol] = script.ltp;
+      });
+      dispatch(updatePaperHoldingsLTP(ltpMap));
+    }
+  }, [scripts, dispatch]);
+
+  const columnsConfig = useMemo(() => ({
+    dashboard: [
+      {
+        field: "scriptName",
+        headerName: "Script",
+        width: 300, // widened for icon
+        renderCell: (params) => {
+          const isUp = params.row.isUpDay;
+          const color = isUp ? "green" : "red";
+
+          // Copy to clipboard handler
+          const handleCopy = (e) => {
+            e.stopPropagation(); // prevent row select on click
+            navigator.clipboard.writeText(params.row.symbol)
+              .then(() => { /* optionally show a success message */ })
+              .catch(() => { /* optionally handle errors */ });
+          };
+
+          return (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <span>{params.row.symbol}</span>
+              <Tooltip title="Copy script name">
+                <IconButton
+                  size="small"
+                  onClick={handleCopy}
+                  aria-label="copy script name"
+                >
+                  <ContentCopyIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+            </Box>
+          );
+        },
+      },
+      {
+        field: 'placeOrder',
+        headerName: 'Place Order',
+        width: 130,
+        sortable: false,
+        filterable: false,
+        renderCell: (params) => {
+          const handlePlaceOrder = async (event) => {
+            event.stopPropagation(); // prevent row selection on click
+
+            if (tradingMode === 'PAPER') {
+              dispatch(executePaperOrder({
+                symbol: params.row.symbol,
+                quantity: params.row.maxShareToBuy,
+                price: params.row.ltp,
+                type: 'BUY',
+                timestamp: Date.now()
+              }));
+              alert(`[PAPER TRADING] Order placed for ${params.row.symbol} at ₹${params.row.ltp}`);
+              return;
+            }
+
+            const accessToken = 'Bearer ' + token; // replace with your token retrieval logic
+
+            // Prepare main market order payload
+            const mainOrderPayload = {
+              instrument_token: params.row.instrumentKey,
+              quantity: params.row.maxShareToBuy,
+              product: 'D', // delivery or as applicable
+              validity: 'DAY',
+              price: 0, // market order price
+              order_type: 'MARKET',
+              transaction_type: 'BUY',
+              disclosed_quantity: 0,
+              trigger_price: params.row.sl,
+              is_amo: false,
+              slice: true,
+            };
+
+            console.log(mainOrderPayload)
+
+            try {
+              // Place main order
+              const mainResponse = await fetch('http://localhost:3015/place-order', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  accept: 'application/json',
+                  Authorization: accessToken,
+                },
+                body: JSON.stringify(mainOrderPayload),
+              });
+
+              if (!mainResponse.ok) {
+                const errorData = await mainResponse.json();
+                alert('Main order failed: ' + (errorData.error?.message || JSON.stringify(errorData)));
+                return;
+              }
+
+              const mainData = await mainResponse.json();
+              alert('Main order placed successfully! Order IDs: ' + mainData.data.order_ids.join(', '));
+
+            } catch (error) {
+              alert('Error placing order: ' + error.message);
+            }
+          };
+
+          return (
+            <button type="button" onClick={handlePlaceOrder}>
+              Place Order
+            </button>
+          );
+        }
+      },
+      { field: "barClosingStrength", headerName: "Closing Strength %", type: 'number', },
+      {
+        field: "changePercentage",
+        headerName: "Change %",
+        renderCell: (params) => {
+          const isUp = params.row.isUpDay;
+          const color = isUp ? "green" : "red";
+
+          return <span style={{ color }}>{params.value}</span>;
+        }
+      },
+      { field: "relativeVolumePercentage", headerName: "R-vol % / 21 D" },
+      {
+        field: "gapPercentage",
+        headerName: "Gap %",
+        renderCell: (params) => {
+          const gapupPer = params.row.gapPercentage;
+          const color = gapupPer > 0 ? "green" : "red";
+
+          return <span style={{ color }}>{params.value}%</span>;
+        }
+      },
+      {
+        field: "currentMinuteVolume",
+        headerName: "Volume ROC %",
+        width: 130,
+        renderCell: (params) => {
+          const color = params.value > 0 ? "green" : "red";
+          return <span style={{ color }}>{params.value?.toFixed(2)}%</span>;
+        }
+      },
+      {
+        field: "strongStart",
+        headerName: "Strong Start",
+        renderCell: (params) => <>{params.row.strongStart ? "Yes" : "-"}</>,
+      },
+      { field: "sl", headerName: "SL" },
+      { field: "maxShareToBuy", headerName: "Shares" },
+      { field: "maxAllocationPercentage", headerName: "Max Alloc" },
+      { field: "lossInMoney", headerName: "Loss" },
+      {
+        field: "ltp",
+        headerName: "LTP",
+        renderCell: (params) => {
+          const isUp = params.row.isUpDay;
+          const color = isUp ? "green" : "red";
+
+          return <span style={{ color }}>{params.value}</span>;
+        },
+      },
+      {
+        field: "avgValueVolume21d",
+        headerName: "Avg Value Vol (21 D)",
+        width: 150,
+        renderCell: (params) => {
+          return <span>{formatToIndianUnits(params.value)}</span>;
+        }
+      }
+
+      //TODO: Create a fallback(-), percentage(%) components.
+    ],
+    allocationSuggestions: [
+      { field: "allocPer", headerName: "Size" },
+      { field: "riskPercentage", headerName: "Risk" },
+    ],
+  }), [tradingMode]);
 
   const columns = columnsConfig[type]
     .map(col => {
@@ -224,6 +251,41 @@ const WatchList = ({ scripts, type = 'dashboard' }) => {
         filterable = col.filterable;
       } else if (col.field && col.headerName) {
         ({ field, headerName, width, renderCell, filterable } = col);
+      }
+
+      // Override renderCell for scriptName to handle compact mode
+      if (field === 'scriptName') {
+        if (compact) {
+          width = 120;
+        }
+        renderCell = (params) => {
+          const isUp = params.row.isUpDay;
+          const color = isUp ? "green" : "red";
+
+          const handleCopy = (e) => {
+            e.stopPropagation();
+            navigator.clipboard.writeText(params.row.symbol)
+              .then(() => { /* optionally show a success message */ })
+              .catch(() => { /* optionally handle errors */ });
+          };
+
+          return (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <span style={{ fontSize: compact ? '0.75rem' : 'inherit', fontWeight: compact ? 600 : 'inherit' }}>{params.row.symbol}</span>
+              {!compact && (
+                <Tooltip title="Copy script name">
+                  <IconButton
+                    size="small"
+                    onClick={handleCopy}
+                    aria-label="copy script name"
+                  >
+                    <ContentCopyIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+              )}
+            </Box>
+          );
+        };
       }
 
       if (!field || !headerName) return null;  // Discard invalid columns
@@ -259,33 +321,16 @@ const WatchList = ({ scripts, type = 'dashboard' }) => {
       });
   }
 
+  // Handle column visibility
+  const columnVisibilityModel = visibleColumns
+    ? columns.reduce((acc, col) => {
+      acc[col.field] = visibleColumns.includes(col.field);
+      return acc;
+    }, {})
+    : undefined;
+
   return (
-    <div className="geist-card" style={{ padding: 0, overflow: 'hidden' }}>
-      <Box sx={{
-        p: 2,
-        borderBottom: '1px solid var(--border-color)',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        backgroundColor: 'var(--bg-secondary)'
-      }}>
-        <Tooltip title="Copy all Script names">
-          <IconButton
-            onClick={() => handleCopyColumn('symbol')}
-            size="small"
-            sx={{
-              borderRadius: '6px',
-              border: '1px solid var(--border-color)',
-              fontSize: '0.85rem',
-              padding: '4px 8px',
-              gap: 1
-            }}
-          >
-            Copy to TradingView
-            <ContentCopyIcon fontSize="small" />
-          </IconButton>
-        </Tooltip>
-      </Box>
+    <div className="geist-card" style={{ padding: 0, overflow: 'hidden', height: '100%', display: 'flex', flexDirection: 'column' }}>
       <DataGrid
         filterModel={filterModel}
         onFilterModelChange={setFilterModel}
@@ -296,6 +341,9 @@ const WatchList = ({ scripts, type = 'dashboard' }) => {
         columns={columns}
         getRowId={row => row.id}
         pageSizeOptions={[5, 10, 25, { value: -1, label: 'All' }]}
+        columnVisibilityModel={columnVisibilityModel}
+        onRowClick={onRowClick ? (params) => onRowClick(params.row) : undefined}
+        density={compact ? "compact" : "standard"}
         sx={{
           border: 'none',
           '& .MuiDataGrid-cell': {
@@ -312,6 +360,7 @@ const WatchList = ({ scripts, type = 'dashboard' }) => {
           },
           '& .MuiDataGrid-row:hover': {
             backgroundColor: 'var(--bg-secondary)',
+            cursor: onRowClick ? 'pointer' : 'default',
           }
         }}
       />
@@ -332,6 +381,9 @@ const WatchList = ({ scripts, type = 'dashboard' }) => {
 WatchList.propTypes = {
   scripts: PropTypes.object,
   type: PropTypes.string,
+  visibleColumns: PropTypes.arrayOf(PropTypes.string),
+  onRowClick: PropTypes.func,
+  compact: PropTypes.bool,
 };
 
 export default WatchList;
