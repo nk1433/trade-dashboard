@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import Navbar from './Components/molicules/Navbar';
 import UpstoxSettings from './Components/UpstoxSettings';
@@ -12,13 +12,13 @@ import Redirect from './Components/molicules/Redirect';
 import MarketBreadthTable from './Components/molicules/MarketBreadth';
 import MarketHighLowWormChart from './Components/molicules/Worm';
 import PaperHoldings from './Components/PaperHoldings';
-import { useSelector } from 'react-redux';
 import { fetchUpstoxToken } from './Store/authSlice';
 import { fetchUserSettings } from './Store/portfolio';
 import { useUpstoxWS } from './hooks/useUpstoxWS';
 import { getStatsForScripts } from './Store/upstoxs';
 import HoldingsWrapper from './Components/HoldingsWrapper';
 import Scans from './Components/Scans';
+import { fetchPaperTradesAsync, updatePaperHoldingsLTP } from './Store/paperTradeSlice';
 
 const ProtectedRoute = ({ children }) => {
   const token = localStorage.getItem('token');
@@ -41,6 +41,8 @@ const App = () => {
   const dispatch = useDispatch();
   const location = useLocation();
   const { token: upstoxToken } = useSelector((state) => state.auth);
+  const orderMetrics = useSelector((state) => state.orders.orderMetrics);
+  const { holdings } = useSelector((state) => state.paperTrade);
 
   useEffect(() => {
     if (!upstoxToken) {
@@ -52,7 +54,36 @@ const App = () => {
   useEffect(() => {
     dispatch(getStatsForScripts());
     dispatch(fetchUserSettings());
+    dispatch(fetchPaperTradesAsync());
+
+    // Fetch initial metrics for a subset of scripts to ensure watchlist is not empty (e.g. for testing)
+    import('./index/niftymidsmall400-float.json').then((module) => {
+      const scripts = module.default.slice(0, 20); // Fetch top 20
+      import('./Store/upstoxs').then(({ fetchAndCalculateInitialMetrics }) => {
+        dispatch(fetchAndCalculateInitialMetrics(scripts));
+      });
+    });
   }, [dispatch]);
+
+  // Global LTP Update Logic for Paper Holdings
+  useEffect(() => {
+    if (orderMetrics && holdings.length > 0) {
+      const ltpMap = {};
+      let hasUpdate = false;
+
+      // Create a map of Symbol -> LTP from orderMetrics
+      Object.values(orderMetrics).forEach(metric => {
+        if (metric.symbol && metric.ltp) {
+          ltpMap[metric.symbol] = metric.ltp;
+          hasUpdate = true;
+        }
+      });
+
+      if (hasUpdate) {
+        dispatch(updatePaperHoldingsLTP(ltpMap));
+      }
+    }
+  }, [orderMetrics, dispatch]); // Intentionally omitting holdings to avoid loops
 
   useUpstoxWS(upstoxToken);
 

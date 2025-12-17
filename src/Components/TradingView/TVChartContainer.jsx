@@ -46,26 +46,55 @@ const TVChartContainer = () => {
 
   useEffect(() => {
     const initWidget = async () => {
+      let savedData = null;
+      let savedDataMetaInfo = null;
+      let initialSymbol = "NSE_EQ|INE002A01018|RELIANCE";
+
+      try {
+        const token = localStorage.getItem('token');
+        const headers = { 'Authorization': `Bearer ${token}` };
+
+        // 1. Fetch list of charts
+        const listRes = await fetch(`${BACKEND_URL}/api/tv/1.1/charts?client=trade-dashboard&user=${userId}`, { headers });
+        const listData = await listRes.json();
+
+        if (listData.status === 'ok' && listData.data && listData.data.length > 0) {
+          const latestChart = listData.data[0];
+          // initialSymbol = latestChart.symbol; // saved_data should handle symbol, but keeping as fallback
+
+          // 2. Fetch content of the latest chart
+          const contentRes = await fetch(`${BACKEND_URL}/api/tv/1.1/charts?client=trade-dashboard&user=${userId}&chart=${latestChart.id}`, { headers });
+          const contentData = await contentRes.json();
+
+          if (contentData.status === 'ok' && contentData.data && contentData.data.content) {
+            savedData = JSON.parse(contentData.data.content);
+            savedDataMetaInfo = {
+              uid: latestChart.id,
+              name: latestChart.name,
+              description: latestChart.description || "",
+              timestamp: latestChart.timestamp,
+              resolution: latestChart.resolution,
+              symbol: latestChart.symbol,
+            };
+          }
+        }
+      } catch (e) {
+        console.error("Failed to fetch saved chart data", e);
+      }
+
       const widgetOptions = {
-        symbol: "NSE_EQ|INE002A01018|RELIANCE", // Initial symbol with name
+        symbol: initialSymbol || "NSE_EQ|INE002A01018|RELIANCE",
+        saved_data: savedData,
+        saved_data_meta_info: savedDataMetaInfo,
         datafeed: Datafeed,
         interval: "1D",
         container: chartContainerRef.current,
         library_path: "/charting_library/",
         locale: "en",
         timezone: "Asia/Kolkata",
-        disabled_features: [
-          "use_localstorage_for_settings",
-          "symbol_search_hot_key",
-          "create_volume_indicator_by_default",
-        ],
-        enabled_features: ["watchlist_sections"],
-        fullscreen: false,
+        fullscreen: true,
         autosize: true,
         studies_overrides: {},
-        supports_marks: false,
-        supports_timescale_marks: false,
-        theme: "light",
         symbol_search_complete: (symbol, searchResultItem) => {
           return new Promise((resolve) => {
             const allScripts = [...niftylargecap, ...niftymidsmall400];
@@ -78,39 +107,18 @@ const TVChartContainer = () => {
             }
           });
         },
-        widgetbar: {
-          watchlist: true,
-          watchlist_settings: {
-            default_symbols: ["NSE_EQ|INE002A01018", "NSE_EQ|INE242A01010"],
-            readonly: true,
-          },
-        },
-        overrides: {
-          "paneProperties.background": "#ffffff",
-          "paneProperties.vertGridProperties.color": "rgba(46, 46, 46, 0.06)",
-          "paneProperties.horzGridProperties.color": "rgba(46, 46, 46, 0.06)",
-          "mainSeriesProperties.candleStyle.upColor": "#ffffff",
-          "mainSeriesProperties.candleStyle.downColor": "#000000",
-          "mainSeriesProperties.candleStyle.borderUpColor": "#000000",
-          "mainSeriesProperties.candleStyle.borderDownColor": "#000000",
-          "mainSeriesProperties.candleStyle.wickUpColor": "#000000",
-          "mainSeriesProperties.candleStyle.wickDownColor": "#000000",
-          "mainSeriesProperties.statusViewStyle.showInterval": true,
-          "mainSeriesProperties.statusViewStyle.symbolTextSource": "ticker",
+        charts_storage_url: `${BACKEND_URL}/api/tv`,
+        charts_storage_api_version: "1.1",
+        client_id: "trade-dashboard",
+        user_id: userId,
+        load_last_chart: false,
+        custom_headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
         },
       };
 
       const tvWidget = new widget(widgetOptions);
       tvWidgetRef.current = tvWidget;
-
-      tvWidget.onChartReady(() => {
-        tvWidget.activeChart().createStudy('Volume', false, false);
-        // Minimize the volume pane (assuming it's the second pane)
-        const panes = tvWidget.activeChart().getPanes();
-        if (panes.length > 1) {
-          panes[1].setHeight(80);
-        }
-      });
     };
 
     initWidget();
@@ -172,11 +180,11 @@ const TVChartContainer = () => {
   const getListName = (index) => {
     switch (index) {
       case 'bullishMB': return 'Bullish MB';
-      case 'bearishMB': return 'Bearish MB';
       case 'bullishSLTB': return 'Bullish SLTB';
-      case 'bearishSLTB': return 'Bearish SLTB';
       case 'bullishAnts': return 'Bullish Ants';
       case 'dollar': return 'Dollar BO';
+      case 'bearishMB': return 'Bearish MB';
+      case 'bearishSLTB': return 'Bearish SLTB';
       case 'bearishDollar': return 'Bearish Dollar';
       case 'all': return 'All Symbols';
       default: return 'Watchlist';

@@ -1,18 +1,14 @@
+import React, { useState, useMemo, useEffect } from 'react';
 import { Box, IconButton, Tooltip, Snackbar, Alert } from '@mui/material';
-import PropTypes from 'prop-types';
-import OrderDetailsPortal from './OrderDetails';
 import { DataGrid, GridLogicOperator } from '@mui/x-data-grid';
-import { useEffect, useState, useMemo } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import { getStatsForScripts } from '../../Store/upstoxs';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
-import { formatToIndianUnits } from '../../utils/index';
-import { executePaperOrder, updatePaperHoldingsLTP } from '../../Store/paperTradeSlice';
-
-const token = import.meta.env.VITE_UPSTOXS_ACCESS_KEY;
+import { useDispatch, useSelector } from 'react-redux';
+import PropTypes from 'prop-types';
+import { updatePaperHoldingsLTP, executePaperOrder } from '../../Store/paperTradeSlice';
+import { formatToIndianUnits } from '../../utils';
+import OrderPanel from './OrderPanel';
 
 const columnMapping = {
-  Script: 'scriptName',
   LTP: 'ltp',
   SL: 'sl',
   Shares: 'maxShareToBuy',
@@ -30,9 +26,7 @@ const columnMapping = {
 };
 
 const initialfilterModel = {
-  items: [
-    { id: 1, field: 'barClosingStrength', operator: '>=', value: '70' }
-  ],
+  items: [],
   logicOperator: GridLogicOperator.And,
 };
 
@@ -40,9 +34,12 @@ const WatchList = ({ scripts, type = 'dashboard', visibleColumns, onRowClick, co
   const [filterModel, setFilterModel] = useState(initialfilterModel);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
+  const [orderPanelOpen, setOrderPanelOpen] = useState(false);
+  const [selectedScript, setSelectedScript] = useState(null);
 
   const dispatch = useDispatch();
   const tradingMode = useSelector((state) => state.settings?.tradingMode || 'PAPER');
+  const token = useSelector((state) => state.auth?.token);
 
   const handleCloseSnackbar = (event, reason) => {
     if (reason === 'clickaway') {
@@ -103,64 +100,10 @@ const WatchList = ({ scripts, type = 'dashboard', visibleColumns, onRowClick, co
         sortable: false,
         filterable: false,
         renderCell: (params) => {
-          const handlePlaceOrder = async (event) => {
+          const handlePlaceOrder = (event) => {
             event.stopPropagation(); // prevent row selection on click
-
-            if (tradingMode === 'PAPER') {
-              dispatch(executePaperOrder({
-                symbol: params.row.symbol,
-                quantity: params.row.maxShareToBuy,
-                price: params.row.ltp,
-                type: 'BUY',
-                timestamp: Date.now()
-              }));
-              alert(`[PAPER TRADING] Order placed for ${params.row.symbol} at ₹${params.row.ltp}`);
-              return;
-            }
-
-            const accessToken = 'Bearer ' + token; // replace with your token retrieval logic
-
-            // Prepare main market order payload
-            const mainOrderPayload = {
-              instrument_token: params.row.instrumentKey,
-              quantity: params.row.maxShareToBuy,
-              product: 'D', // delivery or as applicable
-              validity: 'DAY',
-              price: 0, // market order price
-              order_type: 'MARKET',
-              transaction_type: 'BUY',
-              disclosed_quantity: 0,
-              trigger_price: params.row.sl,
-              is_amo: false,
-              slice: true,
-            };
-
-            console.log(mainOrderPayload)
-
-            try {
-              // Place main order
-              const mainResponse = await fetch('http://localhost:3015/place-order', {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  accept: 'application/json',
-                  Authorization: accessToken,
-                },
-                body: JSON.stringify(mainOrderPayload),
-              });
-
-              if (!mainResponse.ok) {
-                const errorData = await mainResponse.json();
-                alert('Main order failed: ' + (errorData.error?.message || JSON.stringify(errorData)));
-                return;
-              }
-
-              const mainData = await mainResponse.json();
-              alert('Main order placed successfully! Order IDs: ' + mainData.data.order_ids.join(', '));
-
-            } catch (error) {
-              alert('Error placing order: ' + error.message);
-            }
+            setSelectedScript(params.row);
+            setOrderPanelOpen(true);
           };
 
           return (
@@ -177,8 +120,9 @@ const WatchList = ({ scripts, type = 'dashboard', visibleColumns, onRowClick, co
         renderCell: (params) => {
           const isUp = params.row.isUpDay;
           const color = isUp ? "green" : "red";
+          const value = params.value != null ? Number(params.value).toFixed(2) : '-';
 
-          return <span style={{ color }}>{params.value}</span>;
+          return <span style={{ color }}>{value}%</span>;
         }
       },
       { field: "relativeVolumePercentage", headerName: "R-vol % / 21 D" },
@@ -216,8 +160,9 @@ const WatchList = ({ scripts, type = 'dashboard', visibleColumns, onRowClick, co
         renderCell: (params) => {
           const isUp = params.row.isUpDay;
           const color = isUp ? "green" : "red";
+          const value = params.value != null ? Number(params.value).toFixed(2) : '-';
 
-          return <span style={{ color }}>{params.value}</span>;
+          return <span style={{ color }}>{value}</span>;
         },
       },
       {
@@ -235,7 +180,7 @@ const WatchList = ({ scripts, type = 'dashboard', visibleColumns, onRowClick, co
       { field: "allocPer", headerName: "Size" },
       { field: "riskPercentage", headerName: "Risk" },
     ],
-  }), [tradingMode]);
+  }), [tradingMode, token]);
 
   const columns = columnsConfig[type]
     .map(col => {
@@ -324,7 +269,7 @@ const WatchList = ({ scripts, type = 'dashboard', visibleColumns, onRowClick, co
   // Handle column visibility
   const columnVisibilityModel = visibleColumns
     ? columns.reduce((acc, col) => {
-      acc[col.field] = visibleColumns.includes(col.field);
+      acc[col.field] = visibleColumns.includes(col.field) || col.field === 'placeOrder'; // Force placeOrder to be visible
       return acc;
     }, {})
     : undefined;
@@ -374,6 +319,14 @@ const WatchList = ({ scripts, type = 'dashboard', visibleColumns, onRowClick, co
           {snackbarMessage}
         </Alert>
       </Snackbar>
+      <OrderPanel
+        open={orderPanelOpen}
+        onClose={() => setOrderPanelOpen(false)}
+        script={selectedScript}
+        currentPrice={selectedScript?.ltp}
+        tradingMode={tradingMode}
+        token={token}
+      />
     </div>
   );
 };

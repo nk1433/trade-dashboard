@@ -4,6 +4,7 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
 import { BACKEND_URL } from '../utils/config';
+import { commonInputProps } from '../utils/themeStyles';
 
 const UpstoxSettings = () => {
     const [configs, setConfigs] = useState([]);
@@ -69,12 +70,7 @@ const UpstoxSettings = () => {
         window.location.href = authUrl;
     };
 
-    const textFieldStyle = {
-        '& .MuiOutlinedInput-root': {
-            '&.Mui-focused fieldset': { borderColor: 'black' },
-        },
-        '& .MuiInputLabel-root.Mui-focused': { color: 'black' },
-    };
+
 
     return (
         <Container component="main" maxWidth="md" sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mt: 0 }}>
@@ -90,7 +86,7 @@ const UpstoxSettings = () => {
                         onChange={handleInputChange}
                         required
                         fullWidth
-                        sx={textFieldStyle}
+                        {...commonInputProps}
                     />
                     <TextField
                         label="Client ID"
@@ -99,7 +95,7 @@ const UpstoxSettings = () => {
                         onChange={handleInputChange}
                         required
                         fullWidth
-                        sx={textFieldStyle}
+                        {...commonInputProps}
                     />
                     <TextField
                         label="Client Secret"
@@ -108,7 +104,7 @@ const UpstoxSettings = () => {
                         onChange={handleInputChange}
                         required
                         fullWidth
-                        sx={textFieldStyle}
+                        {...commonInputProps}
                     />
                     <TextField
                         label="Redirect URI"
@@ -117,7 +113,7 @@ const UpstoxSettings = () => {
                         onChange={handleInputChange}
                         required
                         fullWidth
-                        sx={textFieldStyle}
+                        {...commonInputProps}
                     />
                     <Button
                         type="submit"

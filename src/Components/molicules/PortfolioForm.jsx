@@ -3,6 +3,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { TextField, Button, Box, Typography, Snackbar, Alert } from '@mui/material';
 import { updateExitPercentage, updateRiskPercentage, fetchPortfolioSize, updatePortfolioSize, saveUserSettings } from '../../Store/portfolio';
 import { setPaperCapital } from '../../Store/paperTradeSlice';
+import { commonInputProps } from '../../utils/themeStyles';
 
 const PortfolioForm = ({ tradingMode }) => {
   const dispatch = useDispatch();
@@ -77,6 +78,7 @@ const PortfolioForm = ({ tradingMode }) => {
           variant="outlined"
           size="small"
           helperText={tradingMode === 'PROD' ? "Synced from Upstox" : "Manually set for simulation"}
+          {...commonInputProps}
         />
         <TextField
           label="Exit Percentage"
@@ -87,6 +89,7 @@ const PortfolioForm = ({ tradingMode }) => {
           margin="normal"
           variant="outlined"
           size="small"
+          {...commonInputProps}
         />
         <TextField
           label="Risk Percentage"
@@ -97,6 +100,7 @@ const PortfolioForm = ({ tradingMode }) => {
           margin="normal"
           variant="outlined"
           size="small"
+          {...commonInputProps}
         />
 
         <Button

@@ -5,6 +5,7 @@ import { ArrowUpward, ArrowDownward, TrendingUp } from '@mui/icons-material';
 import axios from 'axios';
 import moment from 'moment';
 import { BACKEND_URL } from '../../utils/config';
+import { commonInputProps, commonSelectSx, commonInputLabelSx } from '../../utils/themeStyles';
 
 const Scans = () => {
     const [selectedDate, setSelectedDate] = useState(moment().format('YYYY-MM-DD'));
@@ -110,7 +111,7 @@ const Scans = () => {
             width: 120,
             valueFormatter: (value) => {
                 if (!value) return '';
-                return moment(value.replace('Z', '')).format('h:mm a');
+                return moment(value).format('h:mm a');
             }
         },
     ];
@@ -146,14 +147,16 @@ const Scans = () => {
                         }}
                         size="small"
                         sx={{ width: 250, bgcolor: 'white' }}
+                        {...commonInputProps}
                     />
 
                     <FormControl size="small" sx={{ width: 250, bgcolor: 'white' }}>
-                        <InputLabel>Scan Type</InputLabel>
+                        <InputLabel sx={commonInputLabelSx}>Scan Type</InputLabel>
                         <Select
                             value={scanType}
                             label="Scan Type"
                             onChange={(e) => setScanType(e.target.value)}
+                            sx={commonSelectSx}
                         >
                             {scanTypes.map((type) => (
                                 <MenuItem key={type.value} value={type.value}>

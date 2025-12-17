@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Box, FormControl, InputLabel, MenuItem, Select, Typography, Paper } from '@mui/material';
+import { ArrowUpward, ArrowDownward } from '@mui/icons-material';
 import { DataGrid } from '@mui/x-data-grid';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchMarketBreadth } from '../../Store/marketBreadth';
 import MarketBreadthBarChart from './MarketBreadthChart';
 import BreadthTwoPaneChart from './TVLightChart';
+import { commonSelectSx, commonInputLabelSx } from '../../utils/themeStyles';
 import moment from 'moment';
 
 const getCellStyle = (value, positiveThreshold = 0.5) => {
@@ -22,7 +24,15 @@ const columns = [
     field: 'date',
     headerName: 'Date',
     width: 130,
-    valueFormatter: (params) => moment(params.value).format('DD-MM-YYYY')
+    valueFormatter: (value) => {
+      if (!value) return '';
+      if (typeof value === 'string') {
+        const datePart = value.split('T')[0];
+        const [year, month, day] = datePart.split('-');
+        return `${day}/${month}/${year}`;
+      }
+      return moment(value).format('DD/MM/YYYY');
+    }
   },
   {
     field: 'up4Percent',
@@ -138,9 +148,9 @@ const columns = [
 ];
 
 const chartViewColumns = [
-  'fourPercentage',
-  'eightPercentage',
-  'twentyPercentage',
+  { value: 'fourPercentage', label: '4%' },
+  { value: 'eightPercentage', label: '8%' },
+  { value: 'twentyPercentage', label: '20%' },
 ];
 
 const MarketBreadthTable = () => {
@@ -148,7 +158,7 @@ const MarketBreadthTable = () => {
   const breadthData = useSelector(state => state.marketBreadth.data);
   const [chartType, setChartType] = useState('tv');
 
-  const [percantageChange, setPercentageChange] = useState(chartViewColumns[0]);
+  const [percantageChange, setPercentageChange] = useState(chartViewColumns[0].value);
 
   const handlePercentageChange = (event) => {
     setPercentageChange(event.target.value);
@@ -162,12 +172,14 @@ const MarketBreadthTable = () => {
     dispatch(fetchMarketBreadth());
   }, [dispatch]);
 
+  console.log('Breadth Data:', breadthData);
+
   const rows = breadthData.map((item, index) => ({
     id: item.date || index,
     ...item,
   }));
 
-  rows.sort((a, b) => new Date(a.date) - new Date(b.date));
+  // rows.sort((a, b) => new Date(a.date) - new Date(b.date));
 
   return (
     <Box sx={{ width: '100%', paddingTop: '20px', pb: 4, bgcolor: '#f8f9fa', minHeight: '100vh' }}>
@@ -180,26 +192,35 @@ const MarketBreadthTable = () => {
           </Typography>
           <Box sx={{ display: 'flex', gap: 2 }}>
             <FormControl size="small" sx={{ minWidth: 150, bgcolor: 'white' }}>
-              <InputLabel>Chart View</InputLabel>
+              <InputLabel sx={commonInputLabelSx}>Chart View</InputLabel>
               <Select
                 value={chartType}
                 label="Chart View"
                 onChange={handleChange}
+                sx={commonSelectSx}
               >
                 <MenuItem value="mui">MUI Charts</MenuItem>
                 <MenuItem value="tv">TradingView</MenuItem>
               </Select>
             </FormControl>
             <FormControl size="small" sx={{ minWidth: 180, bgcolor: 'white' }}>
-              <InputLabel>Per Change</InputLabel>
+              <InputLabel sx={commonInputLabelSx}>Per Change</InputLabel>
               <Select
                 value={percantageChange}
                 label="Per Change"
                 onChange={handlePercentageChange}
+                sx={commonSelectSx}
               >
                 {
-                  chartViewColumns.map((field) => {
-                    return <MenuItem key={field} value={field}>{field}</MenuItem>
+                  chartViewColumns.map((option) => {
+                    return (
+                      <MenuItem key={option.value} value={option.value}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                          <ArrowUpward fontSize="small" sx={{ color: 'green' }} />
+                          <Typography variant="body2" sx={{ fontWeight: 'bold' }}>{option.label}</Typography>
+                        </Box>
+                      </MenuItem>
+                    )
                   })
                 }
               </Select>

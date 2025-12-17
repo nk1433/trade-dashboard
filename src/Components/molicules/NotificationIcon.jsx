@@ -105,7 +105,7 @@ const NotificationIcon = () => {
                                         </Typography>
                                     </Box>
                                     <Typography variant="caption" color="text.secondary">
-                                        LTP: {match.ltp || '-'} | Vol: {match.relativeVolumePercentage ? `${match.relativeVolumePercentage}%` : '-'}
+                                        LTP: {match.ltp.toFixed(2) || '-'} | Vol: {match.relativeVolumePercentage ? `${match.relativeVolumePercentage}%` : '-'}
                                     </Typography>
                                 </ListItem>
                                 {index < allMatches.length - 1 && <Divider component="li" />}

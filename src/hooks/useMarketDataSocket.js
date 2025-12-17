@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import protobuf from "protobufjs";
 import { useDispatch } from "react-redux";
-import { updateWatchlistWithMetrics } from "./useUpstoxWS";
+import { updateWatchlistWithMetrics } from "../Store/upstoxs";
 import niftymidsmall400float from "../index/niftymidsmall400-float.json";
 import niftylargeCaps from '../index/niftylargecap.json';
 import { useSelector } from "react-redux";
@@ -53,6 +53,7 @@ export function useMarketDataSocket({ wsUrl, request }) {
     const [isConnected, setIsConnected] = useState(false);
     const { token } = useSelector((state) => state.auth); // Upstox Token
     const portfolio = useSelector((state) => state.portfolio);
+    const tradingMode = useSelector((state) => state.settings?.tradingMode || 'PAPER');
     const stats = useSelector((state) => state.orders.stats);
     const statsRef = useRef(stats);
     const dispatch = useDispatch();
@@ -113,7 +114,7 @@ export function useMarketDataSocket({ wsUrl, request }) {
                         metrics, bullishMB, bearishMB,
                         bullishSLTB, bearishSLTB, bullishAnts,
                         dollar, bearishDollar,
-                    } = await updateWatchlistWithMetrics(response, scriptMap, portfolio, statsRef.current);
+                    } = await updateWatchlistWithMetrics(response, scriptMap, portfolio, statsRef.current, tradingMode);
 
                     dispatch(setOrderMetrics(metrics));
                     dispatch(setBullishMB(bullishMB));

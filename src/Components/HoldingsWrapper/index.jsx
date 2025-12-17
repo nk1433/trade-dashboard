@@ -9,10 +9,7 @@ const HoldingsWrapper = () => {
     console.log(tradingMode, 'tradingMode')
 
     return (
-        <Box sx={{ p: 2, height: '100%', overflow: 'auto' }}>
-            <Typography variant="h5" gutterBottom>
-                {tradingMode === 'PROD' ? 'Production Holdings' : 'Paper Holdings'}
-            </Typography>
+        <Box sx={{ height: '100%', overflow: 'auto' }}>
             {tradingMode === 'PROD' ? <ProdHoldings /> : <PaperHoldings />}
         </Box>
     );
