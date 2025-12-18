@@ -28,7 +28,10 @@ const Dashboard = () => {
         handleSelectionChange={handleSelectionChange}
         counts={counts}
       />
-      <WatchList scripts={scriptsToShow} />
+      <WatchList
+        scripts={scriptsToShow}
+        type={selectedIndex === 'holdings' ? 'holdings' : 'dashboard'}
+      />
     </div>
   );
 };

@@ -34,6 +34,12 @@ const WatchlistFilterForm = ({ selectedIndex, handleSelectionChange, counts }) =
         { value: 'bearishSLTB', label: 'SLTB', count: counts.bearishSLTB },
         { value: 'bearishDollar', label: '$ Dollar', count: counts.bearishDollar },
       ]
+    },
+    {
+      label: 'Portfolio',
+      items: [
+        { value: 'holdings', label: 'Holdings', count: counts.holdings },
+      ]
     }
   ];
 

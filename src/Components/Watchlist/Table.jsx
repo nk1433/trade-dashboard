@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Box, IconButton, Tooltip, Snackbar, Alert } from '@mui/material';
+import { Box, IconButton, Tooltip, Snackbar, Alert, Typography } from '@mui/material';
 import { DataGrid, GridLogicOperator } from '@mui/x-data-grid';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import { useDispatch, useSelector } from 'react-redux';
@@ -176,78 +176,178 @@ const WatchList = ({ scripts, type = 'dashboard', visibleColumns, onRowClick, co
 
       //TODO: Create a fallback(-), percentage(%) components.
     ],
+    holdings: [
+      {
+        field: "symbol",
+        headerName: "Company",
+        width: 150,
+        renderCell: (params) => (
+          <Box sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', height: '100%' }}>
+            <Typography variant="body2" sx={{ fontWeight: 600, lineHeight: 1.2 }}>
+              {params.value}
+            </Typography>
+            <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
+              {params.row.quantity} • Avg. ₹{params.row.avgPrice?.toFixed(2)}
+            </Typography>
+          </Box>
+        ),
+      },
+      {
+        field: "ltp",
+        headerName: "Market Price",
+        type: 'number',
+        width: 120,
+        renderCell: (params) => (
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', height: '100%' }}>
+            <Typography variant="body2" sx={{ fontWeight: 500 }}>
+              ₹{params.value?.toFixed(2)}
+            </Typography>
+          </Box>
+        ),
+      },
+      {
+        field: "pnl", // This needs to be calculated or present in the row data
+        headerName: "Returns (%)",
+        width: 140,
+        renderCell: (params) => {
+          const invested = params.row.invested || (params.row.avgPrice * params.row.quantity);
+          const currentVal = params.row.currentValue || (params.row.ltp * params.row.quantity);
+          const pnl = currentVal - invested;
+          const pnlPercentage = invested > 0 ? (pnl / invested) * 100 : 0;
+          const isProfit = pnl >= 0;
+          return (
+            <Box sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'flex-end', height: '100%' }}>
+              <Typography variant="body2" sx={{ fontWeight: 500, color: isProfit ? '#00b386' : '#eb5b3c' }}>
+                {isProfit ? '+' : ''}₹{formatToIndianUnits(pnl)}
+              </Typography>
+              <Typography variant="caption" sx={{ fontSize: '0.7rem', color: isProfit ? '#00b386' : '#eb5b3c' }}>
+                ({pnlPercentage.toFixed(2)}%)
+              </Typography>
+            </Box>
+          );
+        },
+      },
+      {
+        field: "currentValue",
+        headerName: "Current / Alloc",
+        width: 140,
+        renderCell: (params) => {
+          const currentVal = params.row.currentValue || (params.row.ltp * params.row.quantity);
+          return (
+            <Box sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'flex-end', height: '100%' }}>
+              <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                ₹{formatToIndianUnits(currentVal)}
+              </Typography>
+            </Box>
+          );
+        }
+      },
+      {
+        field: "placeOrder", // Reusing placeOrder for consistency, or custom actions
+        headerName: "Actions",
+        width: 160,
+        renderCell: (params) => {
+          const handleExit = (e) => {
+            e.stopPropagation();
+            if (window.confirm(`Are you sure you want to exit ${params.row.symbol}?`)) {
+              dispatch(executePaperOrder({
+                symbol: params.row.symbol,
+                quantity: params.row.quantity,
+                price: params.row.ltp,
+                type: 'SELL',
+                timestamp: Date.now()
+              }));
+            }
+          };
+
+          const handleBuy = (e) => {
+            e.stopPropagation();
+            setSelectedScript(params.row);
+            setOrderPanelOpen(true);
+          };
+
+          return (
+            <Box sx={{ display: 'flex', gap: 1 }}>
+              <button type="button" onClick={handleBuy}>Buy</button>
+              <button type="button" onClick={handleExit} style={{ color: 'red' }}>Exit</button>
+            </Box>
+          );
+        }
+      }
+    ],
     allocationSuggestions: [
       { field: "allocPer", headerName: "Size" },
       { field: "riskPercentage", headerName: "Risk" },
     ],
-  }), [tradingMode, token]);
+  }), [tradingMode, token, dispatch]); // Added dispatch dependency
 
-  const columns = columnsConfig[type]
-    .map(col => {
-      let field = '';
-      let headerName = '';
-      let width, renderCell, filterable;
+  const columns = makeColumns(columnsConfig[type]);
 
-      if (col.name) {
-        field = columnMapping[col.name] || '';
-        headerName = col.name;
-        width = col.width;
-        renderCell = col.renderCell ?? (col.value && col.name === "Script" ? (params) => col.value(params.row) : undefined);
-        filterable = col.filterable;
-      } else if (col.field && col.headerName) {
-        ({ field, headerName, width, renderCell, filterable } = col);
-      }
+  // Helper to process columns logic
+  function makeColumns(colConfig) {
+    if (!colConfig) return [];
+    return colConfig
+      .map(col => {
+        let field = '';
+        let headerName = '';
+        let width, renderCell, filterable, type;
 
-      // Override renderCell for scriptName to handle compact mode
-      if (field === 'scriptName') {
-        if (compact) {
-          width = 120;
+        if (col.name) {
+          field = columnMapping[col.name] || '';
+          headerName = col.name;
+          width = col.width;
+          renderCell = col.renderCell ?? (col.value && col.name === "Script" ? (params) => col.value(params.row) : undefined);
+          filterable = col.filterable;
+          type = col.type;
+        } else if (col.field && col.headerName) {
+          ({ field, headerName, width, renderCell, filterable, type } = col);
         }
-        renderCell = (params) => {
-          const isUp = params.row.isUpDay;
-          const color = isUp ? "green" : "red";
 
-          const handleCopy = (e) => {
-            e.stopPropagation();
-            navigator.clipboard.writeText(params.row.symbol)
-              .then(() => { /* optionally show a success message */ })
-              .catch(() => { /* optionally handle errors */ });
+        // ... (existing scriptName override logic if needed, but 'holdings' uses custom 'symbol' field)
+        if (field === 'scriptName') {
+          // ... existing logic
+          if (compact) {
+            width = 120;
+          }
+          renderCell = (params) => {
+            const isUp = params.row.isUpDay;
+            // ... logic
+            const handleCopy = (e) => {
+              e.stopPropagation();
+              navigator.clipboard.writeText(params.row.symbol);
+            };
+            return (
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <span style={{ fontSize: compact ? '0.75rem' : 'inherit', fontWeight: compact ? 600 : 'inherit' }}>{params.row.symbol}</span>
+                {!compact && (
+                  <Tooltip title="Copy script name">
+                    <IconButton size="small" onClick={handleCopy}>
+                      <ContentCopyIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                )}
+              </Box>
+            );
           };
+        }
 
-          return (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <span style={{ fontSize: compact ? '0.75rem' : 'inherit', fontWeight: compact ? 600 : 'inherit' }}>{params.row.symbol}</span>
-              {!compact && (
-                <Tooltip title="Copy script name">
-                  <IconButton
-                    size="small"
-                    onClick={handleCopy}
-                    aria-label="copy script name"
-                  >
-                    <ContentCopyIcon fontSize="small" />
-                  </IconButton>
-                </Tooltip>
-              )}
-            </Box>
-          );
+        if (!field || !headerName) return null;
+
+        return {
+          field,
+          headerName,
+          ...(width && { width }),
+          ...(renderCell && { renderCell }),
+          ...(filterable !== undefined && { filterable }),
+          ...(type && { type }),
         };
-      }
+      })
+      .filter(Boolean);
+  }
 
-      if (!field || !headerName) return null;  // Discard invalid columns
-
-      return {
-        field,
-        headerName,
-        ...(width && { width }),
-        ...(renderCell && { renderCell }),
-        ...(filterable !== undefined && { filterable }),
-        ...(col.type && { type: col.type }),
-      };
-    })
-    .filter(Boolean);  // Remove nulls
 
   const rows = Object.values(scripts).map(metric => ({
-    id: metric.instrumentKey,
+    id: metric.instrumentKey || metric.symbol,
     ...metric,
   }));
 

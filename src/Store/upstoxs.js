@@ -242,12 +242,18 @@ export const updateWatchlistWithMetrics = async (liveFeed, scriptMap, portfolio,
 export const fetchAndCalculateInitialMetrics = createAsyncThunk('Orders/fetchAndCalculateInitialMetrics', async (scripts, state) => {
     const { portfolio, settings, orders: { stats } } = state.getState();
     const tradingMode = settings?.tradingMode || 'PAPER';
+    const today = new Date();
+    const toDate = today.toISOString().split('T')[0];
+
+    const oneYearAgo = new Date(today);
+    oneYearAgo.setFullYear(today.getFullYear() - 1);
+    const fromDate = oneYearAgo.toISOString().split('T')[0];
 
     // Helper to get OHLC data
     const getOHLC = async (instrumentKey, interval) => {
         try {
             const response = await fetch(
-                `https://api.upstox.com/v3/market-quote/ohlc?instrument_key=${instrumentKey}&interval=${interval}`,
+                `https://api.upstox.com/v3/historical-candle/${instrumentKey}/days/1/${toDate}/${fromDate}`,
                 {
                     headers: {
                         Authorization: `Bearer ${localStorage.getItem('upstox_access_token') || import.meta.env.VITE_UPSTOXS_ACCESS_KEY}`,

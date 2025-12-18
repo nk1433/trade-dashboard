@@ -118,6 +118,27 @@ const TVChartContainer = () => {
       };
 
       const tvWidget = new widget(widgetOptions);
+
+      // TODO: Make this dynamic
+      // tvWidget.onChartReady(() => {
+      //   const orderLine = tvWidget.activeChart().createOrderLine()
+      //     .setTooltip("Additional order information")
+      //     .setModifyTooltip("Modify order")
+      //     .setCancelTooltip("Cancel order")
+      //     .onMove(function () {
+      //       this.setText("onMove called");
+      //     })
+      //     .onModify("onModify called", function (text) {
+      //       this.setText(text);
+      //     })
+      //     .onCancel("onCancel called", function (text) {
+      //       this.setText(text);
+      //     })
+      //     .setText("STOP: 73.5 (5,64%)")
+      //     .setQuantity("2")
+      //     .setPrice(1280.6);
+      // });
+      // tvWidget.activeChart().getTimezoneApi().setTimezone("Asia/Kolkata");
       tvWidgetRef.current = tvWidget;
     };
 

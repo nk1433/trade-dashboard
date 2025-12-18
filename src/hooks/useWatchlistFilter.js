@@ -13,11 +13,18 @@ export const useWatchlistFilter = () => {
     bearishDollar,
   } = useSelector(state => state.orders);
 
+  const { holdings } = useSelector(state => state.paperTrade);
+
   const [selectedIndex, setSelectedIndex] = useState('all');
 
   const handleSelectionChange = (event) => {
     setSelectedIndex(event.target.value);
   };
+
+  const holdingsMap = holdings.reduce((acc, curr) => {
+    acc[curr.symbol] = curr;
+    return acc;
+  }, {});
 
   const scriptsToShow = (() => {
     switch (selectedIndex) {
@@ -28,6 +35,7 @@ export const useWatchlistFilter = () => {
       case 'bullishAnts': return bullishAnts || {};
       case 'dollar': return dollar || {};
       case 'bearishDollar': return bearishDollar || {};
+      case 'holdings': return holdingsMap || {};
       case 'all':
       default: return orderMetrics || {};
     }
@@ -43,6 +51,7 @@ export const useWatchlistFilter = () => {
     bullishAnts: Object.keys(bullishAnts || {}).length,
     dollar: Object.keys(dollar || {}).length,
     bearishDollar: Object.keys(bearishDollar || {}).length,
+    holdings: holdings.length,
   };
 
   return {
