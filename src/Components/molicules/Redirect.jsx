@@ -3,7 +3,8 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 
 // import { loginSuccess } from '../../Store/authSlice';
-import { Box, Typography, CircularProgress } from '@mui/material';
+import { Box, Typography } from '@mui/material';
+import CandleSpinner from './CandleSpinner';
 
 const Redirect = () => {
     const [searchParams] = useSearchParams();
@@ -55,7 +56,7 @@ const Redirect = () => {
 
     return (
         <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh' }}>
-            <CircularProgress />
+            <CandleSpinner />
             <Typography variant="h6" sx={{ mt: 2 }}>Authenticating...</Typography>
         </Box>
     );

@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { Box, Typography, CircularProgress } from '@mui/material';
+import { Box, Typography } from '@mui/material';
 import axios from 'axios';
 
 import { BACKEND_URL } from '../utils/config';
+import CandleSpinner from './molicules/CandleSpinner';
 
 const UpstoxCallback = () => {
     const [searchParams] = useSearchParams();
@@ -38,7 +39,8 @@ const UpstoxCallback = () => {
 
     return (
         <Box sx={{ p: 3, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-            <CircularProgress sx={{ mb: 2 }} />
+            <CandleSpinner isSmall={false} />
+            <Box sx={{ mb: 2 }} />
             <Typography variant="h6">{status}</Typography>
         </Box>
     );

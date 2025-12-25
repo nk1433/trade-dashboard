@@ -9,10 +9,10 @@ import {
     TableRow,
     Paper,
     Typography,
-    Box,
-    CircularProgress
+    Box
 } from '@mui/material';
 import { fetchHoldings } from '../../Store/upstoxs';
+import CandleSpinner from '../molicules/CandleSpinner';
 
 const ProdHoldings = () => {
     const dispatch = useDispatch();
@@ -29,7 +29,7 @@ const ProdHoldings = () => {
     const totalPLPercentage = totalInvestment > 0 ? (totalPL / totalInvestment) * 100 : 0;
 
     if (loading) {
-        return <Box display="flex" justifyContent="center" p={4}><CircularProgress /></Box>;
+        return <Box display="flex" justifyContent="center" p={4}><CandleSpinner /></Box>;
     }
 
     if (error) {
