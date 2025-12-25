@@ -7,6 +7,7 @@ import market from "./marketBreadth";
 import authReducer from "./authSlice";
 import settingsReducer from "./settings";
 import paperTradeReducer from "./paperTradeSlice";
+import marketStatusReducer from "./marketStatusSlice";
 
 const store = configureStore({
     middleware: (getDefaultMiddleware) => getDefaultMiddleware({
@@ -20,6 +21,7 @@ const store = configureStore({
         auth: authReducer,
         settings: settingsReducer,
         paperTrade: paperTradeReducer,
+        marketStatus: marketStatusReducer,
     },
 });
 

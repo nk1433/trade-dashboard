@@ -1,3 +1,4 @@
+
 import { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
@@ -11,14 +12,16 @@ import Settings from './Components/molicules/Settings';
 import Redirect from './Components/molicules/Redirect';
 import MarketBreadthTable from './Components/molicules/MarketBreadth';
 import MarketHighLowWormChart from './Components/molicules/Worm';
-import PaperHoldings from './Components/PaperHoldings';
+import HoldingsWrapper from './Components/HoldingsWrapper';
+import Scans from './Components/Scans';
 import { fetchUpstoxToken } from './Store/authSlice';
 import { fetchUserSettings } from './Store/portfolio';
 import { useUpstoxWS } from './hooks/useUpstoxWS';
 import { getStatsForScripts } from './Store/upstoxs';
-import HoldingsWrapper from './Components/HoldingsWrapper';
-import Scans from './Components/Scans';
 import { fetchPaperTradesAsync, updatePaperHoldingsLTP } from './Store/paperTradeSlice';
+import { fetchMarketTimings, fetchHolidays, updateMarketStatus } from './Store/marketStatusSlice';
+import HolidayBanner from './Components/molicules/HolidayBanner';
+import MarketStatusToast from './Components/molicules/MarketStatusToast';
 
 const ProtectedRoute = ({ children }) => {
   const token = localStorage.getItem('token');
@@ -50,6 +53,14 @@ const App = () => {
     }
   }, [dispatch, upstoxToken]);
 
+  // Market Status Checks - Re-run when token becomes available
+  useEffect(() => {
+    if (upstoxToken) {
+      dispatch(fetchMarketTimings());
+      dispatch(fetchHolidays());
+    }
+  }, [dispatch, upstoxToken]);
+
   // Fetch stats only once on mount
   useEffect(() => {
     dispatch(getStatsForScripts());
@@ -58,7 +69,7 @@ const App = () => {
 
     // Fetch initial metrics for a subset of scripts to ensure watchlist is not empty (e.g. for testing)
     import('./index/niftymidsmall400-float.json').then((module) => {
-      const scripts = module.default.slice(0, 10); // Fetch top 20
+      const scripts = module.default.slice(0, 10); // Fetch top 10
       import('./Store/upstoxs').then(({ fetchAndCalculateInitialMetrics }) => {
         dispatch(fetchAndCalculateInitialMetrics(scripts));
       });
@@ -85,6 +96,14 @@ const App = () => {
     }
   }, [orderMetrics, dispatch]); // Intentionally omitting holdings to avoid loops
 
+  // Periodic Market Status Check (every minute)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      dispatch(updateMarketStatus());
+    }, 60000);
+    return () => clearInterval(interval);
+  }, [dispatch]);
+
   useUpstoxWS(upstoxToken);
 
   return (
@@ -94,7 +113,7 @@ const App = () => {
 
       {/* Protected Routes wrapped in Navbar (Layout) */}
       <Route element={<ProtectedRoute><Navbar /></ProtectedRoute>}>
-        <Route path="/" element={<Home />} />
+        <Route path="/" element={<><HolidayBanner /><MarketStatusToast /><Home /></>} />
         <Route path="/upstox-settings" element={<UpstoxSettings />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="/redirect" element={<Redirect />} />
