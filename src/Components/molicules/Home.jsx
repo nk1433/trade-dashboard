@@ -69,7 +69,7 @@ const Home = () => {
                 </Paper>
             )}
 
-            <Box sx={{ position: 'absolute', top: 2, right: 10, zIndex: 1000 }}>
+            <Box sx={{ position: 'absolute', top: 2, right: 10, zIndex: 99 }}>
                 <Select
                     value={view}
                     onChange={(e) => setView(e.target.value)}
