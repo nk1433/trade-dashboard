@@ -21,8 +21,8 @@ const Settings = () => {
 
     return (
         <Box sx={{ width: '100%' }}>
-            <Box sx={{ mb: 2, display: 'flex', justifyContent: 'flex-end' }}>
-                <FormControl size="small" sx={{ minWidth: 150 }}>
+            <Box sx={{ mb: 1, display: 'flex', justifyContent: 'flex-end' }}>
+                <FormControl size="small" sx={{ mt: 2, minWidth: 150 }}>
                     <InputLabel id="settings-trading-mode-label">Trading Mode</InputLabel>
                     <Select
                         labelId="settings-trading-mode-label"
