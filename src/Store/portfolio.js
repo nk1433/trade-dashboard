@@ -96,11 +96,13 @@ const initialState = {
     portfolioSize: 0,
     exitPercentage: 10,
     riskPercentage: 0.25,
+    maxAllowedAllocation: 15, // Default 15%
   },
   paper: {
     portfolioSize: 100000,
     exitPercentage: 10,
     riskPercentage: 0.25,
+    maxAllowedAllocation: 15,
   },
   loading: false,
   error: null,
@@ -126,6 +128,12 @@ const portfolioSlice = createSlice({
       const { mode, value } = action.payload;
       if (state[mode]) {
         state[mode].riskPercentage = value;
+      }
+    },
+    updateMaxAllowedAllocation: (state, action) => {
+      const { mode, value } = action.payload;
+      if (state[mode]) {
+        state[mode].maxAllowedAllocation = value;
       }
     },
   },
@@ -162,6 +170,6 @@ const portfolioSlice = createSlice({
   },
 });
 
-export const { updatePortfolioSize, updateExitPercentage, updateRiskPercentage } = portfolioSlice.actions;
+export const { updatePortfolioSize, updateExitPercentage, updateRiskPercentage, updateMaxAllowedAllocation } = portfolioSlice.actions;
 
 export default portfolioSlice.reducer;

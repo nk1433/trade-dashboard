@@ -3,7 +3,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import { Box, Typography, Paper, Chip, Button } from '@mui/material';
 import { DataGrid } from '@mui/x-data-grid';
 import { formatToIndianUnits } from '../../utils/index';
-import { executePaperOrder } from '../../Store/paperTradeSlice';
+import { executePaperOrder, updatePaperHoldingAsync } from '../../Store/paperTradeSlice';
 import OrderPanel from '../Watchlist/OrderPanel';
 
 const PaperHoldings = () => {
@@ -14,6 +14,7 @@ const PaperHoldings = () => {
 
     const [orderPanelOpen, setOrderPanelOpen] = useState(false);
     const [selectedScript, setSelectedScript] = useState(null);
+    const [orderSide, setOrderSide] = useState('BUY');
 
     const totalInvested = holdings.reduce((acc, curr) => acc + curr.invested, 0);
     const totalCurrentValue = holdings.reduce((acc, curr) => acc + curr.currentValue, 0);
@@ -21,12 +22,28 @@ const PaperHoldings = () => {
     const totalPnLPercentage = totalInvested > 0 ? (totalPnL / totalInvested) * 100 : 0;
     const isProfit = totalPnL >= 0;
 
-    const rows = holdings.map((item) => ({
-        id: item.symbol,
-        ...item,
-        risk: item.sl ? (item.avgPrice - item.sl) * item.quantity : null,
-        alloc: (item.invested / (capital + totalInvested)) * 100
-    }));
+    // Calculate Total Portfolio Risk
+    const totalRiskAmount = holdings.reduce((acc, curr) => {
+        if (curr.sl && curr.sl > 0) {
+            const risk = (curr.avgPrice - curr.sl) * curr.quantity;
+            return acc + (risk > 0 ? risk : 0);
+        }
+        return acc;
+    }, 0);
+
+    const totalPortfolioValue = capital + totalCurrentValue;
+    const totalRiskPercentage = totalPortfolioValue > 0 ? (totalRiskAmount / totalPortfolioValue) * 100 : 0;
+
+    const rows = holdings.map((item) => {
+        const risk = item.sl ? (item.avgPrice - item.sl) * item.quantity : null;
+        return {
+            id: item.symbol,
+            ...item,
+            risk,
+            riskPercentage: risk !== null && totalPortfolioValue > 0 ? (risk / totalPortfolioValue) * 100 : null,
+            alloc: (item.invested / (capital + totalInvested)) * 100
+        };
+    });
 
     const handleBuy = (row) => {
         setSelectedScript({
@@ -34,21 +51,34 @@ const PaperHoldings = () => {
             tradingSymbol: row.symbol,
             ltp: row.ltp,
             exchange: 'NSE', // Assuming NSE for now, or add to holding data
-            instrumentKey: row.instrumentKey // Ensure this is saved in holdings
+            instrumentKey: row.instrumentKey, // Ensure this is saved in holdings
+            // For existing holdings, we might want to default quantity to 1 or matching allocation, but 1 is safe
         });
+        setOrderSide('BUY');
         setOrderPanelOpen(true);
     };
 
-    const handleExit = (row) => {
-        if (window.confirm(`Are you sure you want to exit ${row.symbol}?`)) {
-            dispatch(executePaperOrder({
+    const handleBreakeven = (row) => {
+        const confirmMsg = `Set SL for ${row.symbol} to Breakeven (Avg: ₹${row.avgPrice.toFixed(2)})?`;
+        if (window.confirm(confirmMsg)) {
+            dispatch(updatePaperHoldingAsync({
                 symbol: row.symbol,
-                quantity: row.quantity,
-                price: row.ltp,
-                type: 'SELL',
-                timestamp: Date.now()
+                sl: row.avgPrice
             }));
         }
+    };
+
+    const handleSell = (row) => {
+        setSelectedScript({
+            symbol: row.symbol,
+            tradingSymbol: row.symbol,
+            ltp: row.ltp,
+            exchange: 'NSE',
+            instrumentKey: row.instrumentKey,
+            sharesToBuy: row.quantity // Pre-fill with holding quantity for Sell
+        });
+        setOrderSide('SELL');
+        setOrderPanelOpen(true);
     };
 
     const columns = [
@@ -79,7 +109,7 @@ const PaperHoldings = () => {
             renderCell: (params) => (
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', height: '100%' }}>
                     <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                        ₹{params.value.toFixed(2)}
+                        ₹{params.row.ltp.toFixed(2)}
                     </Typography>
                 </Box>
             ),
@@ -117,7 +147,7 @@ const PaperHoldings = () => {
                         ₹{formatToIndianUnits(params.value)}
                     </Typography>
                     <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
-                        {params.row.alloc.toFixed(1)}% Alloc
+                        ({params.row.alloc.toFixed(1)}%)
                     </Typography>
                 </Box>
             ),
@@ -132,12 +162,14 @@ const PaperHoldings = () => {
             headerAlign: 'right',
             renderCell: (params) => (
                 <Box sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'flex-end', height: '100%' }}>
-                    <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                    <Typography variant="body2" sx={{ fontWeight: 500, color: '#d32f2f' }}>
                         {params.value !== null ? `₹${formatToIndianUnits(params.value)}` : '-'}
                     </Typography>
-                    <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
-                        Risk
-                    </Typography>
+                    {params.row.riskPercentage !== null && (
+                        <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
+                            ({params.row.riskPercentage.toFixed(2)}%)
+                        </Typography>
+                    )}
                 </Box>
             ),
         },
@@ -152,6 +184,16 @@ const PaperHoldings = () => {
                     <Button
                         variant="outlined"
                         size="small"
+                        color="warning"
+                        onClick={(e) => { e.stopPropagation(); handleBreakeven(params.row); }}
+                        sx={{ fontSize: '0.7rem', py: 0.5, minWidth: 'auto' }}
+                        title="Set Stop Loss to Average Price"
+                    >
+                        BE
+                    </Button>
+                    <Button
+                        variant="outlined"
+                        size="small"
                         color="primary"
                         onClick={(e) => { e.stopPropagation(); handleBuy(params.row); }}
                         sx={{ fontSize: '0.7rem', py: 0.5, minWidth: 'auto' }}
@@ -162,10 +204,10 @@ const PaperHoldings = () => {
                         variant="outlined"
                         size="small"
                         color="error"
-                        onClick={(e) => { e.stopPropagation(); handleExit(params.row); }}
+                        onClick={(e) => { e.stopPropagation(); handleSell(params.row); }}
                         sx={{ fontSize: '0.7rem', py: 0.5, minWidth: 'auto' }}
                     >
-                        Exit
+                        Sell
                     </Button>
                 </Box>
             ),
@@ -229,6 +271,16 @@ const PaperHoldings = () => {
                             </Typography>
                         </Box>
                     </Box>
+                    <Box>
+                        <Typography variant="body2" color="text.secondary">
+                            Total Risk
+                        </Typography>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                            <Typography variant="h6" sx={{ fontWeight: 400, color: '#d32f2f' }}>
+                                ₹{formatToIndianUnits(totalRiskAmount)} ({totalRiskPercentage.toFixed(2)}%)
+                            </Typography>
+                        </Box>
+                    </Box>
                 </Box>
             </Paper>
 
@@ -270,6 +322,7 @@ const PaperHoldings = () => {
                 currentPrice={selectedScript?.ltp}
                 tradingMode={tradingMode}
                 token={token}
+                initialSide={orderSide}
             />
         </Box>
     );

@@ -113,6 +113,9 @@ export const calculateAllocationIntent = (
   const maxAllocationWithRisk = sharesAllowedByRisk * entryPrice;
   const maxAllocationPercentage = ((maxAllocationWithRisk / portfolioSize) * 100);
 
+  // Calculate raw percentage of total portfolio used
+  const percentOfPortfolio = (investmentAmount / portfolioSize) * 100;
+
   const riskArray = [0.25, 0.3, 0.35]; // Array of risk percentages of portfolio
 
   const allocationSuggestions = riskArray.map((riskPercent) => {
@@ -139,7 +142,8 @@ export const calculateAllocationIntent = (
     maxAllocationPercentage: Math.round(maxAllocationPercentage),
     intentInvestment: maxInvestment,
     investmentAmount: investmentAmount,
-    actualAllocationPercentage: actualAllocationPercentage,
+    actualAllocationPercentage: (investmentAmount / maxInvestment) * 100,
+    percentOfPortfolio: percentOfPortfolio,
     riskAmount: riskAmount,
     lossPerShare: lossPerShare,
     riskRewardRatio: riskRewardRatio,

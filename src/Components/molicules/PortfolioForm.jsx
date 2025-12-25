@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { TextField, Button, Box, Typography, Snackbar, Alert } from '@mui/material';
-import { updateExitPercentage, updateRiskPercentage, fetchPortfolioSize, updatePortfolioSize, saveUserSettings } from '../../Store/portfolio';
+import { updateExitPercentage, updateRiskPercentage, fetchPortfolioSize, updatePortfolioSize, saveUserSettings, updateMaxAllowedAllocation } from '../../Store/portfolio';
 import { setPaperCapital } from '../../Store/paperTradeSlice';
 import { commonInputProps } from '../../utils/themeStyles';
 
@@ -12,7 +12,7 @@ const PortfolioForm = ({ tradingMode }) => {
 
   // Select settings based on the passed tradingMode prop
   const activeSettings = tradingMode === 'PROD' ? portfolioState.prod : portfolioState.paper;
-  const { portfolioSize, exitPercentage, riskPercentage } = activeSettings || {};
+  const { portfolioSize, exitPercentage, riskPercentage, maxAllowedAllocation } = activeSettings || {};
 
   const [snackbarOpen, setSnackbarOpen] = React.useState(false);
   const [snackbarMessage, setSnackbarMessage] = React.useState('');
@@ -41,9 +41,10 @@ const PortfolioForm = ({ tradingMode }) => {
     }
     dispatch(updateExitPercentage({ mode: tradingMode === 'PROD' ? 'prod' : 'paper', value: Number(exitPercentage) }));
     dispatch(updateRiskPercentage({ mode: tradingMode === 'PROD' ? 'prod' : 'paper', value: Number(riskPercentage) }));
+    dispatch(updateMaxAllowedAllocation({ mode: tradingMode === 'PROD' ? 'prod' : 'paper', value: Number(maxAllowedAllocation) }));
     const updatedSettings = {
-      prod: tradingMode === 'PROD' ? { ...portfolioState.prod, exitPercentage, riskPercentage } : portfolioState.prod,
-      paper: tradingMode === 'PAPER' ? { ...portfolioState.paper, portfolioSize, exitPercentage, riskPercentage } : portfolioState.paper
+      prod: tradingMode === 'PROD' ? { ...portfolioState.prod, exitPercentage, riskPercentage, maxAllowedAllocation } : portfolioState.prod,
+      paper: tradingMode === 'PAPER' ? { ...portfolioState.paper, portfolioSize, exitPercentage, riskPercentage, maxAllowedAllocation } : portfolioState.paper
     };
     dispatch(saveUserSettings(updatedSettings));
 
@@ -96,6 +97,18 @@ const PortfolioForm = ({ tradingMode }) => {
           type="number"
           value={riskPercentage || ''}
           onChange={(e) => dispatch(updateRiskPercentage({ mode: tradingMode === 'PROD' ? 'prod' : 'paper', value: Number(e.target.value) }))}
+          fullWidth
+          margin="normal"
+          variant="outlined"
+          size="small"
+          {...commonInputProps}
+        />
+
+        <TextField
+          label="Max Allowed Allocation %"
+          type="number"
+          value={maxAllowedAllocation || ''}
+          onChange={(e) => dispatch(updateMaxAllowedAllocation({ mode: tradingMode === 'PROD' ? 'prod' : 'paper', value: Number(e.target.value) }))}
           fullWidth
           margin="normal"
           variant="outlined"

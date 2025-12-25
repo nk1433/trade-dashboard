@@ -32,13 +32,14 @@ export const computeMetrics = async (context) => {
     const previousDayClose = lastPrice;
     const changePercentage = ((ltp - currentDayOpen) / currentDayOpen) * 100;
 
+    const maxAlloc = context.maxAllocation || 15;
     let allocation;
     if (ltp > currentDayOpen) {
-        allocation = calculateAllocationIntent(15, size, ltp, currentDayOpen, riskOfPortfolio);
+        allocation = calculateAllocationIntent(maxAlloc, size, ltp, currentDayOpen, riskOfPortfolio);
     } else {
         // Fallback for down days: Use 1% SL to calculate quantity
         const fallbackSL = ltp * 0.99;
-        const fallbackAllocation = calculateAllocationIntent(15, size, ltp, fallbackSL, riskOfPortfolio);
+        const fallbackAllocation = calculateAllocationIntent(maxAlloc, size, ltp, fallbackSL, riskOfPortfolio);
         allocation = {
             ...fallbackAllocation,
             maxAllocationPercentage: "-",
@@ -102,7 +103,8 @@ export const getStatsForScripts = createAsyncThunk('Orders/getStats', async () =
     return response.data;
 });
 
-export const updateWatchlistWithMetrics = async (liveFeed, scriptMap, portfolio, stats, tradingMode = 'PAPER') => {
+export const updateWatchlistWithMetrics = async (liveFeed, scriptMap, portfolio, stats, settings) => {
+    const tradingMode = settings?.tradingMode || 'PAPER';
     const entries = Object.entries(liveFeed.feeds);
 
     const results = await entries.reduce(async (accP, [instrumentKey, script]) => {
@@ -136,10 +138,10 @@ export const updateWatchlistWithMetrics = async (liveFeed, scriptMap, portfolio,
         // Volume surge rate (minute vs daily)
         const volSurgeRate = currentVolume > 0 ? (currentMinuteVolume / currentVolume) * 100 : 0;
 
-        // Select portfolio settings based on trading mode
         const activePortfolio = portfolio[tradingMode === 'PRODUCTION' ? 'prod' : 'paper'] || portfolio.paper;
         const portfolioSize = activePortfolio?.portfolioSize || 0;
         const riskPercentage = activePortfolio?.riskPercentage || 0.25;
+        const maxAllocation = settings?.maxAllowedAllocation || 15;
 
         const metric = await computeMetrics({
             scriptName: scriptMap[instrumentKey]?.name || '',
@@ -155,6 +157,7 @@ export const updateWatchlistWithMetrics = async (liveFeed, scriptMap, portfolio,
             stats,
             volSurgeRate,
             currentMinuteVolume,
+            maxAllocation,
         });
 
         if (!acc.metrics) acc.metrics = {};
@@ -320,7 +323,7 @@ export const fetchAndCalculateInitialMetrics = createAsyncThunk('Orders/fetchAnd
     const liveFeed = { feeds };
 
     // Call the shared function
-    const metrics = await updateWatchlistWithMetrics(liveFeed, scriptMap, portfolio, stats, tradingMode);
+    const metrics = await updateWatchlistWithMetrics(liveFeed, scriptMap, portfolio, stats, settings);
     return metrics;
 });
 

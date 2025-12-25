@@ -422,8 +422,8 @@ const WatchList = ({ scripts, type = 'dashboard', visibleColumns, onRowClick, co
       <OrderPanel
         open={orderPanelOpen}
         onClose={() => setOrderPanelOpen(false)}
-        script={selectedScript}
-        currentPrice={selectedScript?.ltp}
+        script={selectedScript ? (scripts[selectedScript.instrumentKey || selectedScript.symbol] || selectedScript) : null}
+        currentPrice={selectedScript ? (scripts[selectedScript.instrumentKey || selectedScript.symbol]?.ltp || selectedScript.ltp) : 0}
         tradingMode={tradingMode}
         token={token}
       />

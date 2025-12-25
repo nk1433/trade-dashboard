@@ -48,6 +48,27 @@ export const fetchPaperTradesAsync = createAsyncThunk(
     }
 );
 
+// Update a specific holding (e.g. SL)
+export const updatePaperHoldingAsync = createAsyncThunk(
+    'paperTrade/updatePaperHolding',
+    async ({ symbol, sl }, { rejectWithValue }) => {
+        try {
+            const userStr = localStorage.getItem('user');
+            if (!userStr) throw new Error('User not found');
+            const user = JSON.parse(userStr);
+
+            const response = await axios.put(`${BACKEND_URL}/api/paper-trade/holdings`, {
+                userId: user.id || user._id,
+                symbol,
+                sl
+            });
+            return response.data.data; // Returns portfolio
+        } catch (error) {
+            return rejectWithValue(error.response?.data?.error || error.message);
+        }
+    }
+);
+
 const initialState = {
     capital: 1000000, // Default, will be updated from backend
     holdings: [],
@@ -104,8 +125,6 @@ const paperTradeSlice = createSlice({
                         pnlPercentage: existing ? (((h.quantity * existing.ltp) - h.invested) / h.invested * 100) : 0
                     };
                 });
-
-                // Add new trade to orders list
                 state.orders.unshift({
                     id: trade._id,
                     ...trade
@@ -115,32 +134,40 @@ const paperTradeSlice = createSlice({
                 state.loading = false;
                 state.error = action.payload;
             })
-
-            // Fetch Trades & Portfolio
             .addCase(fetchPaperTradesAsync.pending, (state) => {
                 state.loading = true;
                 state.error = null;
             })
             .addCase(fetchPaperTradesAsync.fulfilled, (state, action) => {
-                state.loading = false;
                 const { trades, portfolio } = action.payload;
 
+                state.loading = false;
                 state.capital = portfolio.capital;
                 state.orders = trades.map(t => ({ id: t._id, ...t }));
-
-                // Merge fetched holdings with current state (to keep LTP updates if any)
-                // But initially, just load them. LTP updates come from socket/polling.
-                state.holdings = portfolio.holdings.map(h => ({
-                    ...h,
-                    ltp: h.avgPrice, // Default to avgPrice until next LTP update
-                    currentValue: h.invested,
-                    pnl: 0,
-                    pnlPercentage: 0
-                }));
+                state.holdings = portfolio.holdings
             })
             .addCase(fetchPaperTradesAsync.rejected, (state, action) => {
                 state.loading = false;
                 state.error = action.payload;
+            })
+
+            // Update Holding (e.g. SL)
+            .addCase(updatePaperHoldingAsync.fulfilled, (state, action) => {
+                const portfolio = action.payload;
+                state.capital = portfolio.capital;
+
+                // update holdings with new SL, preserving LTP
+                state.holdings = portfolio.holdings.map(h => {
+                    const existing = state.holdings.find(eh => eh.symbol === h.symbol);
+                    const ltp = existing ? existing.ltp : h.avgPrice;
+                    return {
+                        ...h,
+                        ltp,
+                        currentValue: h.quantity * ltp,
+                        pnl: (h.quantity * ltp) - h.invested,
+                        pnlPercentage: ((h.quantity * ltp) - h.invested) / h.invested * 100
+                    };
+                });
             });
     }
 });
