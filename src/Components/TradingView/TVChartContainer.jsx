@@ -94,7 +94,14 @@ const TVChartContainer = () => {
         timezone: "Asia/Kolkata",
         fullscreen: true,
         autosize: true,
-        studies_overrides: {},
+        auto_save_delay: 5,
+        charts_storage_url: `${BACKEND_URL}/api/tv`,
+        charts_storage_api_version: "1.1",
+        client_id: "trade-dashboard",
+        user_id: userId,
+        custom_headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+        },
         symbol_search_complete: (symbol, searchResultItem) => {
           return new Promise((resolve) => {
             const allScripts = [...niftylargecap, ...niftymidsmall400];
@@ -107,14 +114,13 @@ const TVChartContainer = () => {
             }
           });
         },
-        charts_storage_url: `${BACKEND_URL}/api/tv`,
-        charts_storage_api_version: "1.1",
-        client_id: "trade-dashboard",
-        user_id: userId,
-        load_last_chart: false,
-        custom_headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-        },
+        custom_formatters: {
+          dateFormatter: {
+            format: (date) => {
+              return date.getUTCDate() + '/' + (date.getUTCMonth() + 1) + '/' + date.getUTCFullYear();
+            }
+          }
+        }
       };
 
       const tvWidget = new widget(widgetOptions);
