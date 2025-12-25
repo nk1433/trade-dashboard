@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Box, Button, TextField, Typography, Container, Paper } from '@mui/material';
+import { Box, Button, TextField, Typography, Container, Paper, IconButton, InputAdornment } from '@mui/material';
+import { Visibility, VisibilityOff } from '@mui/icons-material';
 import axios from 'axios';
 import { useNavigate, Link } from 'react-router-dom';
 
@@ -7,6 +8,7 @@ import { BACKEND_URL } from '../utils/config';
 
 const Signup = () => {
     const [formData, setFormData] = useState({ name: '', email: '', password: '' });
+    const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState('');
     const navigate = useNavigate();
 
@@ -71,7 +73,7 @@ const Signup = () => {
                         fullWidth
                         name="password"
                         label="Password"
-                        type="password"
+                        type={showPassword ? 'text' : 'password'}
                         autoComplete="new-password"
                         value={formData.password}
                         onChange={handleChange}
@@ -80,6 +82,19 @@ const Signup = () => {
                                 '&.Mui-focused fieldset': { borderColor: 'black' },
                             },
                             '& .MuiInputLabel-root.Mui-focused': { color: 'black' },
+                        }}
+                        InputProps={{
+                            endAdornment: (
+                                <InputAdornment position="end">
+                                    <IconButton
+                                        aria-label="toggle password visibility"
+                                        onClick={() => setShowPassword(!showPassword)}
+                                        edge="end"
+                                    >
+                                        {showPassword ? <VisibilityOff /> : <Visibility />}
+                                    </IconButton>
+                                </InputAdornment>
+                            ),
                         }}
                     />
                     {error && <Typography color="error" variant="body2">{error}</Typography>}
