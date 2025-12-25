@@ -9,12 +9,18 @@ import BreadthTwoPaneChart from './TVLightChart';
 import { commonSelectSx, commonInputLabelSx } from '../../utils/themeStyles';
 import moment from 'moment';
 
-const getCellStyle = (value, positiveThreshold = 0.5) => {
+const getCellStyle = (value, threshold = 0.5, type = 'up') => {
+  const colors = {
+    red: '#800000',
+    green: '#004d00',
+    lightGreen: '#c6efce',
+    lightRed: '#ffc7ce',
+  }
   if (typeof value !== 'number') return {};
-  if (value >= positiveThreshold) {
-    return { backgroundColor: '#d0f0c0', color: '#004d00' }; // light green bg, dark green text
-  } else if (value > 0) {
-    return { backgroundColor: '#ffd6d6', color: '#800000' }; // light red bg, dark red text
+  if (value >= threshold && type === 'up') {
+    return { backgroundColor: colors.lightGreen, color: colors.green }; // light green bg, dark green text
+  } else if (value >= threshold && type === 'down') {
+    return { backgroundColor: colors.lightRed, color: colors.red }; // light red bg, dark red text
   }
   return {};
 };
@@ -41,7 +47,7 @@ const columns = [
     align: 'center',
     headerAlign: 'center',
     renderCell: (params) => (
-      <div style={getCellStyle(params.value, 10)}>{params.value}</div>
+      <div style={getCellStyle(params.value, 10, 'up')}>{params.value}</div>
     )
   },
   {
@@ -51,7 +57,7 @@ const columns = [
     align: 'center',
     headerAlign: 'center',
     renderCell: (params) => (
-      <div style={getCellStyle(params.value, 10)}>{params.value}</div>
+      <div style={getCellStyle(params.value, 8, 'down')}>{params.value}</div>
     )
   },
   {
@@ -61,7 +67,7 @@ const columns = [
     align: 'center',
     headerAlign: 'center',
     renderCell: (params) => (
-      <div style={getCellStyle(params.value, 10)}>{params.value}</div>
+      <div style={getCellStyle(params.value, 10, 'up')}>{params.value}</div>
     )
   },
   {
@@ -71,7 +77,7 @@ const columns = [
     align: 'center',
     headerAlign: 'center',
     renderCell: (params) => (
-      <div style={getCellStyle(params.value, 10)}>{params.value}</div>
+      <div style={getCellStyle(params.value, 10, 'down')}>{params.value}</div>
     )
   },
   {
@@ -82,7 +88,7 @@ const columns = [
     align: 'center',
     headerAlign: 'center',
     renderCell: (params) => (
-      <div style={getCellStyle(params.value, 0.6)}>{(params.value * 100).toFixed(2)}%</div>
+      <div style={getCellStyle(params.value, 0.6, 'up')}>{(params.value * 100).toFixed(2)}%</div>
     )
   },
   {
@@ -93,7 +99,7 @@ const columns = [
     align: 'center',
     headerAlign: 'center',
     renderCell: (params) => (
-      <div style={getCellStyle(params.value, 0.6)}>{(params.value * 100).toFixed(2)}%</div>
+      <div style={getCellStyle(params.value, 0.6, 'down')}>{(params.value * 100).toFixed(2)}%</div>
     )
   },
   {
@@ -103,7 +109,7 @@ const columns = [
     align: 'center',
     headerAlign: 'center',
     renderCell: (params) => (
-      <div style={getCellStyle(params.value, 10)}>{params.value}</div>
+      <div style={getCellStyle(params.value, 10, 'up')}>{params.value}</div>
     )
   },
   {
@@ -113,7 +119,7 @@ const columns = [
     align: 'center',
     headerAlign: 'center',
     renderCell: (params) => (
-      <div style={getCellStyle(params.value, 10)}>{params.value}</div>
+      <div style={getCellStyle(params.value, 10, 'down')}>{params.value}</div>
     )
   },
   {
@@ -124,7 +130,7 @@ const columns = [
     align: 'center',
     headerAlign: 'center',
     renderCell: (params) => (
-      <div style={getCellStyle(params.value, 5)}>{params.value.toFixed(2)}</div>
+      <div style={getCellStyle(params.value, 5, 'up')}>{params.value.toFixed(2)}</div>
     )
   },
   {
@@ -135,7 +141,7 @@ const columns = [
     align: 'center',
     headerAlign: 'center',
     renderCell: (params) => (
-      <div style={getCellStyle(params.value, 5)}>{params.value.toFixed(2)}</div>
+      <div style={getCellStyle(params.value, 5, 'down')}>{params.value.toFixed(2)}</div>
     )
   },
   {
