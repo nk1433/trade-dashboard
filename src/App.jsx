@@ -67,13 +67,8 @@ const App = () => {
     dispatch(fetchUserSettings());
     dispatch(fetchPaperTradesAsync());
 
-    // Fetch initial metrics for a subset of scripts to ensure watchlist is not empty (e.g. for testing)
-    import('./index/niftymidsmall400-float.json').then((module) => {
-      const scripts = module.default.slice(0, 10); // Fetch top 10
-      import('./Store/upstoxs').then(({ fetchAndCalculateInitialMetrics }) => {
-        dispatch(fetchAndCalculateInitialMetrics(scripts));
-      });
-    });
+    // Fetch initial metrics logic removed to prevent excessive API calls
+    // import('./index/niftymidsmall400-float.json').then((module) => { ... });
   }, [dispatch]);
 
   // Global LTP Update Logic for Paper Holdings
