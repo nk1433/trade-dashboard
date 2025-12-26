@@ -104,7 +104,12 @@ export const updateWatchlistWithMetrics = async (liveFeed, scriptMap, portfolio,
         if (!acc.dollar) acc.dollar = {};
         if (!acc.bearishDollar) acc.bearishDollar = {};
 
-        acc.metrics[instrumentKey] = metric;
+        acc.metrics[instrumentKey] = {
+            ...metric,
+            dayHigh: latestDayFeed.high,
+            dayLow: latestDayFeed.low,
+            dayVolume: currentVolume,
+        };
 
         if (priceRatio >= 1.04 && currentVolume > prevDayVolume && currentVolume >= 100000) {
             acc.bullishMB[instrumentKey] = metric;

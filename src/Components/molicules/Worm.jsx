@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useMemo } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useSelector } from "react-redux";
 import { LineChart } from "@mui/x-charts/LineChart";
 import {
@@ -7,54 +7,42 @@ import {
     Box,
     Paper,
     useTheme,
-    Stack,
-    Divider,
-    LinearProgress
 } from "@mui/material";
 import niftymidsmall400 from "../../index/niftymidsmall400-float.json";
-import axios from "axios";
-
-function getInstrumentKeyParam(list) {
-    return list.map(item => encodeURIComponent(item.instrument_key)).join(",");
-}
-
-async function fetchMarketOHLC(instrumentKeys, token) {
-    const url = `https://api.upstox.com/v3/market-quote/ohlc?instrument_key=${instrumentKeys}&interval=1d`;
-    // Fallback to env if token not provided (though Redux should have it)
-    const effectiveToken = token || import.meta.env.VITE_UPSTOXS_ACCESS_KEY;
-
-    const headers = {
-        Accept: "application/json",
-        Authorization: "Bearer " + effectiveToken,
-    };
-
-    try {
-        const response = await axios.get(url, { headers });
-        return response.data?.data || {};
-    } catch (error) {
-        console.error("Failed to fetch market OHLC data:", error.message);
-        return {};
-    }
-}
 
 export default function MarketHighLowWormChart() {
     const [seriesData, setSeriesData] = useState([]);
-    const instrumentKeys = useRef(getInstrumentKeyParam(niftymidsmall400));
     const theme = useTheme();
-    const { token } = useSelector((state) => state.auth);
+
+    // Access live metrics from Redux
+    const { orderMetrics } = useSelector((state) => state.orders);
 
     useEffect(() => {
         let isMounted = true;
-        if (!token) return; // Wait for token
 
-        const pollData = async () => {
-            const ohlcData = await fetchMarketOHLC(instrumentKeys.current, token);
+        const calculateLiveStats = () => {
             let newHighCount = 0;
             let newLowCount = 0;
+            let totalTurnover = 0;
 
-            Object.values(ohlcData).forEach(item => {
-                if (item?.live_ohlc?.close === item?.live_ohlc?.high) newHighCount++;
-                if (item?.live_ohlc?.close === item?.live_ohlc?.low) newLowCount++;
+            // Iterate through the monitored list
+            niftymidsmall400.forEach(script => {
+                const metric = orderMetrics[script.instrument_key];
+
+                if (metric) {
+                    const ltp = metric.ltp || 0;
+                    const high = metric.dayHigh || 0;
+                    const low = metric.dayLow || 0;
+                    const vol = metric.dayVolume || 0;
+
+                    if (ltp > 0) {
+                        if (ltp === high) newHighCount++;
+                        if (ltp === low) newLowCount++;
+
+                        // Calculate Turnover: LTP * Volume
+                        totalTurnover += (ltp * vol);
+                    }
+                }
             });
 
             const now = new Date();
@@ -62,36 +50,52 @@ export default function MarketHighLowWormChart() {
 
             if (!isMounted) return;
 
-            // Keep only last 60 data points
+            // Update series data with sliding window
             setSeriesData(prev => {
                 const updated = [
                     ...prev,
-                    { time: timeLabel, newHighs: newHighCount, newLows: newLowCount }
+                    {
+                        time: timeLabel,
+                        newHighs: newHighCount,
+                        newLows: newLowCount,
+                        turnover: totalTurnover
+                    }
                 ];
+                // Keep last 60 points (~1 min if 1s interval, or adjust as needed)
                 return updated.slice(-60);
             });
         };
 
-        pollData();
-        const interval = setInterval(pollData, 4000);
+        // Run calculation every second for "live" feel
+        calculateLiveStats();
+        const interval = setInterval(calculateLiveStats, 1000);
 
         return () => {
             isMounted = false;
             clearInterval(interval);
         };
-    }, [token]);
+    }, [orderMetrics]); // Dependency on orderMetrics ensures updates when Redux changes
 
     const timePoints = useMemo(() => seriesData.map(pt => pt.time), [seriesData]);
     const newHighSeries = useMemo(() => seriesData.map(pt => pt.newHighs), [seriesData]);
     const newLowSeries = useMemo(() => seriesData.map(pt => pt.newLows), [seriesData]);
+    const turnoverSeries = useMemo(() => seriesData.map(pt => (pt.turnover / 10000000).toFixed(2)), [seriesData]); // In Crores (10^7)
 
     const latestHighs = seriesData.length > 0 ? seriesData[seriesData.length - 1].newHighs : 0;
     const latestLows = seriesData.length > 0 ? seriesData[seriesData.length - 1].newLows : 0;
+    const latestTurnover = seriesData.length > 0 ? seriesData[seriesData.length - 1].turnover : 0;
 
     // Calculate Ratio for Progress Bar
     const total = latestHighs + latestLows;
     const highRatio = total > 0 ? (latestHighs / total) * 100 : 50;
 
+    // Format Turnover
+    const formatTurnover = (val) => {
+        if (!val) return '₹ 0.00';
+        if (val >= 10000000) return `₹ ${(val / 10000000).toFixed(2)} Cr`;
+        if (val >= 100000) return `₹ ${(val / 100000).toFixed(2)} L`;
+        return `₹ ${val.toFixed(2)}`;
+    };
 
     return (
         <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
@@ -136,7 +140,7 @@ export default function MarketHighLowWormChart() {
                 </Box>
             </Box>
 
-            {/* Chart Section */}
+            {/* High/Low Chart Section */}
             <Paper elevation={0} sx={{
                 p: 2,
                 borderRadius: 0,
@@ -197,7 +201,6 @@ export default function MarketHighLowWormChart() {
                                 },
                             }}
                             sx={{
-                                // Custom chart overrides for monochrome logic if needed
                                 '.MuiAreaElement-root': {
                                     fillOpacity: 0.1 // Lighter fill
                                 }
@@ -205,11 +208,79 @@ export default function MarketHighLowWormChart() {
                         />
                     ) : (
                         <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
-                            <Typography variant="overline" color="text.secondary">Waiting for Market Data...</Typography>
+                            <Typography variant="overline" color="text.secondary">Loading Live Data...</Typography>
                         </Box>
                     )}
                 </Box>
             </Paper>
+
+            {/* Turnover Chart Section */}
+            <Box sx={{ mt: 6, mb: 2, textAlign: 'center' }}>
+                <Typography variant="overline" sx={{ letterSpacing: 2, color: '#9e9e9e', fontWeight: 600 }}>
+                    TOTAL MARKET TURNOVER
+                </Typography>
+                <Typography variant="h3" sx={{ fontWeight: 800, color: '#000', mt: 1 }}>
+                    {formatTurnover(latestTurnover)}
+                </Typography>
+            </Box>
+
+            <Paper elevation={0} sx={{
+                p: 2,
+                borderRadius: 0,
+                border: '1px solid #eee',
+                height: 350,
+                width: '100%',
+                overflow: 'hidden'
+            }}>
+                <Box sx={{ width: '100%', height: '100%' }}>
+                    {seriesData.length > 0 ? (
+                        <LineChart
+                            height={300}
+                            margin={{ left: 60, right: 20, top: 20, bottom: 30 }}
+                            grid={{ horizontal: true }}
+                            series={[
+                                {
+                                    label: "Turnover (Cr)",
+                                    data: turnoverSeries,
+                                    curve: "monotoneX",
+                                    color: "#212121", // Dark Grey/Black
+                                    area: true,
+                                    showMark: false,
+                                    width: 2,
+                                },
+                            ]}
+                            xAxis={[
+                                {
+                                    data: timePoints,
+                                    label: "Time",
+                                    scaleType: "point",
+                                    tickLabelStyle: {
+                                        angle: -45,
+                                        textAnchor: 'end',
+                                        fontSize: 10,
+                                        fontFamily: 'Roboto Mono'
+                                    }
+                                },
+                            ]}
+                            slotProps={{
+                                legend: {
+                                    hidden: true
+                                },
+                            }}
+                            sx={{
+                                '.MuiAreaElement-root': {
+                                    fillOpacity: 0.1
+                                }
+                            }}
+                        />
+                    ) : (
+                        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
+                            <Typography variant="overline" color="text.secondary">Loading Live Turnover Data...</Typography>
+                        </Box>
+                    )}
+                </Box>
+            </Paper>
+
         </Container>
     );
 }
