@@ -197,3 +197,68 @@ export const calculateAllocationIntentForScript = (
   };
 };
 
+export const computeMetrics = async (context) => {
+  const {
+    scriptName,
+    instrumentKey,
+    size,
+    riskOfPortfolio,
+    currentDayOpen,
+    lowPrice,
+    currentVolume,
+    high,
+    ltp,
+    stats,
+    currentMinuteVolume,
+    symbol,
+  } = context;
+
+  let barClosingStrength = ((ltp - lowPrice) / (high - lowPrice)) * 100;
+  const isUpDay = ltp >= currentDayOpen; // true if up day or flat
+
+  if (!isUpDay) {
+    barClosingStrength = ((high - ltp) / (high - lowPrice)) * 100;
+  }
+
+  const threshold = currentDayOpen * 0.99;
+  const instrumentStats = stats[instrumentKey] || {};
+  const { lastPrice, avgVolume21d, avgValueVolume21d } = instrumentStats;
+
+  const avgVolume = avgVolume21d;
+  const previousDayClose = lastPrice;
+  const changePercentage = ((ltp - currentDayOpen) / currentDayOpen) * 100;
+
+  const maxAlloc = context.maxAllocation || 15;
+  let allocation;
+  if (ltp > currentDayOpen) {
+    allocation = calculateAllocationIntent(maxAlloc, size, ltp, currentDayOpen, riskOfPortfolio);
+  } else {
+    // Fallback for down days: Use 1% SL to calculate quantity
+    const fallbackSL = ltp * 0.99;
+    const fallbackAllocation = calculateAllocationIntent(maxAlloc, size, ltp, fallbackSL, riskOfPortfolio);
+    allocation = {
+      ...fallbackAllocation,
+      maxAllocationPercentage: "-",
+      riskRewardRatio: "-",
+      allocationSuggestions: [],
+    };
+  }
+
+  return {
+    scriptName,
+    symbol,
+    avgVolume,
+    instrumentKey,
+    relativeVolumePercentage: ((currentVolume / parseFloat(avgVolume)) * 100).toFixed(2),
+    gapPercentage: (((currentDayOpen - previousDayClose) / previousDayClose) * 100).toFixed(2),
+    strongStart: lowPrice >= threshold,
+    ltp: ltp,
+    sl: currentDayOpen,
+    barClosingStrength: Math.round(barClosingStrength),
+    isUpDay,
+    changePercentage: changePercentage.toFixed(2),
+    avgValueVolume21d,
+    currentMinuteVolume,
+    ...allocation,
+  };
+};

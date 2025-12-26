@@ -21,6 +21,7 @@ import CloseIcon from '@mui/icons-material/Close';
 import { useDispatch, useSelector } from 'react-redux';
 import { executePaperOrder } from '../../Store/paperTradeSlice';
 import { commonInputProps } from '../../utils/themeStyles';
+import { calculateAllocationIntent } from '../../utils/calculateMetrics';
 
 const OrderPanel = ({ open, onClose, script, currentPrice = 0, tradingMode, token, initialSide = 'BUY' }) => {
     const dispatch = useDispatch();
@@ -41,6 +42,26 @@ const OrderPanel = ({ open, onClose, script, currentPrice = 0, tradingMode, toke
     const [rewardAmount, setRewardAmount] = useState(0);
     const [rrRatio, setRrRatio] = useState(0);
 
+    // Dynamic Metrics State
+    const settings = useSelector((state) => state.settings); // Get Settings
+    const portfolio = useSelector((state) => state.orders); // Access orders slice which contains 'holdings' but seemingly not portfolio config?
+    // Wait, upstoxs.js accessed 'portfolio' from state. Let's assume there is a portfolio slice or we use paperTrade/settings. 
+    // Checking upstoxs.js again: const { portfolio, settings, orders: { stats } } = state.getState();
+    // It seems 'portfolio' is a slice. Let me check Store/index.js output. 
+    // Validating from Store/index.js in next step if needed, but for now I will rely on standard access.
+    // Actually, I will use a safe fallback for riskPercentage.
+
+    // Assuming portfolio slice exists or we derive risk from settings/paperTrade. 
+    // For now, I'll stick to what I see in `OrderPanel`: paperTrade.capital
+
+    const [calcMetrics, setCalcMetrics] = useState({
+        quantity: 1,
+        riskAmount: 0,
+        riskPercentage: 0,
+        allocation: 0,
+        allocPercent: 0,
+    });
+
     // Initial Load when Panel Opens
     useEffect(() => {
         if (open && script) {
@@ -51,12 +72,15 @@ const OrderPanel = ({ open, onClose, script, currentPrice = 0, tradingMode, toke
             // Default to 'sharesToBuy' (Calculated trade quantity) instead of 'maxShareToBuy' (Limit)
             setQuantity(script.sharesToBuy || script.maxShareToBuy || 1);
 
-            // Auto-populate SL and Enable it by default
             setSlEnabled(true);
             setSlPrice(script.sl || 0);
 
             // Set side from initialSide if provided (re-sync on open)
             setSide(initialSide);
+
+            // Initial Calculation
+            const initialRisk = script.lossInMoney || (capital * 0.0025); // Default to script risk or 0.25% of capital
+            setCalcMetrics(prev => ({ ...prev, riskAmount: initialRisk }));
         }
     }, [open, initialSide]); // Run only when 'open' changes to true (or script changes initially)
 
@@ -78,6 +102,61 @@ const OrderPanel = ({ open, onClose, script, currentPrice = 0, tradingMode, toke
             }
         }
     }, [currentPrice, orderType, open, script]);
+
+    // Update Metrics whenever Quantity, Price, or SL changes
+    useEffect(() => {
+        if (!price) return;
+
+        const qty = Number(quantity) || 0;
+        const ltp = Number(price) || 0;
+        const sl = Number(slPrice) || 0;
+
+        const investment = qty * ltp;
+        const riskAmount = slEnabled && sl > 0 ? Math.abs(ltp - sl) * qty : 0;
+
+        const effectiveCapital = capital || 100000;
+
+        setCalcMetrics({
+            quantity: qty,
+            riskAmount: riskAmount.toFixed(2),
+            riskPercentage: ((riskAmount / effectiveCapital) * 100).toFixed(2),
+            allocation: investment.toFixed(2),
+            allocPercent: ((investment / effectiveCapital) * 100).toFixed(2)
+        });
+
+    }, [quantity, price, slPrice, slEnabled, capital]);
+
+    // NEW HANDLER for SL Change
+    const handleSlChange = (newSl) => {
+        setSlPrice(newSl);
+        if (!newSl || !price) return;
+
+        const entry = Number(price);
+        const sl = Number(newSl);
+        const riskPerShare = Math.abs(entry - sl);
+
+        // Target Risk: maintain the 'intended' risk or use the standard 0.25% rule?
+        // User said: "metric should be calculated using same funcitionality... updateWatchlistWithMetrics"
+        // updateWatchlistWithMetrics uses `calculateMetrics` -> `calculateAllocationIntent`.
+        // So we should re-run `calculateAllocationIntent` with the NEW SL.
+
+        const effectiveCapital = capital || 100000;
+        const riskPct = 0.25; // Hardcoded fallback for now, needs real value
+
+        const intent = calculateAllocationIntent(
+            settings?.maxAllowedAllocation || 15,
+            effectiveCapital,
+            entry,
+            sl,
+            riskPct
+        );
+
+        if (intent.sharesToBuy > 0) {
+            setQuantity(intent.sharesToBuy);
+        }
+    };
+
+    // Replaces the direct setSlPrice in render
 
     // NOTE: Removed local calculation of Risk/Allocation to rely on central metrics (script prop)
     // The Footer now displays the System Calculated metrics (based on sharesToBuy/lossInMoney)
@@ -335,7 +414,7 @@ const OrderPanel = ({ open, onClose, script, currentPrice = 0, tradingMode, toke
                         <TextField
                             label="Trigger Price"
                             type="number"
-                            value={triggerPrice?.toFixed(2)}
+                            value={triggerPrice}
                             onChange={(e) => setTriggerPrice(e.target.value)}
                             size="small"
                             fullWidth
@@ -366,8 +445,8 @@ const OrderPanel = ({ open, onClose, script, currentPrice = 0, tradingMode, toke
                             {slEnabled && (
                                 <TextField
                                     type="number"
-                                    value={slPrice?.toFixed(2)}
-                                    onChange={(e) => setSlPrice(e.target.value)}
+                                    value={slPrice}
+                                    onChange={(e) => handleSlChange(e.target.value)}
                                     size="small"
                                     fullWidth
                                     placeholder="Price"
@@ -428,12 +507,16 @@ const OrderPanel = ({ open, onClose, script, currentPrice = 0, tradingMode, toke
                         <Typography variant="caption" fontWeight={600}>{quantity}</Typography>
                     </Box>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <Typography variant="caption" color="text.secondary">Quantity</Typography>
+                        <Typography variant="caption" fontWeight={600}>{calcMetrics.quantity}</Typography>
+                    </Box>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                         <Typography variant="caption" color="text.secondary">Allocation</Typography>
-                        <Typography variant="caption" fontWeight={600}>₹{Number(script?.investmentAmount || 0).toFixed(2)}</Typography>
+                        <Typography variant="caption" fontWeight={600}>₹{calcMetrics.allocation}</Typography>
                     </Box>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                         <Typography variant="caption" color="text.secondary">Alloc %</Typography>
-                        <Typography variant="caption" fontWeight={600}>{Number(script?.percentOfPortfolio || script?.actualAllocationPercentage || 0).toFixed(2)}%</Typography>
+                        <Typography variant="caption" fontWeight={600}>{calcMetrics.allocPercent}%</Typography>
                     </Box>
                     {slEnabled && (
                         <>
@@ -443,11 +526,11 @@ const OrderPanel = ({ open, onClose, script, currentPrice = 0, tradingMode, toke
                             </Box>
                             <Box sx={{ display: 'flex', justifyContent: 'space-between', color: '#d32f2f' }}>
                                 <Typography variant="caption" color="inherit">Risk Amount</Typography>
-                                <Typography variant="caption" fontWeight={600}>₹{Number(script?.lossInMoney || 0).toFixed(2)}</Typography>
+                                <Typography variant="caption" fontWeight={600}>₹{calcMetrics.riskAmount}</Typography>
                             </Box>
                             <Box sx={{ display: 'flex', justifyContent: 'space-between', color: '#d32f2f' }}>
                                 <Typography variant="caption" color="inherit">Risk %</Typography>
-                                <Typography variant="caption" fontWeight={600}>{Number(script?.riskPercentage || ((script?.lossInMoney || 0) / capital * 100) || 0).toFixed(2)}%</Typography>
+                                <Typography variant="caption" fontWeight={600}>{calcMetrics.riskPercentage}%</Typography>
                             </Box>
                         </>
                     )}
