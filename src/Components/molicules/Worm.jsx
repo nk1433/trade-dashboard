@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from "react";
 import { useSelector } from "react-redux";
-import { LineChart } from "@mui/x-charts/LineChart";
+import CommonLineChart from "./CommonLineChart";
 import {
     Typography,
     Container,
@@ -151,10 +151,9 @@ export default function MarketHighLowWormChart() {
             }}>
                 <Box sx={{ width: '100%', height: '100%' }}>
                     {seriesData.length > 0 ? (
-                        <LineChart
+                        <CommonLineChart
                             height={400}
                             margin={{ left: 50, right: 20, top: 20, bottom: 30 }}
-                            grid={{ horizontal: true }}
                             series={[
                                 {
                                     label: "New Highs",
@@ -188,23 +187,6 @@ export default function MarketHighLowWormChart() {
                                     }
                                 },
                             ]}
-                            slotProps={{
-                                legend: {
-                                    hidden: false,
-                                    direction: 'row',
-                                    position: { vertical: 'top', horizontal: 'right' },
-                                    padding: 0,
-                                    labelStyle: {
-                                        fontWeight: 600,
-                                        fontSize: 12
-                                    }
-                                },
-                            }}
-                            sx={{
-                                '.MuiAreaElement-root': {
-                                    fillOpacity: 0.1 // Lighter fill
-                                }
-                            }}
                         />
                     ) : (
                         <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
@@ -234,10 +216,9 @@ export default function MarketHighLowWormChart() {
             }}>
                 <Box sx={{ width: '100%', height: '100%' }}>
                     {seriesData.length > 0 ? (
-                        <LineChart
+                        <CommonLineChart
                             height={300}
                             margin={{ left: 60, right: 20, top: 20, bottom: 30 }}
-                            grid={{ horizontal: true }}
                             series={[
                                 {
                                     label: "Turnover (Cr)",
@@ -262,16 +243,6 @@ export default function MarketHighLowWormChart() {
                                     }
                                 },
                             ]}
-                            slotProps={{
-                                legend: {
-                                    hidden: true
-                                },
-                            }}
-                            sx={{
-                                '.MuiAreaElement-root': {
-                                    fillOpacity: 0.1
-                                }
-                            }}
                         />
                     ) : (
                         <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>

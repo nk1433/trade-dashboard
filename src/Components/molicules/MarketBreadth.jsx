@@ -5,6 +5,7 @@ import { DataGrid } from '@mui/x-data-grid';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchMarketBreadth } from '../../Store/marketBreadth';
 import MarketBreadthBarChart from './MarketBreadthChart';
+import CombinedMarketBreadthChart from './CombinedMarketBreadthChart';
 import BreadthTwoPaneChart from './TVLightChart';
 import { commonSelectSx, commonInputLabelSx } from '../../utils/themeStyles';
 import moment from 'moment';
@@ -207,6 +208,7 @@ const MarketBreadthTable = () => {
               >
                 <MenuItem value="mui">MUI Charts</MenuItem>
                 <MenuItem value="tv">TradingView</MenuItem>
+                <MenuItem value="combined">Combined</MenuItem>
               </Select>
             </FormControl>
             <FormControl size="small" sx={{ minWidth: 180, bgcolor: 'white' }}>
@@ -255,6 +257,10 @@ const MarketBreadthTable = () => {
                 />
               </Box>
             </>
+          ) : chartType === 'combined' ? (
+            <Box sx={{ height: 500 }}>
+              <CombinedMarketBreadthChart data={breadthData} field={percantageChange} />
+            </Box>
           ) : (
             <Box sx={{ height: 500 }}>
               <BreadthTwoPaneChart data={rows} field={percantageChange} />
