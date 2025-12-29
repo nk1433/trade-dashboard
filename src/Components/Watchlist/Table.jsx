@@ -1,12 +1,14 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Box, IconButton, Tooltip, Snackbar, Alert, Typography } from '@mui/material';
+import { Box, IconButton, Tooltip, Snackbar, Alert, Typography, Popover } from '@mui/material';
 import { DataGrid, GridLogicOperator } from '@mui/x-data-grid';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import { useDispatch, useSelector } from 'react-redux';
 import PropTypes from 'prop-types';
 import { updatePaperHoldingsLTP, executePaperOrder } from '../../Store/paperTradeSlice';
 import { formatToIndianUnits } from '../../utils';
 import OrderPanel from './OrderPanel';
+import TradingViewFinancialsWidget from '../molicules/TradingViewFinancialsWidget';
 
 const columnMapping = {
   LTP: 'ltp',
@@ -36,6 +38,10 @@ const WatchList = ({ scripts, type = 'dashboard', visibleColumns, onRowClick, co
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [orderPanelOpen, setOrderPanelOpen] = useState(false);
   const [selectedScript, setSelectedScript] = useState(null);
+
+  // Info Popover State
+  const [infoAnchorEl, setInfoAnchorEl] = useState(null);
+  const [hoveredSymbol, setHoveredSymbol] = useState(null);
 
   const dispatch = useDispatch();
   const tradingMode = useSelector((state) => state.settings?.tradingMode || 'PAPER');
@@ -87,6 +93,18 @@ const WatchList = ({ scripts, type = 'dashboard', visibleColumns, onRowClick, co
                   aria-label="copy script name"
                 >
                   <ContentCopyIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+              <Tooltip title="View Fundamentals">
+                <IconButton
+                  size="small"
+                  onMouseEnter={(e) => {
+                    setInfoAnchorEl(e.currentTarget);
+                    setHoveredSymbol(params.row.symbol);
+                  }}
+                  aria-label="view info"
+                >
+                  <InfoOutlinedIcon fontSize="small" />
                 </IconButton>
               </Tooltip>
             </Box>
@@ -320,12 +338,26 @@ const WatchList = ({ scripts, type = 'dashboard', visibleColumns, onRowClick, co
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <span style={{ fontSize: compact ? '0.75rem' : 'inherit', fontWeight: compact ? 600 : 'inherit' }}>{params.row.symbol}</span>
                 {!compact && (
-                  <Tooltip title="Copy script name">
-                    <IconButton size="small" onClick={handleCopy}>
-                      <ContentCopyIcon fontSize="small" />
-                    </IconButton>
-                  </Tooltip>
+                  <>
+                    <Tooltip title="Copy script name">
+                      <IconButton size="small" onClick={handleCopy}>
+                        <ContentCopyIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                  </>
                 )}
+                <Tooltip title="View Fundamentals">
+                  <IconButton
+                    size="small"
+                    onMouseEnter={(e) => {
+                      setInfoAnchorEl(e.currentTarget);
+                      setHoveredSymbol(params.row.symbol);
+                    }}
+                    aria-label="view info"
+                  >
+                    <InfoOutlinedIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
               </Box>
             );
           };
@@ -427,6 +459,38 @@ const WatchList = ({ scripts, type = 'dashboard', visibleColumns, onRowClick, co
         tradingMode={tradingMode}
         token={token}
       />
+      <Popover
+        id="mouse-over-popover"
+        sx={{
+          pointerEvents: 'none',
+        }}
+        open={Boolean(infoAnchorEl)}
+        anchorEl={infoAnchorEl}
+        anchorOrigin={{
+          vertical: 'bottom',
+          horizontal: 'left',
+        }}
+        transformOrigin={{
+          vertical: 'top',
+          horizontal: 'left',
+        }}
+        onClose={() => {
+          setInfoAnchorEl(null);
+          setHoveredSymbol(null);
+        }}
+        disableRestoreFocus
+      >
+        <Box
+          sx={{ width: 400, height: 450, bgcolor: 'background.paper', border: '1px solid #ccc', p: 1 }}
+          onMouseLeave={() => {
+            setInfoAnchorEl(null);
+            setHoveredSymbol(null);
+          }}
+          style={{ pointerEvents: 'auto' }} // Enable interaction within the popover
+        >
+          {hoveredSymbol && <TradingViewFinancialsWidget symbol={hoveredSymbol} />}
+        </Box>
+      </Popover>
     </div>
   );
 };
