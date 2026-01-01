@@ -226,7 +226,11 @@ export const computeMetrics = async (context) => {
 
   const avgVolume = avgVolume21d;
   const previousDayClose = lastPrice;
-  const changePercentage = ((ltp - currentDayOpen) / currentDayOpen) * 100;
+  const gapPercentage = ((currentDayOpen - previousDayClose) / previousDayClose) * 100;
+  const intradayChangePercentage = ((ltp - currentDayOpen) / currentDayOpen) * 100;
+
+  // User requested summation of changePercentage (intraday) and gapUp percentage
+  const changePercentage = intradayChangePercentage + gapPercentage;
 
   const maxAlloc = context.maxAllocation || 15;
   let allocation;
@@ -250,7 +254,7 @@ export const computeMetrics = async (context) => {
     avgVolume,
     instrumentKey,
     relativeVolumePercentage: ((currentVolume / parseFloat(avgVolume)) * 100).toFixed(2),
-    gapPercentage: (((currentDayOpen - previousDayClose) / previousDayClose) * 100).toFixed(2),
+    gapPercentage: gapPercentage.toFixed(2),
     strongStart: lowPrice >= threshold,
     ltp: ltp,
     sl: currentDayOpen,
