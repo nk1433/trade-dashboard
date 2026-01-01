@@ -10,6 +10,9 @@ import { formatToIndianUnits } from '../../utils';
 import OrderPanel from './OrderPanel';
 import TradingViewFinancialsWidget from '../molicules/TradingViewFinancialsWidget';
 
+const UP_COLOR = '#26a69a'; // Lighter Teal/Green
+const DOWN_COLOR = '#ef5350'; // Lighter Red
+
 const columnMapping = {
   LTP: 'ltp',
   SL: 'sl',
@@ -73,7 +76,7 @@ const WatchList = ({ scripts, type = 'dashboard', visibleColumns, onRowClick, co
         width: 300, // widened for icon
         renderCell: (params) => {
           const isUp = params.row.isUpDay;
-          const color = isUp ? "green" : "red";
+          const color = isUp ? UP_COLOR : DOWN_COLOR;
 
           // Copy to clipboard handler
           const handleCopy = (e) => {
@@ -137,10 +140,10 @@ const WatchList = ({ scripts, type = 'dashboard', visibleColumns, onRowClick, co
         headerName: "Change %",
         renderCell: (params) => {
           const isUp = params.row.isUpDay;
-          const color = isUp ? "green" : "red";
+          const color = isUp ? UP_COLOR : DOWN_COLOR;
           const value = params.value != null ? Number(params.value).toFixed(2) : '-';
 
-          return <span style={{ color }}>{value}%</span>;
+          return <span style={{ color }}>{value}</span>;
         }
       },
       { field: "relativeVolumePercentage", headerName: "R-vol % / 21 D" },
@@ -149,9 +152,9 @@ const WatchList = ({ scripts, type = 'dashboard', visibleColumns, onRowClick, co
         headerName: "Gap %",
         renderCell: (params) => {
           const gapupPer = params.row.gapPercentage;
-          const color = gapupPer > 0 ? "green" : "red";
+          const color = gapupPer > 0 ? UP_COLOR : DOWN_COLOR;
 
-          return <span style={{ color }}>{params.value}%</span>;
+          return <span style={{ color }}>{params.value}</span>;
         }
       },
       {
@@ -159,8 +162,8 @@ const WatchList = ({ scripts, type = 'dashboard', visibleColumns, onRowClick, co
         headerName: "Volume ROC %",
         width: 130,
         renderCell: (params) => {
-          const color = params.value > 0 ? "green" : "red";
-          return <span style={{ color }}>{params.value?.toFixed(2)}%</span>;
+          const color = params.value > 0 ? UP_COLOR : DOWN_COLOR;
+          return <span style={{ color }}>{params.value?.toFixed(2)}</span>;
         }
       },
       {
@@ -177,7 +180,7 @@ const WatchList = ({ scripts, type = 'dashboard', visibleColumns, onRowClick, co
         headerName: "LTP",
         renderCell: (params) => {
           const isUp = params.row.isUpDay;
-          const color = isUp ? "green" : "red";
+          const color = isUp ? UP_COLOR : DOWN_COLOR;
           const value = params.value != null ? Number(params.value).toFixed(2) : '-';
 
           return <span style={{ color }}>{value}</span>;
@@ -201,7 +204,7 @@ const WatchList = ({ scripts, type = 'dashboard', visibleColumns, onRowClick, co
         width: 150,
         renderCell: (params) => (
           <Box sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', height: '100%' }}>
-            <Typography variant="body2" sx={{ fontWeight: 600, lineHeight: 1.2 }}>
+            <Typography variant="body2" sx={{ fontWeight: 500, lineHeight: 1.2 }}>
               {params.value}
             </Typography>
             <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
@@ -217,7 +220,7 @@ const WatchList = ({ scripts, type = 'dashboard', visibleColumns, onRowClick, co
         width: 120,
         renderCell: (params) => (
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', height: '100%' }}>
-            <Typography variant="body2" sx={{ fontWeight: 500 }}>
+            <Typography variant="body2" sx={{ fontWeight: 400 }}>
               ₹{params.value?.toFixed(2)}
             </Typography>
           </Box>
@@ -235,10 +238,10 @@ const WatchList = ({ scripts, type = 'dashboard', visibleColumns, onRowClick, co
           const isProfit = pnl >= 0;
           return (
             <Box sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'flex-end', height: '100%' }}>
-              <Typography variant="body2" sx={{ fontWeight: 500, color: isProfit ? '#00b386' : '#eb5b3c' }}>
+              <Typography variant="body2" sx={{ fontWeight: 400, color: isProfit ? UP_COLOR : DOWN_COLOR }}>
                 {isProfit ? '+' : ''}₹{formatToIndianUnits(pnl)}
               </Typography>
-              <Typography variant="caption" sx={{ fontSize: '0.7rem', color: isProfit ? '#00b386' : '#eb5b3c' }}>
+              <Typography variant="caption" sx={{ fontSize: '0.7rem', color: isProfit ? UP_COLOR : DOWN_COLOR }}>
                 ({pnlPercentage.toFixed(2)}%)
               </Typography>
             </Box>
@@ -253,7 +256,7 @@ const WatchList = ({ scripts, type = 'dashboard', visibleColumns, onRowClick, co
           const currentVal = params.row.currentValue || (params.row.ltp * params.row.quantity);
           return (
             <Box sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'flex-end', height: '100%' }}>
-              <Typography variant="body2" sx={{ fontWeight: 500 }}>
+              <Typography variant="body2" sx={{ fontWeight: 400 }}>
                 ₹{formatToIndianUnits(currentVal)}
               </Typography>
             </Box>
@@ -287,7 +290,7 @@ const WatchList = ({ scripts, type = 'dashboard', visibleColumns, onRowClick, co
           return (
             <Box sx={{ display: 'flex', gap: 1 }}>
               <button type="button" onClick={handleBuy}>Buy</button>
-              <button type="button" onClick={handleExit} style={{ color: 'red' }}>Exit</button>
+              <button type="button" onClick={handleExit} style={{ color: DOWN_COLOR }}>Exit</button>
             </Box>
           );
         }
@@ -336,7 +339,7 @@ const WatchList = ({ scripts, type = 'dashboard', visibleColumns, onRowClick, co
             };
             return (
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <span style={{ fontSize: compact ? '0.75rem' : 'inherit', fontWeight: compact ? 600 : 'inherit' }}>{params.row.symbol}</span>
+                <span style={{ fontSize: compact ? '0.75rem' : 'inherit', fontWeight: compact ? 500 : 'inherit' }}>{params.row.symbol}</span>
                 {!compact && (
                   <>
                     <Tooltip title="Copy script name">
@@ -423,15 +426,18 @@ const WatchList = ({ scripts, type = 'dashboard', visibleColumns, onRowClick, co
         density={compact ? "compact" : "standard"}
         sx={{
           border: 'none',
+          fontSize: '0.8rem', // Slimmer text
           '& .MuiDataGrid-cell': {
             borderColor: 'var(--border-color)',
+            paddingTop: '2px', // Reduce padding slightly to fit slim rows better if needed
+            paddingBottom: '2px',
           },
           '& .MuiDataGrid-columnHeaders': {
             backgroundColor: 'var(--bg-secondary)',
             borderBottom: '1px solid var(--border-color)',
-            fontWeight: 600,
+            fontWeight: 500, // Reduced weight here
             textTransform: 'uppercase',
-            fontSize: '0.75rem',
+            fontSize: '0.7rem', // Smaller header text
             letterSpacing: '0.05em',
             color: 'var(--text-secondary)'
           },
