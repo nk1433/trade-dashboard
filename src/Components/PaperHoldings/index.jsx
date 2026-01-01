@@ -18,8 +18,10 @@ const PaperHoldings = () => {
 
     const totalInvested = holdings.reduce((acc, curr) => acc + curr.invested, 0);
     const totalCurrentValue = holdings.reduce((acc, curr) => acc + curr.currentValue, 0);
+    const totalInvestedPercentage = (totalInvested / (capital + totalInvested)) * 100;
     const totalPnL = totalCurrentValue - totalInvested;
     const totalPnLPercentage = totalInvested > 0 ? (totalPnL / totalInvested) * 100 : 0;
+    const totalProfitPercentage = Math.abs(totalPnLPercentage);
     const isProfit = totalPnL >= 0;
 
     // Calculate Total Portfolio Risk
@@ -33,6 +35,12 @@ const PaperHoldings = () => {
 
     const totalPortfolioValue = capital + totalCurrentValue;
     const totalRiskPercentage = totalPortfolioValue > 0 ? (totalRiskAmount / totalPortfolioValue) * 100 : 0;
+
+    const calculateBarRatio = (returnPerc, riskPerc) => {
+        const total = returnPerc + riskPerc;
+        if (total === 0) return 50; // Default center
+        return (returnPerc / total) * 100;
+    };
 
     const rows = holdings.map((item) => {
         const risk = item.sl ? (item.avgPrice - item.sl) * item.quantity : null;
@@ -99,39 +107,38 @@ const PaperHoldings = () => {
             ),
         },
         {
-            field: 'ltp',
-            headerName: 'Market Price',
-            flex: 1,
-            minWidth: 100,
-            type: 'number',
-            align: 'right',
-            headerAlign: 'right',
-            renderCell: (params) => (
-                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', height: '100%' }}>
-                    <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                        ₹{params.row.ltp.toFixed(2)}
-                    </Typography>
-                </Box>
-            ),
-        },
-        {
             field: 'pnl',
             headerName: 'Returns (%)',
             flex: 1.2,
             minWidth: 120,
             type: 'number',
-            align: 'right',
-            headerAlign: 'right',
-            renderCell: (params) => (
-                <Box sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'flex-end', height: '100%' }}>
-                    <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                        {formatToIndianUnits(params.value)}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
-                        ({params.row.pnlPercentage.toFixed(2)}%)
-                    </Typography>
-                </Box>
-            ),
+            align: 'left',
+            headerAlign: 'left',
+            renderCell: (params) => {
+                const isProfit = params.value >= 0;
+                const textColor = isProfit ? '#059669' : '#dc2626'; // success green or error red
+                const bgcolor = isProfit ? '#ecfdf5' : '#fef2f2';
+
+                return (
+                    <Box sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'flex-start', height: '100%' }}>
+                        <Typography variant="body2" sx={{ color: textColor }}>
+                            {params.value > 0 ? '+' : ''}{formatToIndianUnits(params.value)}
+                        </Typography>
+                        <Chip
+                            label={`${params.row.pnlPercentage.toFixed(2)}%`}
+                            size="small"
+                            sx={{
+                                height: 20,
+                                fontSize: '0.7rem',
+                                color: textColor,
+                                bgcolor: bgcolor,
+                                fontWeight: 600,
+                                mt: 0.5
+                            }}
+                        />
+                    </Box>
+                );
+            },
         },
         {
             field: 'currentValue',
@@ -139,10 +146,10 @@ const PaperHoldings = () => {
             flex: 1.2,
             minWidth: 120,
             type: 'number',
-            align: 'right',
-            headerAlign: 'right',
+            align: 'left',
+            headerAlign: 'left',
             renderCell: (params) => (
-                <Box sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'flex-end', height: '100%' }}>
+                <Box sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'flex-start', height: '100%' }}>
                     <Typography variant="body2" sx={{ fontWeight: 500 }}>
                         ₹{formatToIndianUnits(params.value)}
                     </Typography>
@@ -158,17 +165,26 @@ const PaperHoldings = () => {
             flex: 1,
             minWidth: 100,
             type: 'number',
-            align: 'right',
-            headerAlign: 'right',
+            align: 'left',
+            headerAlign: 'left',
             renderCell: (params) => (
-                <Box sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'flex-end', height: '100%' }}>
-                    <Typography variant="body2" sx={{ fontWeight: 500, color: '#d32f2f' }}>
+                <Box sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'flex-start', height: '100%' }}>
+                    <Typography variant="body2" sx={{ color: '#dc2626' }}>
                         {params.value !== null ? `₹${formatToIndianUnits(params.value)}` : '-'}
                     </Typography>
                     {params.row.riskPercentage !== null && (
-                        <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
-                            ({params.row.riskPercentage.toFixed(2)}%)
-                        </Typography>
+                        <Chip
+                            label={`${params.row.riskPercentage.toFixed(2)}%`}
+                            size="small"
+                            sx={{
+                                height: 20,
+                                fontSize: '0.7rem',
+                                color: '#dc2626',
+                                bgcolor: '#fef2f2',
+                                fontWeight: 600,
+                                mt: 0.5
+                            }}
+                        />
                     )}
                 </Box>
             ),
@@ -217,75 +233,129 @@ const PaperHoldings = () => {
     return (
         <Box sx={{ p: 3, height: '100%', display: 'flex', flexDirection: 'column', bgcolor: '#fff', color: '#000' }}>
 
-            {/* Header & Capital Pill */}
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1, flexShrink: 0 }}>
-                <Typography variant="h6" sx={{ fontWeight: 600, fontSize: '1.25rem' }}>
+            {/* Header */}
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexShrink: 0 }}>
+                <Typography variant="h5" sx={{ fontWeight: 700, letterSpacing: '-0.02em' }}>
                     Holdings ({holdings.length})
                 </Typography>
-                <Chip
-                    label={`Available: ₹${formatToIndianUnits(capital)}`}
-                    variant="outlined"
-                    sx={{ borderColor: '#e0e0e0', fontWeight: 500 }}
-                />
             </Box>
 
             {/* Summary Card */}
             <Paper
                 elevation={0}
                 sx={{
-                    p: 1,
-                    mb: 1,
-                    border: '1px solid #e0e0e0',
-                    borderRadius: 3,
-                    bgcolor: '#fafafa',
+                    p: 3,
+                    mb: 3,
+                    border: '1px solid #edf2f7',
+                    borderRadius: 4,
+                    bgcolor: '#fff',
+                    boxShadow: '0 2px 10px rgba(0,0,0,0.02)',
                     flexShrink: 0
                 }}
             >
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                {/* Top Row: Metrics */}
+                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 6, rowGap: 3, mb: 4, alignItems: 'center' }}>
                     <Box>
-                        <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
-                            Current value
+                        <Typography variant="body2" sx={{ color: '#64748b', mb: 0.5, fontWeight: 500 }}>
+                            Available Funds
                         </Typography>
-                        <Typography variant="h6" sx={{ fontWeight: 250, letterSpacing: '-0.5px' }}>
+                        <Typography variant="h5" sx={{ fontWeight: 550, color: '#1e293b' }}>
+                            ₹{formatToIndianUnits(capital)}
+                        </Typography>
+                    </Box>
+
+                    <Box sx={{ width: '1px', height: 40, bgcolor: '#e2e8f0', display: { xs: 'none', md: 'block' } }} />
+
+                    <Box>
+                        <Typography variant="body2" sx={{ color: '#64748b', mb: 0.5, fontWeight: 500 }}>
+                            Total Risk %
+                        </Typography>
+                        <Typography variant="h5" sx={{ fontWeight: 550, color: '#1e293b' }}>
+                            {totalRiskPercentage.toFixed(2)}
+                        </Typography>
+                    </Box>
+
+                    <Box sx={{ width: '1px', height: 40, bgcolor: '#e2e8f0', display: { xs: 'none', md: 'block' } }} />
+
+                    <Box>
+                        <Typography variant="body2" sx={{ color: '#64748b', mb: 0.5, fontWeight: 500 }}>
+                            Invested Value
+                        </Typography>
+                        <Typography variant="h5" sx={{ fontWeight: 550, color: '#1e293b' }}>
+                            ₹{formatToIndianUnits(totalInvested)}
+                            <Typography component="span" variant="body2" sx={{ color: '#94a3b8', ml: 1 }}>
+                                ({(!isNaN(totalInvestedPercentage) ? totalInvestedPercentage.toFixed(2) : "0.00")}%)
+                            </Typography>
+                        </Typography>
+                    </Box>
+
+
+
+
+                    <Box sx={{ width: '1px', height: 40, bgcolor: '#e2e8f0', display: { xs: 'none', md: 'block' } }} />
+
+
+                    <Box>
+                        <Typography variant="body2" sx={{ color: '#64748b', mb: 0.5, fontWeight: 500 }}>
+                            Current Value
+                        </Typography>
+                        <Typography variant="h5" sx={{ fontWeight: 550, color: '#1e293b' }}>
                             ₹{formatToIndianUnits(totalCurrentValue)}
                         </Typography>
                     </Box>
                 </Box>
 
-                <Box sx={{ display: 'flex', gap: 6, mt: 3 }}>
-                    <Box>
-                        <Typography variant="body2" color="text.secondary">
-                            Invested value
-                        </Typography>
-                        <Typography variant="h6" sx={{ fontWeight: 400 }}>
-                            ₹{formatToIndianUnits(totalInvested)}
-                        </Typography>
-                    </Box>
-                    <Box>
-                        <Typography variant="body2" color="text.secondary">
-                            Total returns
-                        </Typography>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                            <Typography variant="h6" sx={{ fontWeight: 400, color: isProfit ? '#00b386' : '#eb5b3c' }}>
-                                {isProfit ? '+' : ''}₹{formatToIndianUnits(totalPnL)} ({totalPnLPercentage.toFixed(2)}%)
+                {/* Bottom Row: Portfolio Health */}
+                <Box sx={{ width: '100%', textAlign: 'center', mt: 4 }}>
+                    <Typography variant="overline" sx={{ letterSpacing: 2, color: '#9e9e9e', fontWeight: 600 }}>
+                        PORTFOLIO HEALTH
+                    </Typography>
+
+                    <Box sx={{
+                        mt: 2,
+                        display: 'flex',
+                        justifyContent: 'center',
+                        alignItems: 'baseline',
+                        gap: 4
+                    }}>
+                        {/* P&L Message */}
+                        <Box sx={{ textAlign: 'right' }}>
+                            <Typography variant="h4" sx={{ fontWeight: 700, lineHeight: 1, color: '#000' }}>
+                                ₹{formatToIndianUnits(Math.abs(totalPnL))}
+                            </Typography>
+                            <Typography variant="caption" sx={{ fontWeight: 600, color: '#000' }}>
+                                {isProfit ? "GAINED" : "LOSS"}
                             </Typography>
                         </Box>
-                    </Box>
-                    <Box>
-                        <Typography variant="body2" color="text.secondary">
-                            Total Risk
+
+                        <Typography variant="h6" sx={{ color: '#bdbdbd', fontWeight: 500, alignSelf: 'center' }}>
+                            VS
                         </Typography>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                            <Typography variant="h6" sx={{ fontWeight: 400, color: '#d32f2f' }}>
-                                ₹{formatToIndianUnits(totalRiskAmount)} ({totalRiskPercentage.toFixed(2)}%)
+
+                        {/* Risk Message */}
+                        <Box sx={{ textAlign: 'left' }}>
+                            <Typography variant="h4" sx={{ fontWeight: 700, lineHeight: 1, color: '#000' }}>
+                                ₹{formatToIndianUnits(totalRiskAmount)}
                             </Typography>
+                            <Typography variant="caption" sx={{ fontWeight: 600, color: '#000' }}>RISK</Typography>
+                        </Box>
+                    </Box>
+
+                    {/* Ratio Bar */}
+                    <Box sx={{ width: '100%', maxWidth: 400, mx: 'auto', mt: 2 }}>
+                        <Box sx={{ height: 6, width: '100%', bgcolor: '#eee', borderRadius: 3, overflow: 'hidden', display: 'flex' }}>
+                            <Box sx={{
+                                width: `${calculateBarRatio(Math.abs(totalPnL), totalRiskAmount)}%`,
+                                bgcolor: '#000',
+                                transition: 'width 0.5s ease'
+                            }} />
                         </Box>
                     </Box>
                 </Box>
-            </Paper>
+            </Paper >
 
             {/* DataGrid */}
-            <Box sx={{ flexGrow: 1, width: '100%', overflow: 'hidden' }}>
+            < Box sx={{ flexGrow: 1, width: '100%', overflow: 'hidden' }}>
                 <DataGrid
                     rows={rows}
                     columns={columns}
@@ -314,7 +384,7 @@ const PaperHoldings = () => {
                         }
                     }}
                 />
-            </Box>
+            </Box >
             <OrderPanel
                 open={orderPanelOpen}
                 onClose={() => setOrderPanelOpen(false)}
@@ -324,7 +394,7 @@ const PaperHoldings = () => {
                 token={token}
                 initialSide={orderSide}
             />
-        </Box>
+        </Box >
     );
 };
 
