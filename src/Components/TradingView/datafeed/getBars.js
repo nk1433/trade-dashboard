@@ -33,10 +33,11 @@ export const getBars = async (
     const { category, value } = getIntervalParams(resolution);
 
     // Upstox API expects dates in YYYY-MM-DD format
-    // User requested: current year from year starting to the current day
+    // User requested: 1 year data from today
     const now = new Date();
-    const currentYear = now.getFullYear();
-    const fromDate = `${currentYear}-01-01`;
+    const oneYearAgo = new Date(now);
+    oneYearAgo.setFullYear(now.getFullYear() - 1);
+    const fromDate = oneYearAgo.toISOString().split('T')[0];
     const toDate = now.toISOString().split('T')[0];
 
     // Create a cache key based on the fixed YTD range
