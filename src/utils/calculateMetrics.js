@@ -230,7 +230,7 @@ export const computeMetrics = async (context) => {
   const intradayChangePercentage = ((ltp - currentDayOpen) / currentDayOpen) * 100;
 
   // User requested summation of changePercentage (intraday) and gapUp percentage
-  const changePercentage = Math.abs(intradayChangePercentage + gapPercentage);
+  const changePercentage = intradayChangePercentage + gapPercentage;
 
   const maxAlloc = context.maxAllocation || 15;
   let allocation;
