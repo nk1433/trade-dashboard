@@ -13,11 +13,14 @@ const Layout = ({ children, routes }) => {
             {/* Top Navbar */}
             <header className="layout-header">
                 {/* Logo */}
+
                 <div className="layout-logo">
-                    <span className="logo-circle"></span>
-                    <Typography variant="h6" sx={{ fontWeight: 700, letterSpacing: '-0.03em', color: 'black', fontSize: '1rem' }}>
-                        TradeDash
-                    </Typography>
+                    <Link to="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span className="logo-circle"></span>
+                        <Typography variant="h6" sx={{ fontWeight: 700, letterSpacing: '-0.03em', color: 'black', fontSize: '1rem' }}>
+                            TradeDash
+                        </Typography>
+                    </Link>
                 </div>
 
                 {/* Horizontal Navigation */}
