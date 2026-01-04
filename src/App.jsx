@@ -17,11 +17,12 @@ import Scans from './Components/Scans';
 import { fetchUpstoxToken } from './Store/authSlice';
 import { fetchUserSettings } from './Store/portfolio';
 import { useUpstoxWS } from './hooks/useUpstoxWS';
-import { getStatsForScripts } from './Store/upstoxs';
+import { getStatsForScripts, fetchAndCalculateInitialMetrics } from './Store/upstoxs';
 import { fetchPaperTradesAsync, updatePaperHoldingsLTP } from './Store/paperTradeSlice';
 import { fetchMarketTimings, fetchHolidays, updateMarketStatus } from './Store/marketStatusSlice';
 import HolidayBanner from './Components/molicules/HolidayBanner';
 import MarketStatusToast from './Components/molicules/MarketStatusToast';
+import niftymidsmall400 from './index/niftymidsmall400-float.json';
 
 const ProtectedRoute = ({ children }) => {
   const token = localStorage.getItem('token');
@@ -44,7 +45,8 @@ const App = () => {
   const dispatch = useDispatch();
   const location = useLocation();
   const { token: upstoxToken } = useSelector((state) => state.auth);
-  const orderMetrics = useSelector((state) => state.orders.orderMetrics);
+  const { orderMetrics, stats } = useSelector((state) => state.orders);
+  const { marketStatus } = useSelector((state) => state.marketStatus);
   const { holdings } = useSelector((state) => state.paperTrade);
 
   useEffect(() => {
@@ -66,10 +68,17 @@ const App = () => {
     dispatch(getStatsForScripts());
     dispatch(fetchUserSettings());
     dispatch(fetchPaperTradesAsync());
-
-    // Fetch initial metrics logic removed to prevent excessive API calls
-    // import('./index/niftymidsmall400-float.json').then((module) => { ... });
   }, [dispatch]);
+
+  // Fetch Initial Metrics if Market is Closed or Metrics Empty
+  useEffect(() => {
+    // Ensuring stats are loaded before creating metrics
+    if (upstoxToken && Object.keys(stats).length > 0 && (marketStatus === 'CLOSED' || Object.keys(orderMetrics).length === 0)) {
+      if (Object.keys(orderMetrics).length === 0) {
+        dispatch(fetchAndCalculateInitialMetrics(niftymidsmall400));
+      }
+    }
+  }, [dispatch, upstoxToken, marketStatus, stats]); // Run when stats update
 
   // Global LTP Update Logic for Paper Holdings
   useEffect(() => {

@@ -181,73 +181,60 @@ export const updateWatchlistWithMetrics = async (liveFeed, scriptMap, portfolio,
 };
 
 
-// Updated thunk that mimics the WebSocket structure to reuse updateWatchlistWithMetrics
-export const fetchAndCalculateInitialMetrics = createAsyncThunk('Orders/fetchAndCalculateInitialMetrics', async (scripts, state) => {
-    const { portfolio, settings, orders: { stats } } = state.getState();
-    const tradingMode = settings?.tradingMode || 'PAPER';
-    const today = new Date();
-    const toDate = today.toISOString().split('T')[0];
+// Updated thunk to populate metrics from Stats (no API calls)
+export const fetchAndCalculateInitialMetrics = createAsyncThunk('Orders/fetchAndCalculateInitialMetrics', async (scripts, { getState }) => {
+    const { portfolio, settings, orders: { stats } } = getState();
 
-    const oneYearAgo = new Date(today);
-    oneYearAgo.setFullYear(today.getFullYear() - 1);
-    const fromDate = oneYearAgo.toISOString().split('T')[0];
-
-    // Helper to get OHLC data
-    const getOHLC = async (instrumentKey, interval) => {
-        try {
-            const response = await fetch(
-                `https://api.upstox.com/v3/historical-candle/${instrumentKey}/days/1/${toDate}/${fromDate}`,
-                {
-                    headers: {
-                        Authorization: `Bearer ${localStorage.getItem('upstox_access_token') || import.meta.env.VITE_UPSTOXS_ACCESS_KEY}`,
-                    },
-                }
-            );
-            return await response.json();
-        } catch (e) {
-            console.error(`Error fetching ${interval} for ${instrumentKey}`, e);
-            return null;
-        }
-    };
-
-    // Construct "liveFeed" structure from REST API data
+    // Construct "liveFeed" structure from Stats data
     const feeds = {};
     const scriptMap = {};
 
-    await Promise.all(scripts.map(async (script) => {
-        const { instrument_key: instrumentKey, name, trading_symbol: tradingsymbol } = script;
-
-        // Populate scriptMap
+    scripts.forEach((script) => {
+        const { instrument_key: instrumentKey, name, tradingsymbol } = script;
         scriptMap[instrumentKey] = { name, tradingsymbol };
 
-        // Fetch 1d and 1min data concurrently
-        const [dayData, minuteData] = await Promise.all([
-            getOHLC(instrumentKey, '1d'),
-            getOHLC(instrumentKey, '1minute')
-        ]);
+        const stat = stats[instrumentKey];
+        if (stat) {
+            // Map stats to OHLC format expected by updateWatchlistWithMetrics
+            // Assuming stats contains basic price info. If not, we fallback to lastPrice.
+            const price = stat.lastPrice || 0;
+            const open = stat.open || price;
+            const high = stat.high || price;
+            const low = stat.low || price;
+            const vol = stat.volume || stat.lastTradedVolume || 0;
+            const ts = stat.lastTradeTime || new Date().toISOString();
 
-        const formatOHLC = (apiData, interval) => {
-            if (!apiData?.data) return null;
-            // apiData.data is a map { "NSE_EQ|...": { ohlc: ... } } usually for market-quote
-
-            const dataItem = Object.values(apiData.data || {}).find(item => item.instrument_token === instrumentKey);
-            if (!dataItem) return null;
-
-            return {
-                interval: interval,
-                open: dataItem.live_ohlc.open,
-                high: dataItem.live_ohlc.high,
-                low: dataItem.live_ohlc.low,
-                close: dataItem.live_ohlc.close || dataItem.last_price,
-                vol: dataItem.live_ohlc.volume,
-                ts: dataItem.live_ohlc.ts,
+            const dayFeed = {
+                interval: '1d',
+                open: open,
+                high: high,
+                low: low,
+                close: price,
+                vol: vol,
+                ts: ts,
             };
-        };
 
-        const dayFeed = formatOHLC(dayData, '1d');
-        const minuteFeed = formatOHLC(minuteData, 'I1');
+            // Minimal minute feed to avoid breaking calculations
+            const minuteFeed = {
+                interval: 'I1',
+                open: price, high: price, low: price, close: price, vol: 0, ts: ts
+            };
 
-        if (dayFeed && minuteFeed) {
+            feeds[instrumentKey] = {
+                fullFeed: {
+                    marketFF: {
+                        marketOHLC: {
+                            ohlc: [dayFeed, minuteFeed]
+                        }
+                    }
+                }
+            };
+        } else {
+            // Initialize with defaults if stat strictly missing but we want it in the list
+            // This ensures the row appears even if stats are loading/missing
+            const dayFeed = { interval: '1d', open: 0, high: 0, low: 0, close: 0, vol: 0, ts: '' };
+            const minuteFeed = { interval: 'I1', open: 0, high: 0, low: 0, close: 0, vol: 0, ts: '' };
+
             feeds[instrumentKey] = {
                 fullFeed: {
                     marketFF: {
@@ -258,14 +245,15 @@ export const fetchAndCalculateInitialMetrics = createAsyncThunk('Orders/fetchAnd
                 }
             };
         }
-    }));
+    });
 
     const liveFeed = { feeds };
-
-    // Call the shared function
     const metrics = await updateWatchlistWithMetrics(liveFeed, scriptMap, portfolio, stats, settings);
     return metrics;
 });
+
+
+
 
 export const fetchHoldings = createAsyncThunk('Orders/fetchHoldings', async (_, { getState }) => {
     const { auth } = getState();
