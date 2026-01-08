@@ -1,24 +1,165 @@
 import axios from "axios";
 import socketEventEmitter from "../../../utils/socketEventEmitter";
 
-// Map TradingView resolution to Upstox API format
-const getIntervalParams = (resolution) => {
-  if (resolution === "1D" || resolution === "D") return { category: "days", value: "1" };
-  if (resolution === "1W" || resolution === "W") return { category: "weeks", value: "1" };
-  if (resolution === "1M" || resolution === "M") return { category: "months", value: "1" };
+// --- Pure Helper Functions ---
 
-  // Minute resolutions
+/**
+ * Maps TradingView resolution to Upstox API format.
+ * @param {string} resolution 
+ * @returns {{category: string, value: string}}
+ */
+const resolveResolution = (resolution) => {
   const resNum = parseInt(resolution);
+
+  if (['1D', 'D'].includes(resolution)) return { category: "days", value: "1" };
+  if (['1W', 'W'].includes(resolution)) return { category: "weeks", value: "1" };
+  if (['1M', 'M'].includes(resolution)) return { category: "months", value: "1" };
+
   if (!isNaN(resNum)) {
     if (resNum === 60) return { category: "hours", value: "1" };
     return { category: "minutes", value: resolution };
   }
 
-  return { category: "days", value: "1" }; // Default
+  return { category: "days", value: "1" };
 };
 
-// Simple in-memory cache
-const barsCache = new Map();
+/**
+ * Calculates the date range for the API call.
+ * Pure function: inputs -> outputs, no side effects.
+ * @param {object} periodParams 
+ * @param {string} category 
+ * @returns {{fromDate: string, toDate: string}}
+ */
+const calculateDateRange = (periodParams, category) => {
+  const { to } = periodParams;
+  const isIntraday = ['minutes', 'hours', 'minute', 'hour'].includes(category);
+
+  // Robust formatter for YYYY-MM-DD in IST
+  const formatYMD = (timestamp) => {
+    // Add 5h 30m to get IST time from UTC timestamp
+    const istDate = new Date(timestamp + (5.5 * 60 * 60 * 1000));
+    return istDate.toISOString().split('T')[0];
+  };
+
+  if (isIntraday) {
+    let toMs = to * 1000;
+
+    // pagination check:
+    // If 'to' is near market open (09:15-09:30 IST), TradingView likely wants previous day's data
+    // Calculate hours/minutes in IST
+    const istDate = new Date(toMs + (5.5 * 60 * 60 * 1000));
+    const hours = istDate.getUTCHours();
+    const minutes = istDate.getUTCMinutes();
+
+    // If before 09:30 IST, fetch previous day
+    // (Market starts 09:15. If request is 09:15, we need PREVIOUS day to show history)
+    if (hours < 9 || (hours === 9 && minutes < 30)) {
+      toMs -= 24 * 60 * 60 * 1000;
+    }
+
+    // toMs now represents the "Target Day" we want to fetch details for.
+    // Upstox API: /to_date/from_date where range is [from_date, to_date)
+    // To fetch data for "2025-01-08", we need from=2025-01-08, to=2025-01-09.
+
+    const fromDateStr = formatYMD(toMs);
+    const toDateStr = formatYMD(toMs + (24 * 60 * 60 * 1000));
+
+    return {
+      fromDate: fromDateStr,
+      toDate: toDateStr
+    };
+  }
+
+  // Daily/Weekly/Monthly -> 5 years
+  const now = new Date();
+  const fiveYearsAgo = new Date(now);
+  fiveYearsAgo.setFullYear(now.getFullYear() - 5);
+
+  return {
+    fromDate: formatYMD(fiveYearsAgo.getTime()),
+    toDate: formatYMD(now.getTime())
+  };
+};
+
+/**
+ * Adjusts time for daily bars to align with market open.
+ * @param {number} originalTime 
+ * @param {string} resolution 
+ * @param {string} dateStr 
+ * @returns {number}
+ */
+const adjustDailyBarTime = (originalTime, resolution, dateStr) => {
+  const isDaily = ['1D', 'D', '1W', 'W', '1M', 'M'].includes(resolution);
+  if (isDaily) {
+    // Set to 09:15 IST (03:45 UTC) to ensure consistent TV rendering
+    return new Date(`${dateStr}T03:45:00Z`).getTime();
+  }
+  return originalTime;
+};
+
+/**
+ * Transforms a single API candle to a TradingView bar.
+ * @param {Array} candle 
+ * @param {string} resolution 
+ * @returns {object}
+ */
+const transformCandle = (candle, resolution) => {
+  const [timestampStr, open, high, low, close, volume] = candle;
+  const dateStr = timestampStr.split('T')[0];
+  const rawTime = new Date(timestampStr).getTime();
+
+  return {
+    time: adjustDailyBarTime(rawTime, resolution, dateStr),
+    open,
+    high,
+    low,
+    close,
+    volume
+  };
+};
+
+/**
+ * Validates the API response structure.
+ * @param {object} response 
+ * @returns {boolean}
+ */
+const isValidResponse = (response) => {
+  return response?.data?.status === "success" && Array.isArray(response?.data?.data?.candles);
+};
+
+// --- State Management Services ---
+
+const createCacheService = (maxSize = 100) => {
+  const cache = new Map();
+
+  return {
+    get: (key) => cache.get(key),
+    set: (key, value) => {
+      if (cache.size >= maxSize) {
+        const firstKey = cache.keys().next().value;
+        cache.delete(firstKey);
+      }
+      cache.set(key, value);
+    },
+    has: (key) => cache.has(key)
+  };
+};
+
+const createSubscriptionManager = () => {
+  const subscribers = new Map();
+
+  return {
+    add: (uid, config) => subscribers.set(uid, config),
+    remove: (uid) => subscribers.delete(uid),
+    getAll: () => Array.from(subscribers.values())
+  };
+};
+
+// Instantiate singleton services for this module
+const barsCache = createCacheService();
+const subManager = createSubscriptionManager();
+
+// --- Main Exported Functions ---
 
 export const getBars = async (
   symbolInfo,
@@ -28,39 +169,37 @@ export const getBars = async (
   onErrorCallback
 ) => {
   try {
-    const { from, to } = periodParams;
+    console.log("getBars called", { symbolInfo, resolution, periodParams });
+
+    const { category, value } = resolveResolution(resolution);
+    const { fromDate, toDate } = calculateDateRange(periodParams, category);
     const instrumentKey = symbolInfo.ticker;
-    const { category, value } = getIntervalParams(resolution);
 
-    // Upstox API expects dates in YYYY-MM-DD format
-    // User requested: 1 year data from today
-    const now = new Date();
-    const oneYearAgo = new Date(now);
-    oneYearAgo.setFullYear(now.getFullYear() - 5);
-    const fromDate = oneYearAgo.toISOString().split('T')[0];
-    const toDate = now.toISOString().split('T')[0];
-
-    // Create a cache key based on the fixed YTD range
+    // Cache key specific to this date chunk
     const cacheKey = `${instrumentKey}-${category}-${value}-${fromDate}-${toDate}`;
 
+    // 1. Check Cache
     if (barsCache.has(cacheKey)) {
       const cachedBars = barsCache.get(cacheKey);
 
-      // Filter bars to match the requested period
-      const fromMs = from * 1000;
-      const toMs = to * 1000;
+      const fromMs = periodParams.from * 1000;
+      const toMs = periodParams.to * 1000;
       const filteredBars = cachedBars.filter(bar => bar.time >= fromMs && bar.time < toMs);
 
-
-      onHistoryCallback(filteredBars, { noData: filteredBars.length === 0 });
+      console.log(`[getBars] Cache hit for ${cacheKey}. Total: ${cachedBars.length}, Filtered: ${filteredBars.length}`);
+      setTimeout(() => {
+        // If filteredBars is empty but we have cached data for this day, it just means the requested slice is empty.
+        const cutoffTime = new Date('2020-01-01').getTime() / 1000;
+        const isEndHistory = periodParams.to < cutoffTime;
+        onHistoryCallback(filteredBars, { noData: isEndHistory });
+      }, 0);
       return;
     }
 
-    // Constructing the URL for historical candles
-    // Format: https://api.upstox.com/v3/historical-candle/{instrumentKey}/{interval_category}/{interval_value}/{to_date}/{from_date}
+    // 2. Fetch Data
     const encodedKey = encodeURIComponent(instrumentKey);
     const url = `https://api.upstox.com/v3/historical-candle/${encodedKey}/${category}/${value}/${toDate}/${fromDate}`;
-
+    console.log(`[getBars] Fetching URL: ${url}`);
 
     const response = await axios.get(url, {
       headers: {
@@ -69,67 +208,46 @@ export const getBars = async (
       }
     });
 
+    // 3. Process Response
+    if (isValidResponse(response)) {
+      const { candles } = response.data.data;
 
-    if (response.data && response.data.status === "success" && response.data.data && response.data.data.candles) {
-      const candles = response.data.data.candles;
+      const bars = candles
+        .map(candle => transformCandle(candle, resolution))
+        .sort((a, b) => a.time - b.time);
 
-      const bars = candles.map(candle => {
-        let time = new Date(candle[0]).getTime();
+      barsCache.set(cacheKey, bars); // Cache the full day/chunk
 
-        // Fix for Daily bars: Align to Market Open (09:15 IST)
-        // This ensures the bar is correctly attributed to the trading day in TradingView (Asia/Kolkata)
-        const res = resolution;
-        if (res === '1D' || res === 'D' || res === '1W' || res === 'W' || res === '1M' || res === 'M') {
-          const dateStr = candle[0].split('T')[0];
-          // Set to 09:15 IST (03:45 UTC)
-
-          time = new Date(`${dateStr}T03:45:00Z`).getTime();
-
-        }
-
-        return {
-          time: time,
-          open: candle[1],
-          high: candle[2],
-          low: candle[3],
-          close: candle[4],
-          volume: candle[5]
-        };
-      });
-
-      // Sort bars by time ascending (Upstox returns descending usually, TV needs ascending)
-      bars.sort((a, b) => a.time - b.time);
-
-      // Cache the result
-      barsCache.set(cacheKey, bars);
-
-      // Clear cache if it gets too big (simple eviction)
-      if (barsCache.size > 100) {
-        const firstKey = barsCache.keys().next().value;
-        barsCache.delete(firstKey);
-      }
-
-      // Filter bars to match the requested period
-      const fromMs = from * 1000;
-      const toMs = to * 1000;
+      const fromMs = periodParams.from * 1000;
+      const toMs = periodParams.to * 1000;
       const filteredBars = bars.filter(bar => bar.time >= fromMs && bar.time < toMs);
 
+      console.log(`[getBars] Fetched ${bars.length} bars. Last bar time: ${new Date(bars[bars.length - 1]?.time).toLocaleString()}. Filtered: ${filteredBars.length}`);
 
-      if (filteredBars.length === 0) {
-        onHistoryCallback([], { noData: true });
-      } else {
-        onHistoryCallback(filteredBars, { noData: false });
-      }
+      // Determine if we have reached the end of allowed history (e.g., year 2020)
+      const cutoffTime = new Date('2020-01-01').getTime() / 1000;
+      const isEndHistory = periodParams.to < cutoffTime;
+
+      // Return all bars found in this date range. 
+      setTimeout(() => {
+        onHistoryCallback(filteredBars, { noData: isEndHistory });
+      }, 0);
     } else {
-      onHistoryCallback([], { noData: true });
+      console.log(`[getBars] No valid candles in response. Passing empty.`);
+
+      const cutoffTime = new Date('2020-01-01').getTime() / 1000;
+      const isEndHistory = periodParams.to < cutoffTime;
+
+      setTimeout(() => {
+        onHistoryCallback([], { noData: isEndHistory });
+      }, 0);
     }
+
   } catch (err) {
     console.error("Error fetching bars:", err);
     onErrorCallback(err);
   }
 };
-
-const subscribers = {};
 
 export const subscribeBars = (
   symbolInfo,
@@ -138,93 +256,84 @@ export const subscribeBars = (
   subscriberUID,
   onResetCacheNeededCallback
 ) => {
-
-  if (!subscribers[subscriberUID]) {
-    subscribers[subscriberUID] = {
-      symbolInfo,
-      resolution,
-      onRealtimeCallback
-    };
-  }
+  subManager.add(subscriberUID, {
+    symbolInfo,
+    resolution,
+    onRealtimeCallback
+  });
 };
 
 export const unsubscribeBars = (subscriberUID) => {
-  delete subscribers[subscriberUID];
+  subManager.remove(subscriberUID);
 };
 
-// Listen to socket events
-// Listen to socket events
-// Listen to socket events
-socketEventEmitter.on('market-data', (data) => {
-  // data is the decoded protobuf message
-  // Structure: { feeds: { "instrument_key": { ... } } }
+// --- Socket Event Handling ---
 
-  if (!data || !data.feeds) return;
+const handleMarketData = (data) => {
+  if (!data?.feeds) return;
 
-  Object.values(subscribers).forEach(subscriber => {
-    const { symbolInfo, onRealtimeCallback, resolution } = subscriber;
+  const subscribers = subManager.getAll();
+
+  subscribers.forEach(({ symbolInfo, onRealtimeCallback, resolution }) => {
     const instrumentKey = symbolInfo.ticker;
-
     const feed = data.feeds[instrumentKey];
 
-    // Check for fullFeed (used in useUpstoxWS) or ff (abbreviation)
+    // Support both fullFeed and abbreviated ff
     const marketFF = feed?.fullFeed?.marketFF || feed?.ff?.marketFF;
 
-    if (marketFF) {
-      const ltp = marketFF.ltpc?.ltp;
-      const tradeTime = parseInt(marketFF.ltpc?.ltt); // Last trade time
+    if (!marketFF) return;
 
-      // Try to get daily OHLC if available
-      const ohlcData = marketFF.marketOHLC?.ohlc;
-      const dailyOHLC = ohlcData ? ohlcData.find(d => d.interval === '1d') : null;
+    const ltp = marketFF.ltpc?.ltp;
+    if (!ltp) return;
 
-      if (dailyOHLC && ltp) {
-        // If we have daily OHLC, use it for the candle shape
-        // For daily resolution, we must use the start of the day timestamp
+    const tradeTime = parseInt(marketFF.ltpc?.ltt);
+    const ohlcData = marketFF.marketOHLC?.ohlc;
+    const dailyOHLC = ohlcData?.find(d => d.interval === '1d');
 
-        // Calculate start of day timestamp (IST)
-        // Assuming tradeTime is in ms. If it's epoch, we can use it to find the day start.
-        // Upstox timestamps are usually in ms.
+    // Determine bar time and OHL data
+    let barTime;
+    let barData;
 
-        let barTime;
-        if (['1D', 'D', '1W', 'W', '1M', 'M'].includes(resolution)) {
-          // Force align to 09:15 IST (03:45 UTC) to match getBars logic
-          // Use trade time (LTT) to determine the date, as dailyOHLC.ts can be misleading (00:00 IST)
-          const tradeTs = parseInt(marketFF.ltpc?.ltt) || Date.now();
-          const tradeDate = new Date(tradeTs);
-          // Indian market hours are entirely within one UTC day (03:45 - 10:00 UTC)
-          const dateStr = tradeDate.toISOString().split('T')[0];
-          barTime = new Date(`${dateStr}T03:45:00Z`).getTime();
-        } else {
-          barTime = dailyOHLC.ts;
-          if (!barTime) {
-            const tradeTs = parseInt(marketFF.ltpc?.ltt) || Date.now();
-            const tradeDate = new Date(tradeTs);
-            const dateStr = tradeDate.toISOString().split('T')[0];
-            barTime = new Date(dateStr).getTime();
-          }
+    const isDaily = ['1D', 'D', '1W', 'W', '1M', 'M'].includes(resolution);
+
+    if (dailyOHLC) {
+      // Calculation for Bar Time
+      if (isDaily) {
+        const tradeTs = tradeTime || Date.now();
+        const dateStr = new Date(tradeTs).toISOString().split('T')[0];
+        barTime = new Date(`${dateStr}T03:45:00Z`).getTime();
+      } else {
+        barTime = dailyOHLC.ts;
+        if (!barTime) {
+          const tradeTs = tradeTime || Date.now();
+          barTime = new Date(new Date(tradeTs).toISOString().split('T')[0]).getTime();
         }
-
-        onRealtimeCallback({
-          time: barTime,
-          open: dailyOHLC.open,
-          high: dailyOHLC.high,
-          low: dailyOHLC.low,
-          close: dailyOHLC.close, // or ltp, but dailyOHLC.close should be the latest price for the day
-          volume: dailyOHLC.vol
-        });
-      } else if (ltp) {
-        // Fallback if no daily OHLC (e.g. only LTP update)
-        // This will create a flat candle if used for a new bar
-        onRealtimeCallback({
-          time: tradeTime,
-          close: ltp,
-          open: ltp,
-          high: ltp,
-          low: ltp,
-          volume: 0
-        });
       }
+
+      barData = {
+        open: dailyOHLC.open,
+        high: dailyOHLC.high,
+        low: dailyOHLC.low,
+        close: dailyOHLC.close,
+        volume: dailyOHLC.vol
+      };
+    } else {
+      // Fallback to LTP
+      barTime = tradeTime;
+      barData = {
+        open: ltp,
+        high: ltp,
+        low: ltp,
+        close: ltp,
+        volume: 0
+      };
     }
+
+    onRealtimeCallback({
+      time: barTime,
+      ...barData
+    });
   });
-});
+};
+
+socketEventEmitter.on('market-data', handleMarketData);
