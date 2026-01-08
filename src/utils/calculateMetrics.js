@@ -232,6 +232,9 @@ export const computeMetrics = async (context) => {
   // User requested summation of changePercentage (intraday) and gapUp percentage
   const changePercentage = intradayChangePercentage + gapPercentage;
 
+  // Calculate price change
+  const priceChange = ltp - previousDayClose;
+
   const maxAlloc = context.maxAllocation || 15;
   let allocation;
   if (ltp > currentDayOpen) {
@@ -261,6 +264,7 @@ export const computeMetrics = async (context) => {
     barClosingStrength: Math.round(barClosingStrength),
     isUpDay,
     changePercentage: changePercentage.toFixed(2),
+    priceChange: priceChange,
     avgValueVolume21d,
     currentMinuteVolume,
     ...allocation,
