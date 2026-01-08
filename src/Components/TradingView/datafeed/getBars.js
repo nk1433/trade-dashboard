@@ -36,7 +36,7 @@ export const getBars = async (
     // User requested: 1 year data from today
     const now = new Date();
     const oneYearAgo = new Date(now);
-    oneYearAgo.setFullYear(now.getFullYear() - 1);
+    oneYearAgo.setFullYear(now.getFullYear() - 5);
     const fromDate = oneYearAgo.toISOString().split('T')[0];
     const toDate = now.toISOString().split('T')[0];
 
