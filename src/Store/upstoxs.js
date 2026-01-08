@@ -188,6 +188,20 @@ export const fetchAndCalculateInitialMetrics = createAsyncThunk('Orders/fetchAnd
     // Construct "liveFeed" structure from Stats data
     const feeds = {};
     const scriptMap = {};
+    console.log(scripts.length, 'scripts');
+    
+    // Check for duplicates
+    const seenKeys = new Set();
+    const duplicates = [];
+    scripts.forEach(script => {
+        if (seenKeys.has(script.instrument_key)) {
+            duplicates.push(script.tradingsymbol);
+        }
+        seenKeys.add(script.instrument_key);
+    });
+    if (duplicates.length > 0) {
+        console.warn(`Found ${duplicates.length} duplicate scripts:`, duplicates);
+    }
 
     scripts.forEach((script) => {
         const { instrument_key: instrumentKey, name, tradingsymbol } = script;
@@ -230,6 +244,7 @@ export const fetchAndCalculateInitialMetrics = createAsyncThunk('Orders/fetchAnd
                 }
             };
         } else {
+            console.log(instrumentKey, 'instrumentKey')
             // Initialize with defaults if stat strictly missing but we want it in the list
             // This ensures the row appears even if stats are loading/missing
             const dayFeed = { interval: '1d', open: 0, high: 0, low: 0, close: 0, vol: 0, ts: '' };
@@ -247,8 +262,11 @@ export const fetchAndCalculateInitialMetrics = createAsyncThunk('Orders/fetchAnd
         }
     });
 
+    console.log(Object.keys(scriptMap).length, 'scriptMap')
+
     const liveFeed = { feeds };
     const metrics = await updateWatchlistWithMetrics(liveFeed, scriptMap, portfolio, stats, settings);
+    console.log(Object.keys(metrics.metrics).length, 'metrics count');
     return metrics;
 });
 
