@@ -103,7 +103,7 @@ const Scans = () => {
             field: 'date',
             headerName: 'Date',
             width: 120,
-            valueFormatter: (params) => moment(params.value).format('DD-MM-YYYY')
+            valueFormatter: (params) => params.value
         },
         {
             field: 'createdAt',
