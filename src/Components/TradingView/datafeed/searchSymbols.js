@@ -1,7 +1,6 @@
-import niftylargecap from '../../../index/niftylargecap.json';
-import niftymidsmall400 from '../../../index/niftymidsmall400-float.json';
+import universe from '../../../index/universe.json';
 
-const allScripts = [...niftylargecap, ...niftymidsmall400];
+const allScripts = universe;
 
 export const searchSymbols = (
     userInput,

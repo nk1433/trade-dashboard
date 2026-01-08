@@ -2,8 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import protobuf from "protobufjs";
 import { useDispatch } from "react-redux";
 import { updateWatchlistWithMetrics } from "../Store/upstoxs";
-import niftymidsmall400float from "../index/niftymidsmall400-float.json";
-import niftylargeCaps from '../index/niftylargecap.json';
+import universe from '../index/universe.json';
 import { useSelector } from "react-redux";
 import {
     setOrderMetrics, setBearishMB, setBullishMB,
@@ -57,7 +56,7 @@ export function useMarketDataSocket({ wsUrl, request }) {
     const stats = useSelector((state) => state.orders.stats);
     const statsRef = useRef(stats);
     const dispatch = useDispatch();
-    const scripts = [...niftymidsmall400float, ...niftylargeCaps];
+    const scripts = universe;
     const scriptMap = scripts.reduce((acc, script) => {
         acc[script.instrument_key] = script;
 

@@ -10,8 +10,7 @@ import {
     setBearishDollarBo,
 } from "../Store/upstoxs";
 import socketEventEmitter from "../utils/socketEventEmitter";
-import niftymidsmall400float from "../index/niftymidsmall400-float.json";
-import niftylargeCaps from '../index/niftylargecap.json';
+import universe from '../index/universe.json';
 
 export const useSandboxWS = ({ request }) => {
     const dispatch = useDispatch();
@@ -21,7 +20,7 @@ export const useSandboxWS = ({ request }) => {
     const statsRef = useRef(stats);
 
     // Combine scripts to create a map (Limit to top 10 for Sandbox)
-    const scripts = [...niftymidsmall400float, ...niftylargeCaps].slice(0, 10);
+    const scripts = universe.slice(0, 10);
     const scriptMap = scripts.reduce((acc, script) => {
         acc[script.instrument_key] = script;
         return acc;

@@ -22,7 +22,7 @@ import { fetchPaperTradesAsync, updatePaperHoldingsLTP } from './Store/paperTrad
 import { fetchMarketTimings, fetchHolidays, updateMarketStatus } from './Store/marketStatusSlice';
 import HolidayBanner from './Components/molicules/HolidayBanner';
 import MarketStatusToast from './Components/molicules/MarketStatusToast';
-import niftymidsmall400 from './index/niftymidsmall400-float.json';
+import universe from './index/universe.json';
 
 const ProtectedRoute = ({ children }) => {
   const token = localStorage.getItem('token');
@@ -75,7 +75,7 @@ const App = () => {
     // Ensuring stats are loaded before creating metrics
     if (upstoxToken && Object.keys(stats).length > 0 && (marketStatus === 'CLOSED' || Object.keys(orderMetrics).length === 0)) {
       if (Object.keys(orderMetrics).length === 0) {
-        dispatch(fetchAndCalculateInitialMetrics(niftymidsmall400));
+        dispatch(fetchAndCalculateInitialMetrics(universe));
       }
     }
   }, [dispatch, upstoxToken, marketStatus, stats]); // Run when stats update

@@ -8,7 +8,7 @@ import {
     Paper,
     useTheme,
 } from "@mui/material";
-import niftymidsmall400 from "../../index/niftymidsmall400-float.json";
+import universe from '../../index/universe.json';
 
 export default function MarketHighLowWormChart() {
     const [seriesData, setSeriesData] = useState([]);
@@ -26,7 +26,7 @@ export default function MarketHighLowWormChart() {
             let totalTurnover = 0;
 
             // Iterate through the monitored list
-            niftymidsmall400.forEach(script => {
+            universe.forEach(script => {
                 const metric = orderMetrics[script.instrument_key];
 
                 if (metric) {

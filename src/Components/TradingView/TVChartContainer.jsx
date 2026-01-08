@@ -12,8 +12,7 @@ import AddIcon from '@mui/icons-material/Add';
 import SettingsIcon from '@mui/icons-material/Settings';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import { BACKEND_URL } from '../../utils/config';
-import niftylargecap from '../../index/niftylargecap.json';
-import niftymidsmall400 from '../../index/niftymidsmall400-float.json';
+import universe from '../../index/universe.json';
 
 import WatchList from "../Watchlist/Table";
 
@@ -104,7 +103,7 @@ const TVChartContainer = () => {
         },
         symbol_search_complete: (symbol, searchResultItem) => {
           return new Promise((resolve) => {
-            const allScripts = [...niftylargecap, ...niftymidsmall400];
+            const allScripts = universe;
             const foundScript = allScripts.find(s => s.tradingsymbol === symbol || s.instrument_key === symbol);
 
             if (foundScript) {

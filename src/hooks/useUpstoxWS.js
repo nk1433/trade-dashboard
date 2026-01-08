@@ -1,18 +1,16 @@
 import { useMarketDataSocket } from "./useMarketDataSocket";
 import { useMarketFeedUrl } from "./useMarketFeedUrl";
-import niftymidsmall400float from "../index/niftymidsmall400-float.json";
+import universe from "../index/universe.json";
 import { usePortfolioDataSocket } from "./usePorfolio";
 import { usePortfolioSocket } from "./usePortfolioSocket";
-import niftylargeCap from '../index/niftylargecap.json';
 import { isUpstoxsWs } from "../utils/config";
 import { useSandboxWS } from "./useSandboxWS";
 
 
 
 export const useUpstoxWS = (token) => {
-  const scripts = niftymidsmall400float;
+  const scripts = universe;
   const instruments = scripts.map((script) => script.instrument_key);
-  const niftylargeCaps = niftylargeCap.map((script) => script.instrument_key);
 
   const { wsUrl } = useMarketFeedUrl(token);
   const { porfolioWsUrl } = usePortfolioSocket(token);
@@ -22,7 +20,7 @@ export const useUpstoxWS = (token) => {
     method: "sub",
     data: {
       mode: "full",
-      instrumentKeys: [...instruments, ...niftylargeCaps],
+      instrumentKeys: instruments,
     },
   };
 
