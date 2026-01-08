@@ -25,6 +25,7 @@ const columnMapping = {
   Risk: 'riskPercentage',
   BarClosingStrength: 'barClosingStrength',
   'Change %': 'changePercentage',
+  'Price Change': 'priceChange',
   'Loss': 'lossInMoney',
   'avgValueVolume21d': 'avgValueVolume21d',
   currentMinuteVolume: 'currentMinuteVolume',
@@ -73,7 +74,7 @@ const WatchList = ({ scripts, type = 'dashboard', visibleColumns, onRowClick, co
       {
         field: "scriptName",
         headerName: "Script",
-        width: 300, // widened for icon
+        width: 270, // widened for icon
         renderCell: (params) => {
           const isUp = params.row.isUpDay;
           const color = isUp ? UP_COLOR : DOWN_COLOR;
@@ -98,7 +99,7 @@ const WatchList = ({ scripts, type = 'dashboard', visibleColumns, onRowClick, co
                   <ContentCopyIcon fontSize="small" />
                 </IconButton>
               </Tooltip>
-              <Tooltip title="View Fundamentals">
+              {/* <Tooltip title="View Fundamentals">
                 <IconButton
                   size="small"
                   onMouseEnter={(e) => {
@@ -109,15 +110,15 @@ const WatchList = ({ scripts, type = 'dashboard', visibleColumns, onRowClick, co
                 >
                   <InfoOutlinedIcon fontSize="small" />
                 </IconButton>
-              </Tooltip>
+              </Tooltip> */}
             </Box>
           );
         },
       },
       {
         field: 'placeOrder',
-        headerName: 'Place Order',
-        width: 130,
+        headerName: 'Order',
+        width: 100,
         sortable: false,
         filterable: false,
         renderCell: (params) => {
@@ -129,7 +130,7 @@ const WatchList = ({ scripts, type = 'dashboard', visibleColumns, onRowClick, co
 
           return (
             <button type="button" onClick={handlePlaceOrder}>
-              Place Order
+              Buy/Sell
             </button>
           );
         }
@@ -138,12 +139,25 @@ const WatchList = ({ scripts, type = 'dashboard', visibleColumns, onRowClick, co
       {
         field: "changePercentage",
         headerName: "Change %",
+        width: 60,
         renderCell: (params) => {
           const isUp = params.row.isUpDay;
           const color = isUp ? UP_COLOR : DOWN_COLOR;
           const value = params.value != null ? Number(params.value).toFixed(2) : '-';
 
           return <span style={{ color }}>{value}</span>;
+        }
+      },
+      {
+        field: "priceChange",
+        headerName: "Change",
+        width: 60,
+        renderCell: (params) => {
+          const value = params.value;
+          const color = value > 0 ? UP_COLOR : DOWN_COLOR;
+          const displayValue = value != null ? Number(value).toFixed(2) : '-';
+
+          return <span style={{ color }}>{displayValue}</span>;
         }
       },
       { field: "relativeVolumePercentage", headerName: "R-vol % / 21 D" },
@@ -349,7 +363,7 @@ const WatchList = ({ scripts, type = 'dashboard', visibleColumns, onRowClick, co
                     </Tooltip>
                   </>
                 )}
-                <Tooltip title="View Fundamentals">
+                {/* <Tooltip title="View Fundamentals">
                   <IconButton
                     size="small"
                     onMouseEnter={(e) => {
@@ -360,7 +374,7 @@ const WatchList = ({ scripts, type = 'dashboard', visibleColumns, onRowClick, co
                   >
                     <InfoOutlinedIcon fontSize="small" />
                   </IconButton>
-                </Tooltip>
+                </Tooltip> */}
               </Box>
             );
           };

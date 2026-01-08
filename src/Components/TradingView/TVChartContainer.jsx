@@ -20,6 +20,7 @@ const AVAILABLE_COLUMNS = [
   { id: 'scriptName', label: 'Script', minWidth: 100 },
   { id: 'ltp', label: 'LTP', minWidth: 70 },
   { id: 'changePercentage', label: 'Chg%', minWidth: 60 },
+  { id: 'priceChange', label: 'Chg', minWidth: 70 },
   { id: 'barClosingStrength', label: 'Str%', minWidth: 60 },
   { id: 'relativeVolumePercentage', label: 'RVol%', minWidth: 60 },
   { id: 'gapPercentage', label: 'Gap%', minWidth: 60 },
@@ -40,7 +41,7 @@ const TVChartContainer = () => {
   const userId = user._id || user.id || 'public_user_id';
 
   // Column Customization State
-  const [visibleColumns, setVisibleColumns] = useState(['scriptName', 'ltp', 'changePercentage']);
+  const [visibleColumns, setVisibleColumns] = useState(['scriptName', 'changePercentage', 'priceChange']);
   const [settingsAnchorEl, setSettingsAnchorEl] = useState(null);
 
   useEffect(() => {
