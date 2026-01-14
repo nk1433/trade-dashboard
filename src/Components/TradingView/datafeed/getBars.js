@@ -2,7 +2,7 @@ import { resolveResolution, getISTDate } from "./utils/dateUtils";
 import { transformCandle, isValidResponse } from "./utils/transformers";
 import { fetchHistoricalData, fetchIntradayData } from "./services/upstoxApiService";
 import { createCacheService } from "./services/cacheService";
-import { subscribeBars as subBars, unsubscribeBars as unsubBars } from "./services/subscriptionService";
+import { subscribeBars as subBars, unsubscribeBars as unsubBars } from "./services/SubscriptionService.js";
 
 // Singleton Cache for this Datafeed instance
 const barsCache = createCacheService(200);
