@@ -44,6 +44,14 @@ const TVChartContainer = () => {
   const [visibleColumns, setVisibleColumns] = useState(['scriptName', 'changePercentage', 'priceChange']);
   const [settingsAnchorEl, setSettingsAnchorEl] = useState(null);
 
+  // Optimize universe lookup
+  const universeMap = React.useMemo(() => {
+    return universe.reduce((acc, script) => {
+      acc[script.instrument_key] = script;
+      return acc;
+    }, {});
+  }, []);
+
   useEffect(() => {
     const initWidget = async () => {
       let savedData = null;
@@ -126,6 +134,7 @@ const TVChartContainer = () => {
       const tvWidget = new widget(widgetOptions);
 
       // TODO: Make this dynamic
+      // TODO: Make this dynamic
       // tvWidget.onChartReady(() => {
       //   const orderLine = tvWidget.activeChart().createOrderLine()
       //     .setTooltip("Additional order information")
@@ -144,6 +153,69 @@ const TVChartContainer = () => {
       //     .setQuantity("2")
       //     .setPrice(1280.6);
       // });
+      tvWidget.onChartReady(() => {
+        try {
+          // Get the IWatermarkApi instance
+          const watermarkApi = tvWidget.watermark();
+
+          if (!watermarkApi) {
+            console.error("TVChartContainer: Watermark API not available.");
+            return;
+          }
+
+          // Define your custom content provider function
+          const customContentProvider = (data) => {
+            if (!data || !data.symbolInfo) {
+              console.warn("TVChartContainer: Watermark content provider missing symbolInfo", data);
+              return [];
+            }
+            const { symbolInfo } = data;
+
+            // Find script in universe
+            // symbolInfo.name usually has "NSE_EQ|..." or just "RELIANCE" depending on configuration.
+            // But symbolInfo.ticker is usually the instrument_key "NSE_EQ|..."
+            // Let's try to match by instrument_key first
+
+            const script = universeMap[symbolInfo.ticker];
+
+            const industry = script?.industry || 'N/A';
+            const sector = script?.sector || 'N/A';
+
+            return [
+              {
+                text: script.tradingsymbol,
+                fontSize: 30,
+                lineHeight: 10,
+                vertOffset: 0
+              },
+              {
+                text: script.industry,
+                fontSize: 20,
+                lineHeight: 30,
+                vertOffset: 30
+              },
+              {
+                text: script.sector,
+                fontSize: 20,
+                lineHeight: 30,
+                vertOffset: 30
+              }
+            ];
+          };
+
+          // Set the custom provider
+          watermarkApi.setContentProvider(customContentProvider);
+
+          // Control the watermark visibility
+          watermarkApi.visibility().setValue(true);
+
+          // Set the watermark color
+          watermarkApi.color().setValue("rgba(115, 125, 115, 0.5)");
+
+        } catch (error) {
+          console.error("TVChartContainer: Error setting up watermark", error);
+        }
+      });
       // tvWidget.activeChart().getTimezoneApi().setTimezone("Asia/Kolkata");
       tvWidgetRef.current = tvWidget;
     };
