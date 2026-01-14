@@ -93,6 +93,7 @@ export const updateWatchlistWithMetrics = async (liveFeed, scriptMap, portfolio,
             volSurgeRate,
             currentMinuteVolume,
             maxAllocation,
+            trendIntensity,
         });
 
         if (!acc.metrics) acc.metrics = {};
@@ -109,6 +110,7 @@ export const updateWatchlistWithMetrics = async (liveFeed, scriptMap, portfolio,
             dayHigh: latestDayFeed.high,
             dayLow: latestDayFeed.low,
             dayVolume: currentVolume,
+            trendIntensity,
         };
 
         if (priceRatio >= 1.04 && currentVolume > prevDayVolume && currentVolume >= 100000) {
@@ -189,7 +191,7 @@ export const fetchAndCalculateInitialMetrics = createAsyncThunk('Orders/fetchAnd
     const feeds = {};
     const scriptMap = {};
     console.log(scripts.length, 'scripts');
-    
+
     // Check for duplicates
     const seenKeys = new Set();
     const duplicates = [];

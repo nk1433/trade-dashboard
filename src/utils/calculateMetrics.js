@@ -211,6 +211,7 @@ export const computeMetrics = async (context) => {
     stats,
     currentMinuteVolume,
     symbol,
+    trendIntensity,
   } = context;
 
   let barClosingStrength = ((ltp - lowPrice) / (high - lowPrice)) * 100;
@@ -269,5 +270,6 @@ export const computeMetrics = async (context) => {
     currentMinuteVolume,
     currentDayOpen,
     ...allocation,
+    trendIntensity,
   };
 };

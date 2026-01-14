@@ -353,7 +353,11 @@ const WatchList = ({ scripts, type = 'dashboard', visibleColumns, onRowClick, co
             };
             return (
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <span style={{ fontSize: compact ? '0.75rem' : 'inherit', fontWeight: compact ? 500 : 'inherit' }}>{params.row.symbol}</span>
+                <span style={{
+                  fontSize: compact ? '0.75rem' : 'inherit',
+                  fontWeight: compact ? 500 : 'inherit',
+                  textDecoration: params.row.trendIntensity > 1 ? 'underline' : 'none'
+                }}>{params.row.symbol}</span>
                 {!compact && (
                   <>
                     <Tooltip title="Copy script name">
@@ -393,7 +397,6 @@ const WatchList = ({ scripts, type = 'dashboard', visibleColumns, onRowClick, co
       })
       .filter(Boolean);
   }
-
 
   const rows = Object.values(scripts).map(metric => ({
     id: metric.instrumentKey || metric.symbol,
