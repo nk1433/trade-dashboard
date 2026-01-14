@@ -267,6 +267,7 @@ export const computeMetrics = async (context) => {
     priceChange: priceChange,
     avgValueVolume21d,
     currentMinuteVolume,
+    currentDayOpen,
     ...allocation,
   };
 };
