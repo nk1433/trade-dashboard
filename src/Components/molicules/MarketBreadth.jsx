@@ -62,6 +62,26 @@ const columns = [
     )
   },
   {
+    field: 'ratio5d',
+    headerName: '5 Day Ratio',
+    width: 120,
+    align: 'center',
+    headerAlign: 'center',
+    renderCell: (params) => (
+      <div style={getCellStyle(params.value, 8, 'down')}>{params.value.toFixed(2)}</div>
+    )
+  },
+  {
+    field: 'ratio10d',
+    headerName: '10 Day Ratio',
+    width: 120,
+    align: 'center',
+    headerAlign: 'center',
+    renderCell: (params) => (
+      <div style={getCellStyle(params.value, 8, 'down')}>{params.value.toFixed(2)}</div>
+    )
+  },
+  {
     field: 'up8Pct5d',
     headerName: 'Up ≥8% (5D)',
     width: 120,
