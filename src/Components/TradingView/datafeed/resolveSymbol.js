@@ -56,7 +56,7 @@ export const resolveSymbol = (
     minmov: 1,
     pricescale: 100,
     has_intraday: true,
-    has_no_volume: false,
+    visible_plots_set: 'ohlcv',
     has_weekly_and_monthly: true,
     supported_intervals: ["1D"],
     volume_precision: 2,

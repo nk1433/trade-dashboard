@@ -2,6 +2,9 @@ import React, { useEffect, useRef, useState } from "react";
 import { widget } from "../../charting_library";
 import Datafeed from "./datafeed/datafeed_custom";
 import { useWatchlistFilter } from "../../hooks/useWatchlistFilter";
+import { useDispatch, useSelector } from 'react-redux';
+import { fetchMarketBreadth } from '../../Store/marketBreadth';
+import { createBreadthStudy } from './studies/breadthStudy';
 import {
   Box, Typography, Divider, IconButton, Menu, MenuItem,
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
@@ -40,6 +43,15 @@ const TVChartContainer = () => {
   const user = JSON.parse(localStorage.getItem('user') || '{}');
   const userId = user._id || user.id || 'public_user_id';
 
+  const dispatch = useDispatch();
+  const breadthData = useSelector(state => state.marketBreadth.data);
+
+  useEffect(() => {
+    if (!breadthData || breadthData.length === 0) {
+      dispatch(fetchMarketBreadth());
+    }
+  }, [dispatch, breadthData]);
+
   // Column Customization State
   const [visibleColumns, setVisibleColumns] = useState(['scriptName', 'changePercentage', 'priceChange']);
   const [settingsAnchorEl, setSettingsAnchorEl] = useState(null);
@@ -53,6 +65,9 @@ const TVChartContainer = () => {
   }, []);
 
   useEffect(() => {
+    // Wait for breadth data to populate to ensure study works correctly
+    if (!breadthData || breadthData.length === 0) return;
+
     const initWidget = async () => {
       let savedData = null;
       let savedDataMetaInfo = null;
@@ -128,6 +143,23 @@ const TVChartContainer = () => {
               return date.getUTCDate() + '/' + (date.getUTCMonth() + 1) + '/' + date.getUTCFullYear();
             }
           }
+        },
+        custom_indicators_getter: (PineJS) => {
+          console.log("TVChartContainer: custom_indicators_getter called");
+          return Promise.resolve([
+            createBreadthStudy({
+              field: 'up4Percent',
+              name: 'MarketBreadthUp',
+              description: 'Market Breadth Up 4%',
+              color: '#808080' // Grey
+            }, breadthData),
+            createBreadthStudy({
+              field: 'down4Percent',
+              name: 'MarketBreadthDown',
+              description: 'Market Breadth Down 4%',
+              color: '#FF0000' // Red
+            }, breadthData)
+          ]);
         }
       };
 
@@ -215,6 +247,36 @@ const TVChartContainer = () => {
         } catch (error) {
           console.error("TVChartContainer: Error setting up watermark", error);
         }
+
+        // Add Market Breadth Studies
+        setTimeout(() => {
+          try {
+            console.log("TVChartContainer: Checking for existing studies...");
+            const allStudies = tvWidget.activeChart().getAllStudies();
+            const studyNames = allStudies.map(s => s.name);
+
+            console.log("TVChartContainer: Existing studies:", studyNames);
+
+            // Up 4%
+            if (!studyNames.includes('Market Breadth Up 4%')) {
+              console.log("TVChartContainer: Creating 'Market Breadth Up 4%'");
+              tvWidget.activeChart().createStudy('Market Breadth Up 4%', false, false);
+            } else {
+              console.log("TVChartContainer: 'Market Breadth Up 4%' already exists. Skipping.");
+            }
+
+            // Down 4%
+            if (!studyNames.includes('Market Breadth Down 4%')) {
+              console.log("TVChartContainer: Creating 'Market Breadth Down 4%'");
+              tvWidget.activeChart().createStudy('Market Breadth Down 4%', false, false);
+            } else {
+              console.log("TVChartContainer: 'Market Breadth Down 4%' already exists. Skipping.");
+            }
+
+          } catch (e) {
+            console.error("TVChartContainer: Error creating Studies", e);
+          }
+        }, 2000);
       });
       // tvWidget.activeChart().getTimezoneApi().setTimezone("Asia/Kolkata");
       tvWidgetRef.current = tvWidget;
@@ -228,7 +290,7 @@ const TVChartContainer = () => {
         tvWidgetRef.current = null;
       }
     };
-  }, []);
+  }, [breadthData]);
 
   const handleStockClick = (row) => {
     const symbol = row.symbol;
