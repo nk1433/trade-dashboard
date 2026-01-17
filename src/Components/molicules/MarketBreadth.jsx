@@ -102,6 +102,16 @@ const columns = [
     )
   },
   {
+    field: 'up80Pct52WL',
+    headerName: 'Up ≥80% (52WL)',
+    width: 120,
+    align: 'center',
+    headerAlign: 'center',
+    renderCell: (params) => (
+      <div style={getCellStyle(params.value, 8, 'up')}>{params.value}</div>
+    )
+  },
+  {
     field: 'strongCloseUpRatio',
     headerName: 'Strong Close Up',
     width: 140,
