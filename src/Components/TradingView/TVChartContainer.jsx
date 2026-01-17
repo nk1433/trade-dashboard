@@ -248,35 +248,7 @@ const TVChartContainer = () => {
           console.error("TVChartContainer: Error setting up watermark", error);
         }
 
-        // Add Market Breadth Studies
-        setTimeout(() => {
-          try {
-            console.log("TVChartContainer: Checking for existing studies...");
-            const allStudies = tvWidget.activeChart().getAllStudies();
-            const studyNames = allStudies.map(s => s.name);
-
-            console.log("TVChartContainer: Existing studies:", studyNames);
-
-            // Up 4%
-            if (!studyNames.includes('Market Breadth Up 4%')) {
-              console.log("TVChartContainer: Creating 'Market Breadth Up 4%'");
-              tvWidget.activeChart().createStudy('Market Breadth Up 4%', false, false);
-            } else {
-              console.log("TVChartContainer: 'Market Breadth Up 4%' already exists. Skipping.");
-            }
-
-            // Down 4%
-            if (!studyNames.includes('Market Breadth Down 4%')) {
-              console.log("TVChartContainer: Creating 'Market Breadth Down 4%'");
-              tvWidget.activeChart().createStudy('Market Breadth Down 4%', false, false);
-            } else {
-              console.log("TVChartContainer: 'Market Breadth Down 4%' already exists. Skipping.");
-            }
-
-          } catch (e) {
-            console.error("TVChartContainer: Error creating Studies", e);
-          }
-        }, 2000);
+        // Studies are now available in the indicators list, not adding them automatically.
       });
       // tvWidget.activeChart().getTimezoneApi().setTimezone("Asia/Kolkata");
       tvWidgetRef.current = tvWidget;
