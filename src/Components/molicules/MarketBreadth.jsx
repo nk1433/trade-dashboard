@@ -102,6 +102,26 @@ const columns = [
     )
   },
   {
+    field: 'up50RsCount',
+    headerName: 'Up ≥ 50Rs',
+    width: 120,
+    align: 'center',
+    headerAlign: 'center',
+    renderCell: (params) => (
+      <div style={getCellStyle(params.value, 10, 'up')}>{params.value}</div>
+    )
+  },
+  {
+    field: 'up250Rs5dCount',
+    headerName: 'Up ≥ 250Rs (5D)',
+    width: 120,
+    align: 'center',
+    headerAlign: 'center',
+    renderCell: (params) => (
+      <div style={getCellStyle(params.value, 10, 'up')}>{params.value}</div>
+    )
+  },
+  {
     field: 'up80Pct52WL',
     headerName: 'Up ≥80% (52WL)',
     width: 120,
