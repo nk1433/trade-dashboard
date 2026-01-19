@@ -432,7 +432,7 @@ const WatchList = ({ scripts, type = 'dashboard', visibleColumns, onRowClick, co
         filterModel={filterModel}
         onFilterModelChange={setFilterModel}
         initialState={{
-          pagination: { paginationModel: { pageSize: 10 } },
+          pagination: { paginationModel: { pageSize: 25 } },
         }}
         rows={rows}
         columns={columns}
