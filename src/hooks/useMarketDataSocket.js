@@ -10,6 +10,7 @@ import {
     setBullishAnts,
     setDollarBo,
     setBearishDollarBo,
+    resetMetrics
 } from "../Store/upstoxs";
 import socketEventEmitter from "../utils/socketEventEmitter";
 
@@ -91,6 +92,7 @@ export function useMarketDataSocket({ wsUrl, request }) {
                 if (isMounted) setIsConnected(true);
                 const enc = new TextEncoder();
                 ws.send(enc.encode(JSON.stringify(request)));
+                dispatch(resetMetrics());
             };
 
             ws.onclose = () => {
