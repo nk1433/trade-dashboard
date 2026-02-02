@@ -9,7 +9,7 @@ const mapping = {
     twentyPercentage: ['up20Pct5d', 'down20Pct5d'],
 }
 
-export default function BreadthTwoPaneChart({ data, field }) {
+export default function BreadthTwoPaneChart({ data, field, visibleStartDate }) {
     const chartRef = useRef();
     const [upSideColumn, downSideColumn] = mapping[field];
 
@@ -53,10 +53,21 @@ export default function BreadthTwoPaneChart({ data, field }) {
         );
         chart.panes()[0].setHeight(250);
         chart.panes()[1].setHeight(250);
-        chart.timeScale().fitContent();
+
+        // Set visible range if start date is provided, otherwise fit content
+        if (visibleStartDate) {
+            const endDate = sortedData[sortedData.length - 1]?.date.split('T')[0];
+            // Ensure visibleStartDate matches format YYYY-MM-DD calling logic should ensure this
+            chart.timeScale().setVisibleRange({
+                from: visibleStartDate,
+                to: endDate,
+            });
+        } else {
+            chart.timeScale().fitContent();
+        }
 
         return () => chart.remove();
-    }, [data, upSideColumn, downSideColumn]);
+    }, [data, upSideColumn, downSideColumn, visibleStartDate]);
 
     return (
         <div style={{ width: '1000px', margin: 'auto' }}>
@@ -68,4 +79,5 @@ export default function BreadthTwoPaneChart({ data, field }) {
 BreadthTwoPaneChart.propTypes = {
     data: PropTypes.array,
     field: PropTypes.string,
+    visibleStartDate: PropTypes.string,
 };

@@ -225,18 +225,49 @@ const MarketBreadthTable = () => {
     setChartType(event.target.value);
   };
 
+  const [timeRange, setTimeRange] = useState('1Y'); // Default to 1 Year
+
+  const handleTimeRangeChange = (event) => {
+    setTimeRange(event.target.value);
+  };
+
   useEffect(() => {
     dispatch(fetchMarketBreadth());
   }, [dispatch]);
 
-  console.log('Breadth Data:', breadthData);
 
-  const rows = breadthData.map((item, index) => ({
+  // Helper to filter data based on time range
+  const filterDataByRange = (data, range) => {
+    if (!data || data.length === 0) return { filtered: [], startDate: null };
+    if (range === 'All') return { filtered: data, startDate: data[0].date };
+
+    const now = moment();
+    let subtractAmount = 0;
+    let subtractUnit = 'months';
+
+    switch (range) {
+      case '1M': subtractAmount = 1; break;
+      case '3M': subtractAmount = 3; break;
+      case '6M': subtractAmount = 6; break;
+      case '1Y': subtractAmount = 1; subtractUnit = 'years'; break;
+      case '2Y': subtractAmount = 2; subtractUnit = 'years'; break;
+      default: return { filtered: data, startDate: data[0].date };
+    }
+
+    const cutoffDate = now.clone().subtract(subtractAmount, subtractUnit);
+    const filtered = data.filter(item => moment(item.date).isSameOrAfter(cutoffDate));
+    // For TV chart, we want the visible start date to be the cutoff date formatted YYYY-MM-DD
+    const startDate = cutoffDate.format('YYYY-MM-DD');
+    return { filtered, startDate };
+  };
+
+  const { filtered: filteredBreadthData, startDate: visibleStartDate } = filterDataByRange(breadthData, timeRange);
+
+  // Rows for DataGrid (Table) - Use FILTERED data to match the "view"
+  const rows = filteredBreadthData.map((item, index) => ({
     id: item.date || index,
     ...item,
   }));
-
-  // rows.sort((a, b) => new Date(a.date) - new Date(b.date));
 
   return (
     <Box sx={{ width: '100%', paddingTop: '20px', pb: 4, bgcolor: '#f8f9fa', minHeight: '100vh' }}>
@@ -248,6 +279,25 @@ const MarketBreadthTable = () => {
             Market Breadth
           </Typography>
           <Box sx={{ display: 'flex', gap: 2 }}>
+            {/* Time Range Selector */}
+            <FormControl size="small" sx={{ minWidth: 120, bgcolor: 'white' }}>
+              <InputLabel sx={commonInputLabelSx}>Time Range</InputLabel>
+              <Select
+                value={timeRange}
+                label="Time Range"
+                onChange={handleTimeRangeChange}
+                sx={commonSelectSx}
+              >
+                <MenuItem value="1M">1 Month</MenuItem>
+                <MenuItem value="3M">3 Months</MenuItem>
+                <MenuItem value="6M">6 Months</MenuItem>
+                <MenuItem value="1Y">1 Year</MenuItem>
+                <MenuItem value="2Y">2 Years</MenuItem>
+                <MenuItem value="All">All Time</MenuItem>
+              </Select>
+            </FormControl>
+
+
             <FormControl size="small" sx={{ minWidth: 150, bgcolor: 'white' }}>
               <InputLabel sx={commonInputLabelSx}>Chart View</InputLabel>
               <Select
@@ -292,7 +342,7 @@ const MarketBreadthTable = () => {
             <>
               <Box sx={{ mb: 4 }}>
                 <MarketBreadthBarChart
-                  data={breadthData}
+                  data={filteredBreadthData}
                   seriesKey="up4Percent"
                   chartTitle="Market Breadth: Stocks Up ≥ 4% (Daily)"
                   barColor="green"
@@ -300,7 +350,7 @@ const MarketBreadthTable = () => {
               </Box>
               <Box>
                 <MarketBreadthBarChart
-                  data={breadthData}
+                  data={filteredBreadthData}
                   seriesKey="down4Percent"
                   chartTitle="Market Breadth: Stocks Down ≥ 4% (Daily)"
                   barColor="red"
@@ -308,12 +358,18 @@ const MarketBreadthTable = () => {
               </Box>
             </>
           ) : chartType === 'combined' ? (
-            <Box sx={{ height: 500 }}>
-              <CombinedMarketBreadthChart data={breadthData} field={percantageChange} />
+            <Box sx={{ height: 550 }}>
+              <CombinedMarketBreadthChart data={filteredBreadthData} field={percantageChange} />
             </Box>
           ) : (
-            <Box sx={{ height: 500 }}>
-              <BreadthTwoPaneChart data={rows} field={percantageChange} />
+            <Box sx={{ height: 550 }}>
+              {/* Pass FULL breadthData to TV chart so all data is loaded, 
+                 but pass visibleStartDate to set the initial zoom */}
+              <BreadthTwoPaneChart
+                data={breadthData}
+                field={percantageChange}
+                visibleStartDate={visibleStartDate}
+              />
             </Box>
           )}
         </Paper>
