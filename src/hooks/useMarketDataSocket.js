@@ -92,7 +92,9 @@ export function useMarketDataSocket({ wsUrl, request }) {
                 if (isMounted) setIsConnected(true);
                 const enc = new TextEncoder();
                 ws.send(enc.encode(JSON.stringify(request)));
-                dispatch(resetMetrics());
+                setTimeout(() => {
+                    dispatch(resetMetrics());
+                }, 2000);
             };
 
             ws.onclose = () => {
