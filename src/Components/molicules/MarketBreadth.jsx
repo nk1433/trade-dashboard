@@ -145,36 +145,42 @@ const columns = [
     headerName: 'Up 25% (M)',
     width: 100,
     align: 'center',
+    headerAlign: 'center',
   },
   {
     field: 'down25PctMonth',
     headerName: 'Down 25% (M)',
     width: 100,
     align: 'center',
+    headerAlign: 'center',
   },
   {
     field: 'up50PctMonth',
     headerName: 'Up 50% (M)',
     width: 100,
     align: 'center',
+    headerAlign: 'center',
   },
   {
     field: 'down50PctMonth',
     headerName: 'Down 50% (M)',
     width: 100,
     align: 'center',
+    headerAlign: 'center',
   },
   {
     field: 'up13Pct34d',
     headerName: 'Up 13% (34d)',
     width: 110,
     align: 'center',
+    headerAlign: 'center',
   },
   {
     field: 'down13Pct34d',
     headerName: 'Down 13% (34d)',
     width: 110,
     align: 'center',
+    headerAlign: 'center',
   },
   {
     field: 'up8Pct5d',
@@ -477,7 +483,8 @@ const MarketBreadthTable = () => {
               ...c,
               headerClassName:
                 ['up4Percent', 'down4Percent', 'ratio5d', 'ratio10d', 'up25PctQuarter', 'down25PctQuarter'].includes(c.field) ? 'primary-header' :
-                  ['up25PctMonth', 'down25PctMonth', 'up50PctMonth', 'down50PctMonth', 'up13Pct34d', 'down13Pct34d'].includes(c.field) ? 'secondary-header' : ''
+                  ['up25PctMonth', 'down25PctMonth', 'up50PctMonth', 'down50PctMonth', 'up13Pct34d', 'down13Pct34d'].includes(c.field) ? 'secondary-header' :
+                    'study-header' // Default to study-header for remaining
             }))}
             columnGroupingModel={[
               {
@@ -506,6 +513,25 @@ const MarketBreadthTable = () => {
                   { field: 'down13Pct34d' },
                 ],
               },
+              {
+                groupId: 'study_group',
+                headerName: 'Study',
+                headerClassName: 'study-header-group',
+                children: [
+                  { field: 'up8Pct5d' },
+                  { field: 'down8Pct5d' },
+                  { field: 'up50RsCount' },
+                  { field: 'up250Rs5dCount' },
+                  { field: 'up80Pct52WL' },
+                  { field: 'strongCloseUpRatio' },
+                  { field: 'strongCloseDownRatio' },
+                  { field: 'up20Pct5d' },
+                  { field: 'down20Pct5d' },
+                  { field: 'intentScoreUp' },
+                  { field: 'intentScoreDown' },
+                  { field: 'totalStocks' },
+                ],
+              },
             ]}
             initialState={{
               pagination: {
@@ -531,17 +557,39 @@ const MarketBreadthTable = () => {
                 color: 'black',
                 fontWeight: 'bold',
               },
+              '& .study-header': {
+                color: 'black',
+                fontWeight: 'bold',
+              },
               '& .primary-header-group': {
                 color: 'black',
                 fontWeight: 'bold',
                 fontSize: '1.1rem',
                 borderBottom: '1px solid black',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                textAlign: 'center',
               },
               '& .secondary-header-group': {
                 color: 'black',
                 fontWeight: 'bold',
                 fontSize: '1.1rem',
                 borderBottom: '1px solid black',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                textAlign: 'center',
+              },
+              '& .study-header-group': {
+                color: 'black',
+                fontWeight: 'bold',
+                fontSize: '1.1rem',
+                borderBottom: '1px solid black',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                textAlign: 'center',
               },
               '& .MuiDataGrid-columnHeaders': {
                 backgroundColor: '#f5f5f5',
