@@ -10,27 +10,55 @@ import BreadthTwoPaneChart from './TVLightChart';
 import { commonSelectSx, commonInputLabelSx } from '../../utils/themeStyles';
 import moment from 'moment';
 
-const getCellStyle = (value, threshold = 0.5, type = 'up') => {
-  const colors = {
-    red: '#800000',
-    green: '#004d00',
-    lightGreen: '#c6efce',
-    lightRed: '#ffc7ce',
+// Helper for Up/Down 4% Coloring
+const getUpDown4Color = (params, type) => {
+  const row = params.row;
+  const up = row.up4Percent || 0;
+  const down = row.down4Percent || 0;
+
+  let style = { width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' };
+
+  // Rule 1: Extreme Activity > 300
+  if (type === 'up' && up > 300) {
+    return { ...style, backgroundColor: '#006400', color: '#fff' }; // Dark Green
   }
-  if (typeof value !== 'number') return {};
-  if (value >= threshold && type === 'up') {
-    return { backgroundColor: colors.lightGreen, color: colors.green }; // light green bg, dark green text
-  } else if (value >= threshold && type === 'down') {
-    return { backgroundColor: colors.lightRed, color: colors.red }; // light red bg, dark red text
+  if (type === 'down' && down > 300) {
+    return { ...style, backgroundColor: '#8b0000', color: '#fff' }; // Dark Red
   }
-  return {};
+
+  // Rule 2: Compare Up vs Down
+  if (up > down) {
+    // Both Green
+    return { ...style, backgroundColor: '#c6efce', color: '#004d00' };
+  } else {
+    // Both Pink/Red
+    return { ...style, backgroundColor: '#ffc7ce', color: '#800000' };
+  }
+};
+
+// Generic Helper for Threshold Coloring
+const getCellStyle = (value, threshold, type) => {
+  let style = { width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' };
+  if (value === undefined || value === null) return style;
+
+  if (type === 'up' && value >= threshold) {
+    // Light Green compatible with other columns
+    return { ...style, backgroundColor: '#e8f5e9', color: '#1b5e20' };
+  }
+  if (type === 'down' && value >= threshold) {
+    // Light Red compatible with other columns
+    return { ...style, backgroundColor: '#ffebee', color: '#b71c1c' };
+  }
+  return style;
 };
 
 const columns = [
   {
     field: 'date',
     headerName: 'Date',
-    width: 130,
+    // width: 130,
+    width: 120,
+    pinned: 'left',
     valueFormatter: (value) => {
       if (!value) return '';
       if (typeof value === 'string') {
@@ -48,7 +76,7 @@ const columns = [
     align: 'center',
     headerAlign: 'center',
     renderCell: (params) => (
-      <div style={getCellStyle(params.value, 10, 'up')}>{params.value}</div>
+      <div style={getUpDown4Color(params, 'up')}>{params.value}</div>
     )
   },
   {
@@ -58,28 +86,95 @@ const columns = [
     align: 'center',
     headerAlign: 'center',
     renderCell: (params) => (
-      <div style={getCellStyle(params.value, 8, 'down')}>{params.value}</div>
+      <div style={getUpDown4Color(params, 'down')}>{params.value}</div>
     )
   },
   {
     field: 'ratio5d',
     headerName: '5 Day Ratio',
-    width: 120,
+    width: 100,
     align: 'center',
     headerAlign: 'center',
-    renderCell: (params) => (
-      <div style={getCellStyle(params.value, 8, 'down')}>{params.value.toFixed(2)}</div>
-    )
+    renderCell: (params) => {
+      let style = { width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' };
+      if (params.value >= 2.0) {
+        style = { ...style, backgroundColor: '#c6efce', color: '#004d00' };
+      } else if (params.value <= 0.5) {
+        style = { ...style, backgroundColor: '#ffc7ce', color: '#800000' };
+      }
+      return (
+        <div style={style}>{params.value.toFixed(2)}</div>
+      );
+    }
   },
   {
     field: 'ratio10d',
     headerName: '10 Day Ratio',
-    width: 120,
+    width: 100,
     align: 'center',
     headerAlign: 'center',
-    renderCell: (params) => (
-      <div style={getCellStyle(params.value, 8, 'down')}>{params.value.toFixed(2)}</div>
-    )
+    renderCell: (params) => {
+      let style = { width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' };
+      if (params.value >= 2.0) {
+        style = { ...style, backgroundColor: '#c6efce', color: '#004d00' };
+      } else if (params.value <= 0.5) {
+        style = { ...style, backgroundColor: '#ffc7ce', color: '#800000' };
+      }
+      return (
+        <div style={style}>{params.value.toFixed(2)}</div>
+      );
+    }
+  },
+  // New Metrics
+  {
+    field: 'up25PctQuarter',
+    headerName: 'Up 25% (Qtr)',
+    width: 110,
+    align: 'center',
+    renderCell: (params) => <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#c8e6c9', color: '#1b5e20' }}>{params.value}</div>
+  },
+  {
+    field: 'down25PctQuarter',
+    headerName: 'Down 25% (Qtr)',
+    width: 110,
+    align: 'center',
+    renderCell: (params) => <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#ffcdd2', color: '#b71c1c' }}>{params.value}</div>
+  },
+  {
+    field: 'up25PctMonth',
+    headerName: 'Up 25% (M)',
+    width: 100,
+    align: 'center',
+  },
+  {
+    field: 'down25PctMonth',
+    headerName: 'Down 25% (M)',
+    width: 100,
+    align: 'center',
+  },
+  {
+    field: 'up50PctMonth',
+    headerName: 'Up 50% (M)',
+    width: 100,
+    align: 'center',
+  },
+  {
+    field: 'down50PctMonth',
+    headerName: 'Down 50% (M)',
+    width: 100,
+    align: 'center',
+  },
+  {
+    field: 'up13Pct34d',
+    headerName: 'Up 13% (34d)',
+    width: 110,
+    align: 'center',
+  },
+  {
+    field: 'down13Pct34d',
+    headerName: 'Down 13% (34d)',
+    width: 110,
+    align: 'center',
   },
   {
     field: 'up8Pct5d',
@@ -88,7 +183,7 @@ const columns = [
     align: 'center',
     headerAlign: 'center',
     renderCell: (params) => (
-      <div style={getCellStyle(params.value, 10, 'up')}>{params.value}</div>
+      <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#e8f5e9', color: '#1b5e20' }}>{params.value}</div>
     )
   },
   {
@@ -98,7 +193,7 @@ const columns = [
     align: 'center',
     headerAlign: 'center',
     renderCell: (params) => (
-      <div style={getCellStyle(params.value, 10, 'down')}>{params.value}</div>
+      <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#ffebee', color: '#b71c1c' }}>{params.value}</div>
     )
   },
   {
@@ -108,7 +203,7 @@ const columns = [
     align: 'center',
     headerAlign: 'center',
     renderCell: (params) => (
-      <div style={getCellStyle(params.value, 10, 'up')}>{params.value}</div>
+      <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#e8f5e9', color: '#1b5e20' }}>{params.value}</div>
     )
   },
   {
@@ -118,7 +213,7 @@ const columns = [
     align: 'center',
     headerAlign: 'center',
     renderCell: (params) => (
-      <div style={getCellStyle(params.value, 10, 'up')}>{params.value}</div>
+      <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#e8f5e9', color: '#1b5e20' }}>{params.value}</div>
     )
   },
   {
@@ -128,7 +223,7 @@ const columns = [
     align: 'center',
     headerAlign: 'center',
     renderCell: (params) => (
-      <div style={getCellStyle(params.value, 8, 'up')}>{params.value}</div>
+      <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#e8f5e9', color: '#1b5e20' }}>{params.value}</div>
     )
   },
   {
@@ -139,7 +234,7 @@ const columns = [
     align: 'center',
     headerAlign: 'center',
     renderCell: (params) => (
-      <div style={getCellStyle(params.value, 0.6, 'up')}>{(params.value * 100).toFixed(2)}%</div>
+      <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#e8f5e9', color: '#1b5e20' }}>{(params.value * 100).toFixed(2)}%</div>
     )
   },
   {
@@ -150,7 +245,7 @@ const columns = [
     align: 'center',
     headerAlign: 'center',
     renderCell: (params) => (
-      <div style={getCellStyle(params.value, 0.6, 'down')}>{(params.value * 100).toFixed(2)}%</div>
+      <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#ffebee', color: '#b71c1c' }}>{(params.value * 100).toFixed(2)}%</div>
     )
   },
   {
@@ -362,7 +457,7 @@ const MarketBreadthTable = () => {
               <CombinedMarketBreadthChart data={filteredBreadthData} field={percantageChange} />
             </Box>
           ) : (
-            <Box sx={{ height: 550 }}>
+            <Box sx={{ height: 600 }}>
               {/* Pass FULL breadthData to TV chart so all data is loaded, 
                  but pass visibleStartDate to set the initial zoom */}
               <BreadthTwoPaneChart
@@ -375,19 +470,92 @@ const MarketBreadthTable = () => {
         </Paper>
 
         {/* Table Section */}
-        <Paper sx={{ height: 600, mb: 4, borderRadius: 2, boxShadow: '0 2px 8px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
+        <Paper sx={{ height: 800, mb: 4, borderRadius: 2, boxShadow: '0 2px 8px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
           <DataGrid
-            rows={[...rows].sort((a, b) => new Date(b.date) - new Date(a.date))}
-            columns={columns}
-            pageSize={25}
-            rowsPerPageOptions={[10, 25, 50, 100]}
-            disableSelectionOnClick
-            density="compact"
+            rows={rows}
+            columns={columns.map(c => ({
+              ...c,
+              headerClassName:
+                ['up4Percent', 'down4Percent', 'ratio5d', 'ratio10d', 'up25PctQuarter', 'down25PctQuarter'].includes(c.field) ? 'primary-header' :
+                  ['up25PctMonth', 'down25PctMonth', 'up50PctMonth', 'down50PctMonth', 'up13Pct34d', 'down13Pct34d'].includes(c.field) ? 'secondary-header' : ''
+            }))}
+            columnGroupingModel={[
+              {
+                groupId: 'primary_group',
+                headerName: 'Primary Breadth Indicators',
+                headerClassName: 'primary-header-group',
+                children: [
+                  { field: 'up4Percent' },
+                  { field: 'down4Percent' },
+                  { field: 'ratio5d' },
+                  { field: 'ratio10d' },
+                  { field: 'up25PctQuarter' },
+                  { field: 'down25PctQuarter' },
+                ],
+              },
+              {
+                groupId: 'secondary_group',
+                headerName: 'Secondary Breadth Indicators',
+                headerClassName: 'secondary-header-group',
+                children: [
+                  { field: 'up25PctMonth' },
+                  { field: 'down25PctMonth' },
+                  { field: 'up50PctMonth' },
+                  { field: 'down50PctMonth' },
+                  { field: 'up13Pct34d' },
+                  { field: 'down13Pct34d' },
+                ],
+              },
+            ]}
+            initialState={{
+              pagination: {
+                paginationModel: { page: 0, pageSize: 30 },
+              },
+            }}
+            pageSizeOptions={[10, 30, 60, 100]}
+            disableRowSelectionOnClick
+            rowHeight={35}
+            columnHeaderHeight={100} // Increased for multiline headers
             sx={{
-              border: 'none',
+              boxShadow: 2,
+              border: 2,
+              borderColor: 'primary.light',
+              '& .MuiDataGrid-cell:hover': {
+                color: 'primary.main',
+              },
+              '& .primary-header': {
+                color: 'black',
+                fontWeight: 'bold',
+              },
+              '& .secondary-header': {
+                color: 'black',
+                fontWeight: 'bold',
+              },
+              '& .primary-header-group': {
+                color: 'black',
+                fontWeight: 'bold',
+                fontSize: '1.1rem',
+                borderBottom: '1px solid black',
+              },
+              '& .secondary-header-group': {
+                color: 'black',
+                fontWeight: 'bold',
+                fontSize: '1.1rem',
+                borderBottom: '1px solid black',
+              },
               '& .MuiDataGrid-columnHeaders': {
                 backgroundColor: '#f5f5f5',
-                fontWeight: 600,
+              },
+              '& .MuiDataGrid-columnHeaderTitle': { // Allow multiline text
+                whiteSpace: 'normal',
+                lineHeight: '1.2',
+                textAlign: 'center',
+                fontWeight: 'bold',
+              },
+              '& .MuiDataGrid-columnHeader': { // Center alignment container
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
               },
               '& .MuiDataGrid-cell': {
                 borderBottom: '1px solid #f0f0f0',

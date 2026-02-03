@@ -1,63 +1,70 @@
 import { useEffect, useRef } from 'react';
-import { createChart, HistogramSeries } from 'lightweight-charts';
+import { createChart, HistogramSeries, LineSeries } from 'lightweight-charts';
 import PropTypes from 'prop-types';
 import moment from 'moment';
 
-const mapping = {
-    fourPercentage: ['up4Percent', 'down4Percent'],
-    eightPercentage: ['up8Pct5d', 'down8Pct5d'],
-    twentyPercentage: ['up20Pct5d', 'down20Pct5d'],
-}
+// Helper to get series data
+const getSeriesData = (data, key) => {
+    return data.map(item => ({
+        time: item.date.split('T')[0],
+        value: item[key] || 0,
+    }));
+};
 
 export default function BreadthTwoPaneChart({ data, field, visibleStartDate }) {
     const chartRef = useRef();
-    const [upSideColumn, downSideColumn] = mapping[field];
 
     useEffect(() => {
+        if (!data || data.length === 0) return;
+
         const chart = createChart(chartRef.current, {
-            width: 1000,
-            height: 550,
+            width: chartRef.current.clientWidth || 1000,
+            height: 600,
             layout: {
                 textColor: 'black',
                 background: { type: 'solid', color: 'white' },
                 panes: {
-                    separatorColor: '#f22c3d',
-                    separatorHoverColor: 'rgba(255, 0, 0, 0.1)',
-                    enableResize: false,
+                    separatorColor: '#f0f0f0',
+                    enableResize: true,
                 },
+            },
+            timeScale: {
+                timeVisible: true,
+                borderColor: '#D1D4DC',
+            },
+            rightPriceScale: {
+                borderColor: '#D1D4DC',
             },
         });
 
         const sortedData = [...data].sort((a, b) => new Date(a.date) - new Date(b.date));
 
-        const upSeries = chart.addSeries(HistogramSeries, {
-            color: 'green',
-            priceFormat: { type: 'volume' },
-        }, 0);
-        upSeries.setData(
-            sortedData.map(item => ({
-                time: item.date.split('T')[0],
-                value: item[upSideColumn],
-            }))
-        );
+        // --- Pane 0 (Formerly 1): 25/65 Lines (Quarter) --- 
+        // Add series to Pane 0
+        const p1_Up25Q = chart.addSeries(LineSeries, { color: 'green', lineWidth: 1 }, 0);
+        const p1_Down25Q = chart.addSeries(LineSeries, { color: 'red', lineWidth: 1 }, 0);
+        p1_Up25Q.setData(getSeriesData(sortedData, 'up25PctQuarter'));
+        p1_Down25Q.setData(getSeriesData(sortedData, 'down25PctQuarter'));
 
-        const downSeries = chart.addSeries(HistogramSeries, {
-            color: 'red',
-            priceFormat: { type: 'volume' },
-        }, 1);
-        downSeries.setData(
-            sortedData.map(item => ({
-                time: item.date.split('T')[0],
-                value: item[downSideColumn],
-            }))
-        );
-        chart.panes()[0].setHeight(250);
-        chart.panes()[1].setHeight(250);
+        // --- Pane 1 (Formerly 2): 13/34 Lines (Yellow/Aqua) ---
+        const p2_Up13_34 = chart.addSeries(LineSeries, { color: '#FFD700', lineWidth: 1 }, 1); // Gold/Yellow
+        const p2_Down13_34 = chart.addSeries(LineSeries, { color: '#00FFFF', lineWidth: 1 }, 1); // Aqua
+        p2_Up13_34.setData(getSeriesData(sortedData, 'up13Pct34d'));
+        p2_Down13_34.setData(getSeriesData(sortedData, 'down13Pct34d'));
+
+        // --- Pane 2 (Formerly 3): Breadth Thrust (Ratio 10d) ---
+        const p3_Ratio = chart.addSeries(HistogramSeries, { color: 'gray' }, 2);
+        p3_Ratio.setData(sortedData.map(item => {
+            const val = item.ratio10d || 0;
+            let color = 'gray';
+            if (val > 2.0) color = '#c6efce'; // Light Green
+            else if (val < 0.5) color = '#ffc7ce'; // Light Red
+            return { time: item.date.split('T')[0], value: val, color };
+        }));
 
         // Set visible range if start date is provided, otherwise fit content
         if (visibleStartDate) {
             const endDate = sortedData[sortedData.length - 1]?.date.split('T')[0];
-            // Ensure visibleStartDate matches format YYYY-MM-DD calling logic should ensure this
             chart.timeScale().setVisibleRange({
                 from: visibleStartDate,
                 to: endDate,
@@ -67,11 +74,11 @@ export default function BreadthTwoPaneChart({ data, field, visibleStartDate }) {
         }
 
         return () => chart.remove();
-    }, [data, upSideColumn, downSideColumn, visibleStartDate]);
+    }, [data, visibleStartDate]);
 
     return (
-        <div style={{ width: '1000px', margin: 'auto' }}>
-            <div ref={chartRef} />
+        <div style={{ width: '100%', height: '100%', margin: 'auto' }}>
+            <div ref={chartRef} style={{ width: '100%', height: '100%' }} />
         </div>
     );
 }
