@@ -1,6 +1,6 @@
 import { Outlet } from "react-router-dom";
 import Layout from "./Layout";
-import Home from "./Home";
+import Home from "./Home/index";
 import Settings from "./Settings";
 import MarketBreadthTable from "./MarketBreadth.jsx";
 import MarketHighLowWormChart from "./Worm.jsx";

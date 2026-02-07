@@ -7,7 +7,7 @@ import UpstoxSettings from './Components/UpstoxSettings';
 import UpstoxCallback from './Components/UpstoxCallback';
 import Login from './Components/Login';
 import Signup from './Components/Signup';
-import Home from './Components/molicules/Home';
+import Home from './Components/molicules/Home/index';
 import Settings from './Components/molicules/Settings';
 import Redirect from './Components/molicules/Redirect';
 import MarketBreadthTable from './Components/molicules/MarketBreadth';
