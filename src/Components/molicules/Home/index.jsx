@@ -9,7 +9,7 @@ import {
 
 import { useHome } from './useHome';
 import { styles } from './styles';
-import TVChartContainer from '../../TradingView/TVChartContainer';
+import TVChartContainer from '../../TradingView/TVChartContainer/index';
 import Watchlist from '../../Watchlist/index';
 
 const Home = () => {
