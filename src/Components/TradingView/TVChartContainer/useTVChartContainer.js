@@ -9,6 +9,7 @@ import { BACKEND_URL } from '../../../utils/config';
 import universe from '../../../index/universe.json';
 
 const AVAILABLE_COLUMNS = [
+    { id: 'flag', label: 'Flag', minWidth: 50 },  // New Flag Column
     { id: 'scriptName', label: 'Script', minWidth: 100 },
     { id: 'ltp', label: 'LTP', minWidth: 70 },
     { id: 'changePercentage', label: 'Chg%', minWidth: 60 },
@@ -27,7 +28,15 @@ const AVAILABLE_COLUMNS = [
 export const useTVChartContainer = () => {
     const chartContainerRef = useRef();
     const tvWidgetRef = useRef(null);
-    const { selectedIndex, handleSelectionChange, scriptsToShow, counts } = useWatchlistFilter();
+    const {
+        selectedIndex,
+        handleSelectionChange,
+        scriptsToShow,
+        counts,
+        flaggedStocks, // New
+        toggleFlag     // New
+    } = useWatchlistFilter();
+
     const [selectedSymbol, setSelectedSymbol] = useState(null);
     const user = JSON.parse(localStorage.getItem('user') || '{}');
     const userId = user._id || user.id || 'public_user_id';
@@ -36,7 +45,7 @@ export const useTVChartContainer = () => {
     const breadthData = useSelector(state => state.marketBreadth.data);
 
     // Column Customization State
-    const [visibleColumns, setVisibleColumns] = useState(['scriptName', 'changePercentage', 'priceChange']);
+    const [visibleColumns, setVisibleColumns] = useState(['flag', 'scriptName', 'changePercentage', 'priceChange']); // Add 'flag' by default
     const [settingsAnchorEl, setSettingsAnchorEl] = useState(null);
     const [anchorEl, setAnchorEl] = useState(null);
 
@@ -62,6 +71,7 @@ export const useTVChartContainer = () => {
         if (!breadthData || breadthData.length === 0) return;
 
         const initWidget = async () => {
+            // ... (existing widget init logic omitted for brevity, logic remains same)
             let savedData = null;
             let savedDataMetaInfo = null;
             let initialSymbol = "NSE_EQ|INE002A01018|RELIANCE";
@@ -175,16 +185,7 @@ export const useTVChartContainer = () => {
                             return [];
                         }
                         const { symbolInfo } = data;
-
-                        // Find script in universe
-                        // symbolInfo.name usually has "NSE_EQ|..." or just "RELIANCE" depending on configuration.
-                        // But symbolInfo.ticker is usually the instrument_key "NSE_EQ|..."
-                        // Let's try to match by instrument_key first
-
                         const script = universeMap[symbolInfo.ticker];
-
-                        // const industry = script?.industry || 'N/A';
-                        // const sector = script?.sector || 'N/A';
 
                         return [
                             {
@@ -210,20 +211,13 @@ export const useTVChartContainer = () => {
 
                     // Set the custom provider
                     watermarkApi.setContentProvider(customContentProvider);
-
-                    // Control the watermark visibility
                     watermarkApi.visibility().setValue(true);
-
-                    // Set the watermark color
                     watermarkApi.color().setValue("rgba(115, 125, 115, 0.5)");
 
                 } catch (error) {
                     console.error("TVChartContainer: Error setting up watermark", error);
                 }
-
-                // Studies are now available in the indicators list, not adding them automatically.
             });
-            // tvWidget.activeChart().getTimezoneApi().setTimezone("Asia/Kolkata");
             tvWidgetRef.current = tvWidget;
         };
 
@@ -290,6 +284,13 @@ export const useTVChartContainer = () => {
             case 'bearishMB': return 'Bearish MB';
             case 'bearishSLTB': return 'Bearish SLTB';
             case 'bearishDollar': return 'Bearish Dollar';
+
+            case 'redList': return 'Red List';
+            case 'blueList': return 'Blue List';
+            case 'greenList': return 'Green List';
+            case 'orangeList': return 'Orange List';
+            case 'purpleList': return 'Purple List';
+
             case 'all': return 'All Symbols';
             default: return 'Watchlist';
         }
@@ -312,6 +313,8 @@ export const useTVChartContainer = () => {
         openSettings,
         settingsAnchorEl,
         handleColumnToggle,
-        AVAILABLE_COLUMNS
+        AVAILABLE_COLUMNS,
+        flaggedStocks, // Exposed
+        toggleFlag     // Exposed
     };
 };

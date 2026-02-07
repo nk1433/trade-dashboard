@@ -1,17 +1,26 @@
 import React from "react";
 import {
-    Box, Typography, Divider, IconButton, Menu, MenuItem, Table, TableBody,
-    TableCell, TableContainer, TableHead, TableRow, Checkbox, FormControlLabel,
-    Popover, FormGroup
+    Box, Typography, Divider, IconButton, Menu, MenuItem, Checkbox, FormControlLabel,
+    Popover, FormGroup, ListItemIcon
 } from '@mui/material';
 import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
 import AddIcon from '@mui/icons-material/Add';
 import SettingsIcon from '@mui/icons-material/Settings';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
+import FlagIcon from '@mui/icons-material/Flag';
 
 import WatchList from "../../Watchlist/Table";
 import { useTVChartContainer } from './useTVChartContainer';
 import { styles } from './styles';
+
+// Colors for the menu items
+const FLAG_MENU_COLORS = {
+    redList: '#ff5252',
+    blueList: '#448aff',
+    greenList: '#69f0ae',
+    orangeList: '#ffab40',
+    purpleList: '#e040fb',
+};
 
 const TVChartContainer = () => {
     const {
@@ -31,7 +40,9 @@ const TVChartContainer = () => {
         openSettings,
         settingsAnchorEl,
         handleColumnToggle,
-        AVAILABLE_COLUMNS
+        AVAILABLE_COLUMNS,
+        flaggedStocks,
+        toggleFlag
     } = useTVChartContainer();
 
     return (
@@ -60,8 +71,21 @@ const TVChartContainer = () => {
                             open={openMenu}
                             onClose={() => handleMenuClose(null)}
                             MenuListProps={{ dense: true }}
+                            PaperProps={{ sx: { maxHeight: 400, width: 250 } }}
                         >
                             <MenuItem onClick={() => handleMenuClose('all')}>All Symbols ({counts.all})</MenuItem>
+                            <Divider />
+                            {/* Flag Lists */}
+                            {Object.keys(FLAG_MENU_COLORS).map(listKey => (
+                                <MenuItem key={listKey} onClick={() => handleMenuClose(listKey)}>
+                                    <ListItemIcon sx={{ minWidth: 32 }}>
+                                        <FlagIcon sx={{ color: FLAG_MENU_COLORS[listKey], fontSize: 18 }} />
+                                    </ListItemIcon>
+                                    <Typography variant="body2" sx={{ textTransform: 'capitalize' }}>
+                                        {listKey.replace('List', '')} List ({counts[listKey] || 0})
+                                    </Typography>
+                                </MenuItem>
+                            ))}
                             <Divider />
                             <MenuItem onClick={() => handleMenuClose('bullishMB')}>Bullish MB ({counts.bullishMB})</MenuItem>
                             <MenuItem onClick={() => handleMenuClose('bearishMB')}>Bearish MB ({counts.bearishMB})</MenuItem>
@@ -112,6 +136,8 @@ const TVChartContainer = () => {
                             visibleColumns={visibleColumns}
                             onRowClick={handleStockClick}
                             compact={true}
+                            flaggedStocks={flaggedStocks}
+                            onFlagChange={toggleFlag}
                         />
                     </Box>
                 </Box>

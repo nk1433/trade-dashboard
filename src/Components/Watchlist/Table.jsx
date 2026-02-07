@@ -9,11 +9,13 @@ import { updatePaperHoldingsLTP, executePaperOrder } from '../../Store/paperTrad
 import { formatToIndianUnits } from '../../utils';
 import OrderPanel from './OrderPanel';
 import TradingViewFinancialsWidget from '../molicules/TradingViewFinancialsWidget';
+import FlagMenu from './FlagMenu';
 
 const UP_COLOR = '#26a69a'; // Lighter Teal/Green
 const DOWN_COLOR = '#ef5350'; // Lighter Red
 
 const columnMapping = {
+  Flag: 'flag',
   LTP: 'ltp',
   SL: 'sl',
   Shares: 'maxShareToBuy',
@@ -36,7 +38,15 @@ const initialfilterModel = {
   logicOperator: GridLogicOperator.And,
 };
 
-const WatchList = ({ scripts, type = 'dashboard', visibleColumns, onRowClick, compact = false }) => {
+const WatchList = ({
+  scripts,
+  type = 'dashboard',
+  visibleColumns,
+  onRowClick,
+  compact = false,
+  flaggedStocks = {},
+  onFlagChange
+}) => {
   const [filterModel, setFilterModel] = useState(initialfilterModel);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
@@ -72,6 +82,35 @@ const WatchList = ({ scripts, type = 'dashboard', visibleColumns, onRowClick, co
   const columnsConfig = useMemo(() => ({
     dashboard: [
       {
+        field: "flag",
+        headerName: "", // Icon only header? Or empty
+        width: 50,
+        renderCell: (params) => {
+          const symbol = params.row.symbol;
+          const currentFlag = flaggedStocks[symbol] || null;
+
+          /* 
+             Handle Flag Change:
+             We need to update the parent state.
+             We prevent row click propagation.
+          */
+          const handleFlagChange = (color) => {
+            if (onFlagChange) {
+              onFlagChange(symbol, color);
+            }
+          };
+
+          return (
+            <Box onClick={(e) => e.stopPropagation()}>
+              <FlagMenu
+                currentFlag={currentFlag}
+                onFlagChange={handleFlagChange}
+              />
+            </Box>
+          );
+        }
+      },
+      {
         field: "scriptName",
         headerName: "Script",
         width: 270, // widened for icon
@@ -89,7 +128,11 @@ const WatchList = ({ scripts, type = 'dashboard', visibleColumns, onRowClick, co
 
           return (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <span>{params.row.symbol}</span>
+              <span style={{
+                fontSize: compact ? '0.75rem' : 'inherit',
+                fontWeight: compact ? 500 : 'inherit',
+                textDecoration: params.row.trendIntensity > 1 ? 'underline' : 'none'
+              }}>{params.row.symbol}</span>
               <Tooltip title="Copy script name">
                 <IconButton
                   size="small"
@@ -99,18 +142,6 @@ const WatchList = ({ scripts, type = 'dashboard', visibleColumns, onRowClick, co
                   <ContentCopyIcon fontSize="small" />
                 </IconButton>
               </Tooltip>
-              {/* <Tooltip title="View Fundamentals">
-                <IconButton
-                  size="small"
-                  onMouseEnter={(e) => {
-                    setInfoAnchorEl(e.currentTarget);
-                    setHoveredSymbol(params.row.symbol);
-                  }}
-                  aria-label="view info"
-                >
-                  <InfoOutlinedIcon fontSize="small" />
-                </IconButton>
-              </Tooltip> */}
             </Box>
           );
         },
@@ -208,9 +239,8 @@ const WatchList = ({ scripts, type = 'dashboard', visibleColumns, onRowClick, co
           return <span>{formatToIndianUnits(params.value)}</span>;
         }
       }
-
-      //TODO: Create a fallback(-), percentage(%) components.
     ],
+    // Holdings columns
     holdings: [
       {
         field: "symbol",
@@ -241,7 +271,7 @@ const WatchList = ({ scripts, type = 'dashboard', visibleColumns, onRowClick, co
         ),
       },
       {
-        field: "pnl", // This needs to be calculated or present in the row data
+        field: "pnl",
         headerName: "Returns (%)",
         width: 140,
         renderCell: (params) => {
@@ -314,7 +344,7 @@ const WatchList = ({ scripts, type = 'dashboard', visibleColumns, onRowClick, co
       { field: "allocPer", headerName: "Size" },
       { field: "riskPercentage", headerName: "Risk" },
     ],
-  }), [tradingMode, token, dispatch]); // Added dispatch dependency
+  }), [tradingMode, token, dispatch, flaggedStocks, onFlagChange]); // Props dependencies
 
   const columns = makeColumns(columnsConfig[type]);
 
@@ -334,13 +364,11 @@ const WatchList = ({ scripts, type = 'dashboard', visibleColumns, onRowClick, co
           renderCell = col.renderCell ?? (col.value && col.name === "Script" ? (params) => col.value(params.row) : undefined);
           filterable = col.filterable;
           type = col.type;
-        } else if (col.field && col.headerName) {
+        } else if (col.field && (col.headerName !== undefined)) { // Use !== undefined just in case headerName is empty string
           ({ field, headerName, width, renderCell, filterable, type } = col);
         }
 
-        // ... (existing scriptName override logic if needed, but 'holdings' uses custom 'symbol' field)
         if (field === 'scriptName') {
-          // ... existing logic
           if (compact) {
             width = 120;
           }
@@ -359,32 +387,18 @@ const WatchList = ({ scripts, type = 'dashboard', visibleColumns, onRowClick, co
                   textDecoration: params.row.trendIntensity > 1 ? 'underline' : 'none'
                 }}>{params.row.symbol}</span>
                 {!compact && (
-                  <>
-                    <Tooltip title="Copy script name">
-                      <IconButton size="small" onClick={handleCopy}>
-                        <ContentCopyIcon fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
-                  </>
+                  <Tooltip title="Copy script name">
+                    <IconButton size="small" onClick={handleCopy}>
+                      <ContentCopyIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
                 )}
-                {/* <Tooltip title="View Fundamentals">
-                  <IconButton
-                    size="small"
-                    onMouseEnter={(e) => {
-                      setInfoAnchorEl(e.currentTarget);
-                      setHoveredSymbol(params.row.symbol);
-                    }}
-                    aria-label="view info"
-                  >
-                    <InfoOutlinedIcon fontSize="small" />
-                  </IconButton>
-                </Tooltip> */}
               </Box>
             );
           };
         }
 
-        if (!field || !headerName) return null;
+        if (!field || (headerName === undefined)) return null;
 
         return {
           field,
@@ -403,25 +417,12 @@ const WatchList = ({ scripts, type = 'dashboard', visibleColumns, onRowClick, co
     ...metric,
   }));
 
-  function handleCopyColumn(field) {
-    const values = rows.map(row => row[field]);
-    const textToCopy = values.join(','); // comma, no space
-
-    navigator.clipboard.writeText(textToCopy)
-      .then(() => {
-        setSnackbarMessage('Copied to clipboard!');
-        setSnackbarOpen(true);
-      })
-      .catch(() => {
-        setSnackbarMessage('Copy failed.');
-        setSnackbarOpen(true);
-      });
-  }
-
   // Handle column visibility
+  // Force 'flag' to be visible if it exists in columns.
   const columnVisibilityModel = visibleColumns
     ? columns.reduce((acc, col) => {
-      acc[col.field] = visibleColumns.includes(col.field) || col.field === 'placeOrder'; // Force placeOrder to be visible
+      // Always show 'flag' and 'placeOrder'
+      acc[col.field] = visibleColumns.includes(col.field) || col.field === 'placeOrder' || col.field === 'flag';
       return acc;
     }, {})
     : undefined;
@@ -524,6 +525,8 @@ WatchList.propTypes = {
   visibleColumns: PropTypes.arrayOf(PropTypes.string),
   onRowClick: PropTypes.func,
   compact: PropTypes.bool,
+  flaggedStocks: PropTypes.object,
+  onFlagChange: PropTypes.func
 };
 
 export default WatchList;
