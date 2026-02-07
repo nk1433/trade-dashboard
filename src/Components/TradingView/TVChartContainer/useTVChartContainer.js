@@ -5,6 +5,7 @@ import Datafeed from "../datafeed/datafeed_custom";
 import { useWatchlistFilter } from "../../../hooks/useWatchlistFilter";
 import { fetchMarketBreadth } from '../../../Store/marketBreadth';
 import { createBreadthStudy } from '../studies/breadthStudy';
+import { createMomentumBurstStudy } from '../studies/momentumBurstStudy';
 import { BACKEND_URL } from '../../../utils/config';
 import universe from '../../../index/universe.json';
 
@@ -161,7 +162,8 @@ export const useTVChartContainer = () => {
                             name: 'MarketBreadthDown',
                             description: 'Market Breadth Down 4%',
                             color: '#FF0000' // Red
-                        }, breadthData)
+                        }, breadthData),
+                        createMomentumBurstStudy(PineJS)
                     ]);
                 }
             };
