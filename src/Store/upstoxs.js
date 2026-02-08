@@ -113,11 +113,19 @@ export const updateWatchlistWithMetrics = async (liveFeed, scriptMap, portfolio,
             trendIntensity,
         };
 
-        if (priceRatio >= 1.04 && currentVolume > prevDayVolume && currentVolume >= 100000) {
+        if (
+            priceRatio >= 1.04 &&
+            currentVolume > prevDayVolume &&
+            currentVolume >= 100000
+        ) {
             acc.bullishMB[instrumentKey] = metric;
         }
 
-        if (priceRatio <= 0.96 && currentVolume > prevDayVolume && currentVolume >= 100000) {
+        if (
+            priceRatio <= 0.96 &&
+            currentVolume > prevDayVolume &&
+            currentVolume >= 100000
+        ) {
             acc.bearishMB[instrumentKey] = metric;
         }
 
@@ -126,33 +134,48 @@ export const updateWatchlistWithMetrics = async (liveFeed, scriptMap, portfolio,
             trendIntensity >= 1.05 &&
             latestDayFeed.close > latestDayFeed.open &&
             latestDayFeed.close > closePrev1 &&
-            latestDayFeed.close / closePrev1 > closePrev1 / closePrev2 &&
-            closePrev1 / closePrev2 < 1.02 &&
+            (latestDayFeed.close / closePrev1) > (closePrev1 / closePrev2) &&
+            (closePrev1 / closePrev2) < 1.02 &&
+            closePrev1 > closePrev2
+        ) {
+            acc.bullishSLTB[instrumentKey] = metric;
+        }
+
+        if (
+            minVolume3d > 100000 &&
             closePrev1 > closePrev2 &&
-            latestDayFeed.close > 100
+            latestDayFeed.close > latestDayFeed.open &&
+            latestDayFeed.close > closePrev1 &&
+            closePrev1 / closePrev2 < 1.02 &&
+            (latestDayFeed.close / closePrev1) > (closePrev1 / closePrev2) &&
+            latestDayFeed.close > prevStats.avgClose200d &&
+            trendIntensity < 1.05
         ) {
             acc.bullishSLTB[instrumentKey] = metric;
         }
 
         if (
             closePrev1 / closePrev2 >= 0.98 &&
-            latestDayFeed.close / closePrev1 < closePrev1 / closePrev2 &&
+            (latestDayFeed.close / closePrev1) < (closePrev1 / closePrev2) &&
             latestDayFeed.close < closePrev1 &&
             latestDayFeed.close < latestDayFeed.open &&
-            minVolume3d >= 100000 &&
-            (latestDayFeed.close - latestDayFeed.low) / (latestDayFeed.high - latestDayFeed.low) < 0.2 &&
-            latestDayFeed.close > 100
+            minVolume3d >= 300000 &&
+            (latestDayFeed.close - latestDayFeed.low) / (latestDayFeed.high - latestDayFeed.low) < 0.2
         ) {
             acc.bearishSLTB[instrumentKey] = metric;
         }
 
-
-
-        if (latestDayFeed.close - latestDayFeed.open >= 50 && currentVolume >= 100000) {
+        if (
+            (latestDayFeed.close - latestDayFeed.open) >= 50 &&
+            currentVolume >= 100000
+        ) {
             acc.dollar[instrumentKey] = metric;
         }
 
-        if (latestDayFeed.open - latestDayFeed.close >= 50 && currentVolume >= 100000) {
+        if (
+            (latestDayFeed.open - latestDayFeed.close) >= 50 &&
+            currentVolume >= 100000
+        ) {
             acc.bearishDollar[instrumentKey] = metric;
         }
 
@@ -166,7 +189,8 @@ export const updateWatchlistWithMetrics = async (liveFeed, scriptMap, portfolio,
             acc.bullishAnts[instrumentKey] = metric;
         }
 
-        if ((latestDayFeed.close / prevStats.fiftyTwoWeekLow) >= 1.8 &&
+        if (
+            (latestDayFeed.close / prevStats.fiftyTwoWeekLow) >= 1.8 &&
             minVolume3d > 100000 &&
             statsPriceChange > -1 &&
             statsPriceChange < 1
