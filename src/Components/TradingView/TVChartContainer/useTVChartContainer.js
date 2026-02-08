@@ -6,6 +6,7 @@ import { useWatchlistFilter } from "../../../hooks/useWatchlistFilter";
 import { fetchMarketBreadth } from '../../../Store/marketBreadth';
 import { createBreadthStudy } from '../studies/breadthStudy';
 import { createMomentumBurstStudy } from '../studies/momentumBurstStudy';
+import { createTI65Study } from '../studies/ti65Study';
 import { BACKEND_URL } from '../../../utils/config';
 import universe from '../../../index/universe.json';
 
@@ -149,7 +150,7 @@ export const useTVChartContainer = () => {
                     }
                 },
                 custom_indicators_getter: (PineJS) => {
-                    // console.log("TVChartContainer: custom_indicators_getter called");
+                    console.log("TVChartContainer: custom_indicators_getter called");
                     return Promise.resolve([
                         createBreadthStudy({
                             field: 'up4Percent',
@@ -163,7 +164,8 @@ export const useTVChartContainer = () => {
                             description: 'Market Breadth Down 4%',
                             color: '#FF0000' // Red
                         }, breadthData),
-                        createMomentumBurstStudy(PineJS)
+                        createMomentumBurstStudy(PineJS),
+                        createTI65Study(PineJS)
                     ]);
                 }
             };
