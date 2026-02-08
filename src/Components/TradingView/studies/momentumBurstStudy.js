@@ -95,6 +95,7 @@ export const createMomentumBurstStudy = (PineJS) => {
                 this._context = context;
                 this._input = inputCallback;
                 this._closes = []; // Manual history
+                this._volumes = []; // Manual history
             };
 
             this.main = function (context, inputCallback) {
@@ -104,7 +105,10 @@ export const createMomentumBurstStudy = (PineJS) => {
 
                     const index = this._context.symbol.index;
                     const close = PineJS.Std.close(this._context);
+                    const vol = PineJS.Std.volume(this._context);
+
                     this._closes[index] = close;
+                    this._volumes[index] = vol;
 
                     // Return 4 NaNs (2 sizes * 2 plots)
                     if (isNaN(index) || index < 1) {
@@ -112,8 +116,11 @@ export const createMomentumBurstStudy = (PineJS) => {
                     }
 
                     const prevClose = this._closes[index - 1];
+                    const prevVol = this._volumes[index - 1];
 
-                    if (prevClose === undefined || isNaN(prevClose) || prevClose === 0) {
+                    // Determine validity of previous data
+                    if (prevClose === undefined || isNaN(prevClose) || prevClose === 0 ||
+                        prevVol === undefined || isNaN(prevVol)) {
                         return [NaN, NaN, NaN, NaN];
                     }
 
@@ -132,8 +139,14 @@ export const createMomentumBurstStudy = (PineJS) => {
                     if (size === "Tiny") offset = 0;
                     else if (size === "Small") offset = 2;
 
-                    const upBurst = change >= thresholdPct ? 1 : NaN;
-                    const downBurst = change <= -thresholdPct ? 1 : NaN;
+                    // Debug Log
+                    // console.log(`MB Debug - Idx:${index} C:${close} pC:${prevClose} V:${vol} pV:${prevVol} Chg:${(change * 100).toFixed(2)}% Thresh:${threshold}`);
+
+                    // Criteria:
+                    // Bullish: c/c1 >= 1.04 (change >= 4%) AND v > v1 AND v >= 100k
+                    // Bearish: c/c1 <= 0.96 (change <= -4%) AND v > v1 AND v >= 100k
+                    const upBurst = (change >= thresholdPct && vol > prevVol && vol >= 100000) ? 1 : NaN;
+                    const downBurst = (change <= -thresholdPct && vol >= 100000) ? 1 : NaN;
 
                     const res = [NaN, NaN, NaN, NaN];
 

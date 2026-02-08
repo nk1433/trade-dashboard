@@ -60,8 +60,8 @@ const handleMarketData = (data) => {
         // Pure calculation derived
         const barTime = calculateBarTime(tradeTime, resolution, isDaily, dailyOHLC);
 
-        let barData;
         if (isDaily && dailyOHLC) {
+            // console.log(`[SubService] Daily Update: ${instrumentKey} Vol:${dailyOHLC?.vol}`);
             barData = {
                 open: dailyOHLC.open,
                 high: dailyOHLC.high,
@@ -73,6 +73,25 @@ const handleMarketData = (data) => {
             // Intraday Logic: stateful update
             let lastBar = subscriber.lastBar;
 
+            // Calculate Volume Delta
+            let currentDayVol = dailyOHLC?.vol;
+
+            // Log for debugging (only occasional or once per instrument update)
+            // console.log(`[SubService] Intraday Update: ${instrumentKey} Vol:${currentDayVol} LastVol:${subscriber.lastDayVol}`);
+
+            // Initialize last known daily volume if missing
+            if (subscriber.lastDayVol === undefined && currentDayVol !== undefined) {
+                subscriber.lastDayVol = currentDayVol;
+            }
+
+            let volumeDelta = 0;
+            if (currentDayVol !== undefined && subscriber.lastDayVol !== undefined) {
+                volumeDelta = currentDayVol - subscriber.lastDayVol;
+                // Prevent negative delta (in case of weird resets or data errors)
+                if (volumeDelta < 0) volumeDelta = 0;
+                subscriber.lastDayVol = currentDayVol;
+            }
+
             // Check if we are still in the same bar
             if (lastBar && lastBar.time === barTime) {
                 barData = {
@@ -80,7 +99,7 @@ const handleMarketData = (data) => {
                     high: Math.max(lastBar.high, ltp),
                     low: Math.min(lastBar.low, ltp),
                     close: ltp,
-                    volume: lastBar.volume // We assume volume is cumulative or we don't handle it for ticks yet
+                    volume: (lastBar.volume || 0) + volumeDelta
                 };
             } else {
                 // New Bar or First Bar
@@ -89,7 +108,7 @@ const handleMarketData = (data) => {
                     high: ltp,
                     low: ltp,
                     close: ltp,
-                    volume: 0
+                    volume: volumeDelta // Start with the delta that occurred just now
                 };
             }
 
