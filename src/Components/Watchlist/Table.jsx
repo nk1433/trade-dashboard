@@ -131,7 +131,7 @@ const WatchList = ({
               <span style={{
                 fontSize: compact ? '0.75rem' : 'inherit',
                 fontWeight: compact ? 500 : 'inherit',
-                textDecoration: params.row.trendIntensity > 1 ? 'underline' : 'none'
+                textDecoration: params.row.trendIntensity > 1.05 ? 'underline' : 'none'
               }}>{params.row.symbol}</span>
               <Tooltip title="Copy script name">
                 <IconButton
@@ -384,7 +384,7 @@ const WatchList = ({
                 <span style={{
                   fontSize: compact ? '0.75rem' : 'inherit',
                   fontWeight: compact ? 500 : 'inherit',
-                  textDecoration: params.row.trendIntensity > 1 ? 'underline' : 'none'
+                  textDecoration: params.row.trendIntensity > 1.05 ? 'underline' : 'none'
                 }}>{params.row.symbol}</span>
                 {!compact && (
                   <Tooltip title="Copy script name">
