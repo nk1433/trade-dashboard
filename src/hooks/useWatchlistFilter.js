@@ -72,6 +72,14 @@ export const useWatchlistFilter = () => {
     fetchSettings();
   }, []);
 
+  // Optimize universe lookup
+  const universeMap = useMemo(() => {
+    return universe.reduce((acc, script) => {
+      acc[script.tradingsymbol] = script;
+      return acc;
+    }, {});
+  }, []);
+
   // 2. Persist to LocalStorage whenever flaggedStocks changes
   useEffect(() => {
     localStorage.setItem('flaggedStocks', JSON.stringify(flaggedStocks));
@@ -134,17 +142,18 @@ export const useWatchlistFilter = () => {
           list[symbol] = orderMetrics[symbol];
         }
         else {
+          const script = universeMap[symbol];
           list[symbol] = {
             symbol: symbol,
-            instrumentKey: symbol,
-            ltp: 0,
+            instrumentKey: script ? script.instrument_key : symbol,
+            ltp: script ? script.last_price : 0,
             changePercentage: 0
           };
         }
       }
     });
     return list;
-  }, [flaggedStocks, orderMetrics]);
+  }, [flaggedStocks, orderMetrics, universeMap]);
 
 
   const scriptsToShow = useMemo(() => {
