@@ -65,9 +65,12 @@ const App = () => {
 
   // Fetch stats only once on mount
   useEffect(() => {
-    dispatch(getStatsForScripts());
-    dispatch(fetchUserSettings());
-    dispatch(fetchPaperTradesAsync());
+    const fetchData = async () => {
+      await dispatch(getStatsForScripts());
+      await dispatch(fetchUserSettings());
+      await dispatch(fetchPaperTradesAsync());
+    };
+    fetchData();
   }, [dispatch]);
 
   // Fetch Initial Metrics if Market is Closed or Metrics Empty
