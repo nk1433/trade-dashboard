@@ -10,6 +10,27 @@ import { createTI65Study } from '../studies/ti65Study';
 import { BACKEND_URL } from '../../../utils/config';
 import universe from '../../../index/universe.json';
 
+export const LIST_METADATA = {
+    all: { label: 'All Symbols', icon: null },
+    // Flags
+    redList: { label: 'Red List', color: '#ff5252', icon: 'flag' },
+    blueList: { label: 'Blue List', color: '#448aff', icon: 'flag' },
+    greenList: { label: 'Green List', color: '#69f0ae', icon: 'flag' },
+    orangeList: { label: 'Orange List', color: '#ffab40', icon: 'flag' },
+    purpleList: { label: 'Purple List', color: '#e040fb', icon: 'flag' },
+    // Scans
+    bullishMB: { label: 'Bullish MB', shortLabel: '4%', color: 'green', icon: 'up' },
+    bearishMB: { label: 'Bearish MB', shortLabel: '4%', color: 'red', icon: 'down' },
+    bullishSLTB: { label: 'Bullish SLTB', shortLabel: 'SLTB', color: 'green', icon: 'up' },
+    bearishSLTB: { label: 'Bearish SLTB', shortLabel: 'SLTB', color: 'red', icon: 'down' },
+    bullishAnts: { label: 'Bullish Ants', shortLabel: 'Ants', color: 'green', icon: 'up' },
+    dollar: { label: 'Dollar BO', shortLabel: '$', color: 'green', icon: 'up' },
+    bearishDollar: { label: 'Bearish Dollar', shortLabel: '$', color: 'red', icon: 'down' },
+};
+
+export const FLAG_KEYS = ['redList', 'blueList', 'greenList', 'orangeList', 'purpleList'];
+export const SCAN_KEYS = ['bullishMB', 'bearishMB', 'bullishSLTB', 'bearishSLTB', 'bullishAnts', 'dollar', 'bearishDollar'];
+
 const AVAILABLE_COLUMNS = [
     { id: 'flag', label: 'Flag', minWidth: 50 },  // New Flag Column
     { id: 'scriptName', label: 'Script', minWidth: 100 },
@@ -280,24 +301,7 @@ export const useTVChartContainer = () => {
     }, []);
 
     const getListName = useCallback((index) => {
-        switch (index) {
-            case 'bullishMB': return 'Bullish MB';
-            case 'bullishSLTB': return 'Bullish SLTB';
-            case 'bullishAnts': return 'Bullish Ants';
-            case 'dollar': return 'Dollar BO';
-            case 'bearishMB': return 'Bearish MB';
-            case 'bearishSLTB': return 'Bearish SLTB';
-            case 'bearishDollar': return 'Bearish Dollar';
-
-            case 'redList': return 'Red List';
-            case 'blueList': return 'Blue List';
-            case 'greenList': return 'Green List';
-            case 'orangeList': return 'Orange List';
-            case 'purpleList': return 'Purple List';
-
-            case 'all': return 'All Symbols';
-            default: return 'Watchlist';
-        }
+        return LIST_METADATA[index]?.label || 'Watchlist';
     }, []);
 
     return {
@@ -319,6 +323,9 @@ export const useTVChartContainer = () => {
         handleColumnToggle,
         AVAILABLE_COLUMNS,
         flaggedStocks, // Exposed
-        toggleFlag     // Exposed
+        toggleFlag,    // Exposed
+        LIST_METADATA, // Exposed for UI
+        SCAN_KEYS,     // Exposed for UI
+        FLAG_KEYS      // Exposed for UI
     };
 };

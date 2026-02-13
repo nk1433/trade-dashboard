@@ -12,15 +12,10 @@ import FlagIcon from '@mui/icons-material/Flag';
 import WatchList from "../../Watchlist/Table";
 import { useTVChartContainer } from './useTVChartContainer';
 import { styles } from './styles';
+import { ArrowUpward, ArrowDownward } from '@mui/icons-material';
 
 // Colors for the menu items
-const FLAG_MENU_COLORS = {
-    redList: '#ff5252',
-    blueList: '#448aff',
-    greenList: '#69f0ae',
-    orangeList: '#ffab40',
-    purpleList: '#e040fb',
-};
+// Colors for the menu items are now handled via LIST_METADATA in useTVChartContainer
 
 const TVChartContainer = () => {
     const {
@@ -42,8 +37,47 @@ const TVChartContainer = () => {
         handleColumnToggle,
         AVAILABLE_COLUMNS,
         flaggedStocks,
-        toggleFlag
+        toggleFlag,
+        LIST_METADATA,
+        SCAN_KEYS,
+        FLAG_KEYS
     } = useTVChartContainer();
+
+    const renderScanLabel = (key, showCount = true) => {
+        const metadata = LIST_METADATA[key];
+        if (!metadata) return null;
+
+        const count = counts[key] || 0;
+        const countElement = showCount ? <span style={{ color: 'black', marginLeft: '4px' }}>{count}</span> : null;
+        const labelStyle = { display: 'flex', alignItems: 'center', fontWeight: 'bold', gap: 0.5 };
+
+        if (metadata.icon === 'up' || metadata.icon === 'down') {
+            const Icon = metadata.icon === 'up' ? ArrowUpward : ArrowDownward;
+            return (
+                <Box sx={{ ...labelStyle, color: metadata.color }}>
+                    <Icon fontSize="small" /> {metadata.shortLabel} {countElement}
+                </Box>
+            );
+        } else if (metadata.icon === 'flag') {
+            return (
+                <Box sx={{ ...labelStyle }}>
+                    <FlagIcon sx={{ color: metadata.color, fontSize: 18, mr: 0.5 }} />
+                    <Typography variant="body2" sx={{ textTransform: 'capitalize' }}>
+                        {key.replace('List', '')} List
+                    </Typography>
+                    {countElement}
+                </Box>
+            );
+        }
+
+        return (
+            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                <Typography variant="subtitle2" fontWeight={600}>{metadata.label}</Typography>
+                {showCount && key !== 'all' && countElement}
+                {showCount && key === 'all' && <span style={{ color: 'black', marginLeft: '4px' }}>({count})</span>}
+            </Box>
+        );
+    };
 
     return (
         <Box sx={styles.container}>
@@ -61,9 +95,9 @@ const TVChartContainer = () => {
                             onClick={handleMenuClick}
                             sx={styles.watchlistDropdown}
                         >
-                            <Typography variant="subtitle2" fontWeight={600} sx={styles.watchlistTitle}>
-                                {getListName(selectedIndex)}
-                            </Typography>
+                            <Box sx={styles.watchlistTitle}>
+                                {renderScanLabel(selectedIndex, false)}
+                            </Box>
                             <KeyboardArrowDownIcon fontSize="small" color="action" />
                         </Box>
                         <Menu
@@ -76,24 +110,18 @@ const TVChartContainer = () => {
                             <MenuItem onClick={() => handleMenuClose('all')}>All Symbols ({counts.all})</MenuItem>
                             <Divider />
                             {/* Flag Lists */}
-                            {Object.keys(FLAG_MENU_COLORS).map(listKey => (
+                            {FLAG_KEYS.map(listKey => (
                                 <MenuItem key={listKey} onClick={() => handleMenuClose(listKey)}>
-                                    <ListItemIcon sx={{ minWidth: 32 }}>
-                                        <FlagIcon sx={{ color: FLAG_MENU_COLORS[listKey], fontSize: 18 }} />
-                                    </ListItemIcon>
-                                    <Typography variant="body2" sx={{ textTransform: 'capitalize' }}>
-                                        {listKey.replace('List', '')} List ({counts[listKey] || 0})
-                                    </Typography>
+                                    {renderScanLabel(listKey)}
                                 </MenuItem>
                             ))}
                             <Divider />
-                            <MenuItem onClick={() => handleMenuClose('bullishMB')}>Bullish MB ({counts.bullishMB})</MenuItem>
-                            <MenuItem onClick={() => handleMenuClose('bearishMB')}>Bearish MB ({counts.bearishMB})</MenuItem>
-                            <MenuItem onClick={() => handleMenuClose('bullishSLTB')}>Bullish SLTB ({counts.bullishSLTB})</MenuItem>
-                            <MenuItem onClick={() => handleMenuClose('bearishSLTB')}>Bearish SLTB ({counts.bearishSLTB})</MenuItem>
-                            <MenuItem onClick={() => handleMenuClose('bullishAnts')}>Bullish Ants ({counts.bullishAnts})</MenuItem>
-                            <MenuItem onClick={() => handleMenuClose('dollar')}>Dollar BO ({counts.dollar})</MenuItem>
-                            <MenuItem onClick={() => handleMenuClose('bearishDollar')}>Bearish Dollar ({counts.bearishDollar})</MenuItem>
+                            {/* Scan Lists */}
+                            {SCAN_KEYS.map(key => (
+                                <MenuItem key={key} onClick={() => handleMenuClose(key)}>
+                                    {renderScanLabel(key)}
+                                </MenuItem>
+                            ))}
                         </Menu>
 
                         <Box>
