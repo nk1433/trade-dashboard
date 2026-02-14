@@ -102,7 +102,7 @@ export default function MarketHighLowWormChart() {
             {/* Minimal Header Section */}
             <Box sx={{ mb: 4, textAlign: 'center' }}>
                 <Typography variant="overline" sx={{ letterSpacing: 2, color: '#9e9e9e', fontWeight: 600 }}>
-                    NIFTY MIDSMALL 400 • MARKET BREADTH
+                    UNIVERSE • MARKET BREADTH
                 </Typography>
 
                 {/* Comparison Block */}
