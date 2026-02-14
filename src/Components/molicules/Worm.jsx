@@ -12,6 +12,7 @@ import universe from '../../index/universe.json';
 
 export default function MarketHighLowWormChart() {
     const [seriesData, setSeriesData] = useState([]);
+    const [turnoverMode, setTurnoverMode] = useState('TOTAL'); // 'TOTAL' | 'UP' | 'DOWN'
     const theme = useTheme();
 
     // Access live metrics from Redux
@@ -24,6 +25,8 @@ export default function MarketHighLowWormChart() {
             let newHighCount = 0;
             let newLowCount = 0;
             let totalTurnover = 0;
+            let upTurnover = 0;
+            let downTurnover = 0;
 
             // Iterate through the monitored list
             universe.forEach(script => {
@@ -34,13 +37,24 @@ export default function MarketHighLowWormChart() {
                     const high = metric.dayHigh || 0;
                     const low = metric.dayLow || 0;
                     const vol = metric.dayVolume || 0;
+                    // Use open from metric or fallback if needed
+                    const open = metric.currentDayOpen || metric.open || ltp;
 
                     if (ltp > 0) {
                         if (ltp === high) newHighCount++;
                         if (ltp === low) newLowCount++;
 
-                        // Calculate Turnover: LTP * Volume
-                        totalTurnover += (ltp * vol);
+                        const turnover = (ltp * vol);
+
+                        // Total Turnover (Absolute Sum)
+                        totalTurnover += turnover;
+
+                        // Segregate Turnover based on price action relative to Open
+                        if (ltp >= open) {
+                            upTurnover += turnover;
+                        } else {
+                            downTurnover += turnover;
+                        }
                     }
                 }
             });
@@ -58,7 +72,9 @@ export default function MarketHighLowWormChart() {
                         time: timeLabel,
                         newHighs: newHighCount,
                         newLows: newLowCount,
-                        turnover: totalTurnover
+                        turnover: totalTurnover,
+                        upTurnover: upTurnover,
+                        downTurnover: downTurnover
                     }
                 ];
                 // Keep last 60 points (~1 min if 1s interval, or adjust as needed)
@@ -79,11 +95,18 @@ export default function MarketHighLowWormChart() {
     const timePoints = useMemo(() => seriesData.map(pt => pt.time), [seriesData]);
     const newHighSeries = useMemo(() => seriesData.map(pt => pt.newHighs), [seriesData]);
     const newLowSeries = useMemo(() => seriesData.map(pt => pt.newLows), [seriesData]);
-    const turnoverSeries = useMemo(() => seriesData.map(pt => (pt.turnover / 10000000).toFixed(2)), [seriesData]); // In Crores (10^7)
+
+    // Memoize series for charts
+    const turnoverSeries = useMemo(() => seriesData.map(pt => (pt.turnover / 10000000).toFixed(2)), [seriesData]);
+    const upTurnoverSeries = useMemo(() => seriesData.map(pt => (pt.upTurnover / 10000000).toFixed(2)), [seriesData]);
+    const downTurnoverSeries = useMemo(() => seriesData.map(pt => (pt.downTurnover / 10000000).toFixed(2)), [seriesData]);
 
     const latestHighs = seriesData.length > 0 ? seriesData[seriesData.length - 1].newHighs : 0;
     const latestLows = seriesData.length > 0 ? seriesData[seriesData.length - 1].newLows : 0;
-    const latestTurnover = seriesData.length > 0 ? seriesData[seriesData.length - 1].turnover : 0;
+
+    const latestTotal = seriesData.length > 0 ? seriesData[seriesData.length - 1].turnover : 0;
+    const latestUp = seriesData.length > 0 ? seriesData[seriesData.length - 1].upTurnover : 0;
+    const latestDown = seriesData.length > 0 ? seriesData[seriesData.length - 1].downTurnover : 0;
 
     // Calculate Ratio for Progress Bar
     const total = latestHighs + latestLows;
@@ -91,10 +114,59 @@ export default function MarketHighLowWormChart() {
 
     // Format Turnover
     const formatTurnover = (val) => {
+        const absVal = Math.abs(val);
+        let formatted = '';
         if (!val) return '₹ 0.00';
-        if (val >= 10000000) return `₹ ${(val / 10000000).toFixed(2)} Cr`;
-        if (val >= 100000) return `₹ ${(val / 100000).toFixed(2)} L`;
-        return `₹ ${val.toFixed(2)}`;
+
+        if (absVal >= 10000000) formatted = `₹ ${(absVal / 10000000).toFixed(2)} Cr`;
+        else if (absVal >= 100000) formatted = `₹ ${(absVal / 100000).toFixed(2)} L`;
+        else formatted = `₹ ${absVal.toFixed(2)}`;
+
+        return formatted;
+    };
+
+    // Determine current values based on mode
+    let currentTurnoverValue = latestTotal;
+    let currentSeries = turnoverSeries;
+    let currentColor = "#212121";
+    let currentLabel = "Turnover (Cr)";
+
+    if (turnoverMode === 'UP') {
+        currentTurnoverValue = latestUp;
+        currentSeries = upTurnoverSeries;
+        currentColor = "#4caf50"; // Green
+        currentLabel = "Buying Turnover (Cr)";
+    } else if (turnoverMode === 'DOWN') {
+        currentTurnoverValue = latestDown;
+        currentSeries = downTurnoverSeries;
+        currentColor = "#ef5350"; // Red
+        currentLabel = "Selling Turnover (Cr)";
+    }
+
+    const renderPill = (mode, label) => {
+        const isActive = turnoverMode === mode;
+        return (
+            <Box
+                onClick={() => setTurnoverMode(mode)}
+                sx={{
+                    px: 3,
+                    py: 0.5,
+                    borderRadius: 10,
+                    cursor: 'pointer',
+                    bgcolor: isActive ? '#000' : 'transparent',
+                    color: isActive ? '#fff' : '#9e9e9e',
+                    border: '1px solid',
+                    borderColor: isActive ? '#000' : '#e0e0e0',
+                    transition: 'all 0.2s',
+                    '&:hover': {
+                        borderColor: '#000',
+                        color: isActive ? '#fff' : '#000'
+                    }
+                }}
+            >
+                <Typography variant="button" sx={{ fontWeight: 700, fontSize: '0.75rem' }}>{label}</Typography>
+            </Box>
+        );
     };
 
     return (
@@ -185,7 +257,7 @@ export default function MarketHighLowWormChart() {
                                         fontSize: 10,
                                         fontFamily: 'Roboto Mono'
                                     }
-                                },
+                                }
                             ]}
                         />
                     ) : (
@@ -198,11 +270,19 @@ export default function MarketHighLowWormChart() {
 
             {/* Turnover Chart Section */}
             <Box sx={{ mt: 6, mb: 2, textAlign: 'center' }}>
-                <Typography variant="overline" sx={{ letterSpacing: 2, color: '#9e9e9e', fontWeight: 600 }}>
-                    TOTAL MARKET TURNOVER
+                <Typography variant="overline" sx={{ letterSpacing: 2, color: '#9e9e9e', fontWeight: 600, display: 'block', mb: 2 }}>
+                    MARKET TURNOVER
                 </Typography>
-                <Typography variant="h3" sx={{ fontWeight: 800, color: '#000', mt: 1 }}>
-                    {formatTurnover(latestTurnover)}
+
+                {/* Toggle Pills */}
+                <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1, mb: 2 }}>
+                    {renderPill('TOTAL', 'Total Active')}
+                    {renderPill('UP', 'Up')}
+                    {renderPill('DOWN', 'Down')}
+                </Box>
+
+                <Typography variant="h3" sx={{ fontWeight: 800, color: currentColor, mt: 1, transition: 'color 0.3s' }}>
+                    {formatTurnover(currentTurnoverValue)}
                 </Typography>
             </Box>
 
@@ -221,10 +301,10 @@ export default function MarketHighLowWormChart() {
                             margin={{ left: 60, right: 20, top: 20, bottom: 30 }}
                             series={[
                                 {
-                                    label: "Turnover (Cr)",
-                                    data: turnoverSeries,
+                                    label: currentLabel,
+                                    data: currentSeries,
                                     curve: "monotoneX",
-                                    color: "#212121", // Dark Grey/Black
+                                    color: currentColor,
                                     area: true,
                                     showMark: false,
                                     width: 2,
@@ -241,7 +321,7 @@ export default function MarketHighLowWormChart() {
                                         fontSize: 10,
                                         fontFamily: 'Roboto Mono'
                                     }
-                                },
+                                }
                             ]}
                         />
                     ) : (
