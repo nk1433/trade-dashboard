@@ -3,7 +3,7 @@ import Layout from "./Layout";
 import Home from "./Home/index";
 import Settings from "./Settings";
 import MarketBreadthTable from "./MarketBreadth.jsx";
-import MarketHighLowWormChart from "./Worm.jsx";
+import MarketHighLowWormChart from "./Worm/index.jsx";
 import Redirect from "./Redirect";
 import HoldingsWrapper from "../HoldingsWrapper/index.jsx";
 import Scans from "../Scans/index.jsx";

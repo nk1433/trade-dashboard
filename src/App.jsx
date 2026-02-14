@@ -11,7 +11,7 @@ import Home from './Components/molicules/Home/index';
 import Settings from './Components/molicules/Settings';
 import Redirect from './Components/molicules/Redirect';
 import MarketBreadthTable from './Components/molicules/MarketBreadth';
-import MarketHighLowWormChart from './Components/molicules/Worm';
+import MarketHighLowWormChart from './Components/molicules/Worm/index';
 import HoldingsWrapper from './Components/HoldingsWrapper';
 import Scans from './Components/Scans';
 import { fetchUpstoxToken } from './Store/authSlice';

@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from "react";
 import { useSelector } from "react-redux";
-import CommonLineChart from "./CommonLineChart";
+import CommonLineChart from "../CommonLineChart";
 import {
     Typography,
     Container,
@@ -8,7 +8,8 @@ import {
     Paper,
     useTheme,
 } from "@mui/material";
-import universe from '../../index/universe.json';
+import universe from '../../../index/universe.json';
+import IndustryVolumeShockers from './IndustryVolumeShockers';
 
 export default function MarketHighLowWormChart() {
     const [seriesData, setSeriesData] = useState([]);
@@ -332,6 +333,8 @@ export default function MarketHighLowWormChart() {
                 </Box>
             </Paper>
 
-        </Container>
+            <IndustryVolumeShockers />
+
+        </Container >
     );
 }
