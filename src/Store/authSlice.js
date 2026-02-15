@@ -61,5 +61,16 @@ const authSlice = createSlice({
     },
 });
 
+export const logoutUser = createAsyncThunk(
+    'auth/logoutUser',
+    async (_, { dispatch }) => {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        localStorage.removeItem('upstox_access_token'); // Clear Upstox token too if needed for full reset
+        dispatch(authSlice.actions.logout());
+        // meaningful delay or immediately redirect handled by UI state change
+    }
+);
+
 export const { logout } = authSlice.actions;
 export default authSlice.reducer;

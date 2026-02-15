@@ -7,6 +7,10 @@ import store from './Store/index.js'
 
 import { BrowserRouter } from 'react-router-dom'
 
+import { setupAxiosInterceptors } from './utils/axiosSetup.js'
+
+setupAxiosInterceptors(store);
+
 ReactDOM.createRoot(document.getElementById('root')).render(
   <Provider store={store}>
     <BrowserRouter>
