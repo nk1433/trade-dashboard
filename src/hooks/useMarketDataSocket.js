@@ -64,10 +64,14 @@ export function useMarketDataSocket({ wsUrl, request }) {
         return acc;
     }, {});
 
-    // Keep statsRef updated
+    const marketStatus = useSelector((state) => state.marketStatus?.marketStatus);
+    const marketStatusRef = useRef(marketStatus);
+
+    // Keep refs updated
     useEffect(() => {
         statsRef.current = stats;
-    }, [stats]);
+        marketStatusRef.current = marketStatus;
+    }, [stats, marketStatus]);
 
 
 
@@ -93,7 +97,13 @@ export function useMarketDataSocket({ wsUrl, request }) {
                 const enc = new TextEncoder();
                 ws.send(enc.encode(JSON.stringify(request)));
                 setTimeout(() => {
-                    dispatch(resetMetrics());
+                    const status = marketStatusRef.current || 'CLOSED';
+                    if (status !== 'CLOSED') {
+                        console.log("useMarketDataSocket: Resetting metrics as market is open/active");
+                        dispatch(resetMetrics());
+                    } else {
+                        console.log("useMarketDataSocket: Skipping metric reset because market is CLOSED");
+                    }
                 }, 2000);
             };
 
