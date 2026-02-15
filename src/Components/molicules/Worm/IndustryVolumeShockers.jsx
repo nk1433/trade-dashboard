@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useSelector } from 'react-redux';
 import {
     Box,
@@ -19,6 +19,7 @@ import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 import universe from '../../../index/universe.json';
 import { prepareIndustryData, getSortedIndustries } from '../../../utils/industryVolumeLogic';
 import { styles } from './IndustryVolumeShockers.styles';
+import FlagMenu from '../../Watchlist/FlagMenu';
 
 // Helper to format large numbers
 const formatNumber = (num) => {
@@ -27,7 +28,7 @@ const formatNumber = (num) => {
     return num.toLocaleString();
 };
 
-const IndustryRow = ({ industry, data, isExpanded, onToggle }) => {
+const IndustryRow = ({ industry, data, isExpanded, onToggle, flaggedStocks, onFlagChange, onStockClick }) => {
     const { avgVolumeChange, totalVolume, stocks } = data;
     const isSurge = avgVolumeChange >= 0;
 
@@ -67,6 +68,7 @@ const IndustryRow = ({ industry, data, isExpanded, onToggle }) => {
                             <Table size="small" aria-label="stocks">
                                 <TableHead>
                                     <TableRow>
+                                        <TableCell align="center" width={50}>Flag</TableCell>
                                         <TableCell>Stock</TableCell>
                                         <TableCell align="right">LTP</TableCell>
                                         <TableCell align="right">Vs Prev Day</TableCell>
@@ -76,7 +78,18 @@ const IndustryRow = ({ industry, data, isExpanded, onToggle }) => {
                                 </TableHead>
                                 <TableBody>
                                     {stocks.slice(0, 5).map((stock) => (
-                                        <TableRow key={stock.symbol}>
+                                        <TableRow
+                                            key={stock.symbol}
+                                            hover
+                                            sx={{ cursor: 'pointer' }}
+                                            onClick={() => onStockClick(stock)}
+                                        >
+                                            <TableCell align="center" onClick={(e) => e.stopPropagation()}>
+                                                <FlagMenu
+                                                    currentFlag={flaggedStocks[stock.symbol]}
+                                                    onFlagChange={(color) => onFlagChange(stock.symbol, color)}
+                                                />
+                                            </TableCell>
                                             <TableCell component="th" scope="row">
                                                 {stock.symbol}
                                             </TableCell>
@@ -105,10 +118,67 @@ const IndustryRow = ({ industry, data, isExpanded, onToggle }) => {
 export default function IndustryVolumeShockers() {
     const [tabMode, setTabMode] = useState('SURGE'); // 'SURGE' | 'DRY_UP'
     const [expandedIndustry, setExpandedIndustry] = useState(null);
+    const [flaggedStocks, setFlaggedStocks] = useState({});
     const theme = useTheme();
 
     // Access stats and metrics from Redux
     const { orderMetrics, stats } = useSelector((state) => state.orders);
+
+    // Initialize flags from local storage and listen for updates
+    useEffect(() => {
+        const loadFlags = () => {
+            try {
+                const stored = localStorage.getItem('flaggedStocks');
+                if (stored) setFlaggedStocks(JSON.parse(stored));
+            } catch (e) {
+                console.error("Failed to load flags", e);
+            }
+        };
+
+        loadFlags(); // Initial load
+
+        const handleFlagsUpdated = (event) => {
+            setFlaggedStocks(event.detail || {});
+        };
+
+        window.addEventListener('FLAGS_UPDATED_EVENT', handleFlagsUpdated);
+        return () => window.removeEventListener('FLAGS_UPDATED_EVENT', handleFlagsUpdated);
+    }, []);
+
+    // Handlers
+    const handleFlagChange = (symbol, color) => {
+        // Optimistic update locally
+        setFlaggedStocks(prev => {
+            const next = { ...prev };
+            if (color === null || prev[symbol] === color) {
+                delete next[symbol]; // Remove flag
+            } else {
+                next[symbol] = color; // Set/Update flag
+            }
+            // Side effect: Update LocalStorage immediately
+            localStorage.setItem('flaggedStocks', JSON.stringify(next));
+            return next;
+        });
+
+        // Dispatch event for global sync (if other components are mounted)
+        window.dispatchEvent(new CustomEvent('TOGGLE_FLAG_EVENT', { detail: { symbol, color } }));
+    };
+
+    const handleStockClick = (stock) => {
+        // Find instrument key (should be available in stock data or look it up)
+        const allScripts = universe;
+        const found = allScripts.find(s => s.tradingsymbol === stock.symbol);
+        const instrumentKey = found ? found.instrument_key : null;
+
+        if (stock.symbol && instrumentKey) {
+            window.dispatchEvent(new CustomEvent('SEARCH_SYMBOL_CHANGE', {
+                detail: {
+                    symbol: stock.symbol,
+                    instrumentKey: instrumentKey
+                }
+            }));
+        }
+    };
 
     const industryData = useMemo(() => {
         return prepareIndustryData(universe, stats, orderMetrics);
@@ -160,6 +230,9 @@ export default function IndustryVolumeShockers() {
                                 data={row}
                                 isExpanded={expandedIndustry === row.industry}
                                 onToggle={() => setExpandedIndustry(expandedIndustry === row.industry ? null : row.industry)}
+                                flaggedStocks={flaggedStocks}
+                                onFlagChange={handleFlagChange}
+                                onStockClick={handleStockClick}
                             />
                         ))}
                         {sortedIndustries.length === 0 && (

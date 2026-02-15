@@ -41,7 +41,7 @@ export default function MarketHighLowWormChart() {
                     // Use open from metric or fallback if needed
                     const open = metric.currentDayOpen || metric.open || ltp;
 
-                    if (ltp > 0) {
+                    if (ltp > 0 && vol > 0) {
                         if (ltp === high) newHighCount++;
                         if (ltp === low) newLowCount++;
 

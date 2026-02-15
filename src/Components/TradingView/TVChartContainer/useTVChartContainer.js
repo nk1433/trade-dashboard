@@ -256,6 +256,8 @@ export const useTVChartContainer = () => {
         };
     }, [breadthData, universeMap, userId]);
 
+
+
     // Handlers
     const handleStockClick = useCallback((row) => {
         const symbol = row.symbol;
@@ -303,6 +305,22 @@ export const useTVChartContainer = () => {
     const getListName = useCallback((index) => {
         return LIST_METADATA[index]?.label || 'Watchlist';
     }, []);
+
+    // Listen for external symbol change requests (e.g., from Industry Volume Shockers)
+    useEffect(() => {
+        const handleSearchSymbolChange = (event) => {
+            const { symbol, instrumentKey } = event.detail;
+            if (symbol && instrumentKey) {
+                handleStockClick({ symbol, instrumentKey });
+            }
+        };
+
+        window.addEventListener('SEARCH_SYMBOL_CHANGE', handleSearchSymbolChange);
+
+        return () => {
+            window.removeEventListener('SEARCH_SYMBOL_CHANGE', handleSearchSymbolChange);
+        };
+    }, [handleStockClick]);
 
     return {
         chartContainerRef,

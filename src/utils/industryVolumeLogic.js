@@ -60,15 +60,18 @@ export const prepareIndustryData = (universe, stats, orderMetrics) => {
 };
 
 export const getSortedIndustries = (industries, mode = 'SURGE') => {
+    // Filter out industries with 0 volume (indicates no data/pre-market)
+    const activeIndustries = industries.filter(i => i.totalVolume > 0);
+
     if (mode === 'SURGE') {
         // Exhibit A: Top Gainers (Descending)
-        return [...industries]
+        return [...activeIndustries]
             .filter(i => i.avgVolumeChange > 0)
             .sort((a, b) => b.avgVolumeChange - a.avgVolumeChange)
             .slice(0, 50);
     } else {
         // Exhibit B: Top Losers (Ascending)
-        return [...industries]
+        return [...activeIndustries]
             .filter(i => i.avgVolumeChange < 0)
             .sort((a, b) => a.avgVolumeChange - b.avgVolumeChange)
             .slice(0, 50);

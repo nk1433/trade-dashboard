@@ -83,6 +83,8 @@ export const useWatchlistFilter = () => {
   // 2. Persist to LocalStorage whenever flaggedStocks changes
   useEffect(() => {
     localStorage.setItem('flaggedStocks', JSON.stringify(flaggedStocks));
+    // Broadcast change to other components (like IndustryVolumeShockers)
+    window.dispatchEvent(new CustomEvent('FLAGS_UPDATED_EVENT', { detail: flaggedStocks }));
   }, [flaggedStocks]);
 
   // 3. Debounced Sync to Backend
@@ -111,6 +113,27 @@ export const useWatchlistFilter = () => {
 
     return () => clearTimeout(timer);
   }, [flaggedStocks, otherSettings]);
+
+  // 4. Listen for External Flag Toggle Events (e.g. from IndustryVolumeShockers)
+  useEffect(() => {
+    const handleToggleFlagEvent = (event) => {
+      const { symbol, color } = event.detail;
+      if (symbol) {
+        setFlaggedStocks(prev => {
+          const next = { ...prev };
+          if (color === null || prev[symbol] === color) {
+            delete next[symbol];
+          } else {
+            next[symbol] = color;
+          }
+          return next;
+        });
+      }
+    };
+
+    window.addEventListener('TOGGLE_FLAG_EVENT', handleToggleFlagEvent);
+    return () => window.removeEventListener('TOGGLE_FLAG_EVENT', handleToggleFlagEvent);
+  }, []);
 
 
   const handleSelectionChange = useCallback((event) => {
