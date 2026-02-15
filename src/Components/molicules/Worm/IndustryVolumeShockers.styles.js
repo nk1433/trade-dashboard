@@ -27,13 +27,14 @@ export const styles = {
         py: 0.5,
         borderRadius: 10,
         cursor: 'pointer',
-        bgcolor: isActive ? (mode === 'SURGE' ? 'success.light' : 'error.light') : 'transparent',
-        color: isActive ? (mode === 'SURGE' ? 'success.contrastText' : 'error.contrastText') : 'text.secondary',
+        bgcolor: isActive ? '#000' : 'transparent',
+        color: isActive ? '#fff' : 'text.secondary',
         border: '1px solid',
-        borderColor: isActive ? 'transparent' : 'divider',
+        borderColor: isActive ? '#000' : 'divider',
         transition: 'all 0.2s',
         '&:hover': {
-            bgcolor: isActive ? (mode === 'SURGE' ? 'success.main' : 'error.main') : 'action.hover',
+            borderColor: '#000',
+            color: isActive ? '#fff' : '#000'
         }
     }),
     tableContainer: {
