@@ -104,25 +104,25 @@ const App = () => {
         holdings.forEach(holding => {
           const currentLTP = ltpMap[holding.symbol];
           if (currentLTP && holding.sl && holding.sl > 0) {
-            if (currentLTP <= holding.sl) {
-              // Trigger Auto Exit
-              console.log(`Checking SL for ${holding.symbol}: LTP ${currentLTP} <= SL ${holding.sl}. Exiting...`);
+            // if (currentLTP <= holding.sl) {
+            //   // Trigger Auto Exit
+            //   console.log(`Checking SL for ${holding.symbol}: LTP ${currentLTP} <= SL ${holding.sl}. Exiting...`);
 
-              // Dispatch executePaperOrder
-              // We dispatch directly here. Ideally, we should have a flag to prevent multiple triggers for the same holding
-              // but executePaperOrder (SELL) likely reduces quantity or removes holding, so subsequent checks won't find it or quantity will be 0.
-              // Assuming executePaperOrder handles sufficient quantity checks.
-              import('./Store/paperTradeSlice').then(({ executePaperOrder }) => {
-                dispatch(executePaperOrder({
-                  symbol: holding.symbol,
-                  quantity: holding.quantity, // Exit full quantity
-                  price: currentLTP,
-                  type: 'SELL',
-                  timestamp: Date.now(),
-                  reason: 'SL_HIT'
-                }));
-              });
-            }
+            //   // Dispatch executePaperOrder
+            //   // We dispatch directly here. Ideally, we should have a flag to prevent multiple triggers for the same holding
+            //   // but executePaperOrder (SELL) likely reduces quantity or removes holding, so subsequent checks won't find it or quantity will be 0.
+            //   // Assuming executePaperOrder handles sufficient quantity checks.
+            //   import('./Store/paperTradeSlice').then(({ executePaperOrder }) => {
+            //     dispatch(executePaperOrder({
+            //       symbol: holding.symbol,
+            //       quantity: holding.quantity, // Exit full quantity
+            //       price: currentLTP,
+            //       type: 'SELL',
+            //       timestamp: Date.now(),
+            //       reason: 'SL_HIT'
+            //     }));
+            //   });
+            // }
           }
         });
       }
