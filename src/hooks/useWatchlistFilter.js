@@ -161,14 +161,15 @@ export const useWatchlistFilter = () => {
     const list = {};
     Object.entries(flaggedStocks).forEach(([symbol, flagColor]) => {
       if (flagColor === color) {
-        if (orderMetrics && orderMetrics[symbol]) {
-          list[symbol] = orderMetrics[symbol];
-        }
-        else {
-          const script = universeMap[symbol];
-          list[symbol] = {
+        const script = universeMap[symbol];
+        const instrumentKey = script ? script.instrument_key : symbol;
+        
+        if (orderMetrics && orderMetrics[instrumentKey]) {
+          list[instrumentKey] = orderMetrics[instrumentKey];
+        } else {
+          list[instrumentKey] = {
             symbol: symbol,
-            instrumentKey: script ? script.instrument_key : symbol,
+            instrumentKey: instrumentKey,
             ltp: script ? script.last_price : 0,
             changePercentage: 0
           };
