@@ -46,7 +46,6 @@ const AVAILABLE_COLUMNS = [
     { id: 'maxShareToBuy', label: 'Max Shares', minWidth: 60 },
     { id: 'lossInMoney', label: 'Loss in Money', minWidth: 60 },
     { id: 'avgValueVolume21d', label: 'Avg Value Vol (21D)', minWidth: 80 },
-    { id: 'placeOrder', label: 'Buy / Sell Actions', minWidth: 80 },
 ];
 
 export const useTVChartContainer = () => {

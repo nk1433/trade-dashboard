@@ -151,26 +151,7 @@ const WatchList = ({
           );
         },
       },
-      {
-        field: 'placeOrder',
-        headerName: 'Order',
-        width: 100,
-        sortable: false,
-        filterable: false,
-        renderCell: (params) => {
-          const handlePlaceOrder = (event) => {
-            event.stopPropagation(); // prevent row selection on click
-            setSelectedScript(params.row);
-            setOrderPanelOpen(true);
-          };
 
-          return (
-            <button type="button" onClick={handlePlaceOrder}>
-              Buy/Sell
-            </button>
-          );
-        }
-      },
       { field: "barClosingStrength", headerName: "Closing Strength %", type: 'number', },
       {
         field: "changePercentage",
@@ -458,8 +439,8 @@ const WatchList = ({
   // Force 'flag' to be visible if it exists in columns.
   const columnVisibilityModel = visibleColumns
     ? columns.reduce((acc, col) => {
-      // Always show 'flag' and 'placeOrder'
-      acc[col.field] = visibleColumns.includes(col.field) || col.field === 'placeOrder' || col.field === 'flag';
+      // Always show 'flag'
+      acc[col.field] = visibleColumns.includes(col.field) || col.field === 'flag';
       return acc;
     }, {})
     : undefined;
