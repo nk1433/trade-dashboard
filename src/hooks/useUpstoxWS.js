@@ -8,7 +8,7 @@ import { useSandboxWS } from "./useSandboxWS";
 
 
 
-export const useUpstoxWS = (token) => {
+export const useUpstoxWS = (token, isReady = true) => {
   const scripts = universe;
   const instruments = scripts.map((script) => script.instrument_key);
 
@@ -25,13 +25,13 @@ export const useUpstoxWS = (token) => {
   };
 
   useMarketDataSocket({
-    wsUrl: isUpstoxsWs ? wsUrl : null, // Disable if sandbox
-    request: isUpstoxsWs ? request : null
+    wsUrl: (isUpstoxsWs && isReady) ? wsUrl : null, // Disable if sandbox or not ready
+    request: (isUpstoxsWs && isReady) ? request : null
   });
 
   useSandboxWS({
-    request: !isUpstoxsWs ? request : null // Enable if sandbox
+    request: (!isUpstoxsWs && isReady) ? request : null // Enable if sandbox
   });
 
-  usePortfolioDataSocket({ porfolioWsUrl });
+  usePortfolioDataSocket({ porfolioWsUrl: isReady ? porfolioWsUrl : null });
 };

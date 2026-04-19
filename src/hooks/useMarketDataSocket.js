@@ -92,7 +92,11 @@ export function useMarketDataSocket({ wsUrl, request }) {
             ws = new WebSocket(wsUrl);
 
             ws.onopen = () => {
-                console.log("useMarketDataSocket: Connected");
+                console.log("useMarketDataSocket: Connected with prerequisite data:", {
+                    statsCount: Object.keys(statsRef.current || {}).length,
+                    hasPortfolio: !!portfolio,
+                    tradingMode
+                });
                 if (isMounted) setIsConnected(true);
                 const enc = new TextEncoder();
                 ws.send(enc.encode(JSON.stringify(request)));

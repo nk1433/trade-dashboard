@@ -37,7 +37,11 @@ export const useSandboxWS = ({ request }) => {
     useEffect(() => {
         if (!request) return; // Disable if request is null
 
-        console.log("useSandboxWS: Starting Sandbox Feed...");
+        console.log("useSandboxWS: Starting Sandbox Feed with prerequisite data:", {
+            statsCount: Object.keys(statsRef.current || {}).length,
+            hasPortfolio: !!portfolio,
+            tradingMode
+        });
 
         // Initialize prices if empty or if stats are now available
         // Ensure we always have all 10 scripts in currentPricesRef

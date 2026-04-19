@@ -1,5 +1,5 @@
 
-import { useEffect } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import Navbar from './Components/molicules/Navbar';
@@ -50,10 +50,10 @@ const App = () => {
   const { holdings } = useSelector((state) => state.paperTrade);
 
   useEffect(() => {
-    if (!upstoxToken) {
+    if (!upstoxToken && localStorage.getItem('token')) {
       dispatch(fetchUpstoxToken());
     }
-  }, [dispatch, upstoxToken]);
+  }, [dispatch, upstoxToken, location.pathname]);
 
   // Market Status Checks - Re-run when token becomes available
   useEffect(() => {
@@ -63,15 +63,30 @@ const App = () => {
     }
   }, [dispatch, upstoxToken]);
 
-  // Fetch stats only once on mount
+  const [appInitialized, setAppInitialized] = useState(false);
+  const hasFetchedData = useRef(false);
+
+  // Fetch stats only once after user logs in
   useEffect(() => {
-    const fetchData = async () => {
-      await dispatch(getStatsForScripts());
-      await dispatch(fetchUserSettings());
-      await dispatch(fetchPaperTradesAsync());
-    };
-    fetchData();
-  }, [dispatch]);
+    const appToken = localStorage.getItem('token');
+    
+    if (appToken && !hasFetchedData.current) {
+      hasFetchedData.current = true;
+      const fetchData = async () => {
+        await dispatch(getStatsForScripts());
+        await dispatch(fetchUserSettings());
+        await dispatch(fetchPaperTradesAsync());
+        setAppInitialized(true);
+      };
+      fetchData();
+    }
+
+    // Reset if user logs out
+    if (!appToken && hasFetchedData.current) {
+      hasFetchedData.current = false;
+      setAppInitialized(false);
+    }
+  }, [dispatch, location.pathname]);
 
   // Fetch Initial Metrics if Market is Closed or Metrics Empty
   useEffect(() => {
@@ -159,7 +174,7 @@ const App = () => {
     return () => clearInterval(interval);
   }, [dispatch]);
 
-  useUpstoxWS(upstoxToken);
+  useUpstoxWS(upstoxToken, appInitialized);
 
   return (
     <Routes>
