@@ -163,9 +163,9 @@ const PaperHoldings = () => {
         },
         {
             field: 'risk',
-            headerName: 'Risk',
-            flex: 1,
-            minWidth: 100,
+            headerName: 'Risk / SL',
+            flex: 1.2,
+            minWidth: 110,
             type: 'number',
             align: 'left',
             headerAlign: 'left',
@@ -174,25 +174,26 @@ const PaperHoldings = () => {
                 const color = hasRisk ? '#dc2626' : 'text.primary';
                 const chipColor = hasRisk ? '#dc2626' : 'text.primary';
                 const chipBg = hasRisk ? '#fef2f2' : '#f5f5f5';
+                const slPercentage = params.row.sl && params.row.avgPrice ? ((params.row.avgPrice - params.row.sl) / params.row.avgPrice) * 100 : null;
 
                 return (
                     <Box sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'flex-start', height: '100%' }}>
-                        <Typography variant="body2" sx={{ color: color, fontWeight: 400 }}>
-                            {params.value !== null ? `₹${formatToIndianUnits(params.value)}` : '-'}
-                        </Typography>
-                        {params.row.riskPercentage !== null && (
-                            <Chip
-                                label={`${params.row.riskPercentage.toFixed(2)}%`}
-                                size="small"
-                                sx={{
-                                    height: 20,
-                                    fontSize: '0.7rem',
-                                    color: chipColor,
-                                    bgcolor: chipBg,
-                                    fontWeight: 600,
-                                    mt: 0.5
-                                }}
-                            />
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <Typography variant="body2" sx={{ color: color, fontWeight: 400 }}>
+                                {params.value !== null ? `₹${formatToIndianUnits(params.value)}` : '-'}
+                            </Typography>
+                            {params.row.riskPercentage !== null && (
+                                <Chip
+                                    label={`${params.row.riskPercentage.toFixed(2)}%`}
+                                    size="small"
+                                    sx={{ height: 18, fontSize: '0.65rem', color: chipColor, bgcolor: chipBg, fontWeight: 600 }}
+                                />
+                            )}
+                        </Box>
+                        {params.row.sl > 0 && (
+                            <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.7rem' }}>
+                                SL: ₹{params.row.sl.toFixed(2)} {slPercentage !== null && `(${slPercentage.toFixed(2)}%)`}
+                            </Typography>
                         )}
                     </Box>
                 );

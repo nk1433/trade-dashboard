@@ -12,6 +12,7 @@ import universe from '../../../index/universe.json';
 
 export const LIST_METADATA = {
     all: { label: 'All Symbols', icon: null },
+    holdings: { label: 'Holdings', icon: null },
     // Flags
     redList: { label: 'Red List', color: '#ff5252', icon: 'flag' },
     blueList: { label: 'Blue List', color: '#448aff', icon: 'flag' },
@@ -32,20 +33,20 @@ export const FLAG_KEYS = ['redList', 'blueList', 'greenList', 'orangeList', 'pur
 export const SCAN_KEYS = ['bullishMB', 'bearishMB', 'bullishSLTB', 'bearishSLTB', 'bullishAnts', 'dollar', 'bearishDollar'];
 
 const AVAILABLE_COLUMNS = [
-    { id: 'flag', label: 'Flag', minWidth: 50 },  // New Flag Column
-    { id: 'scriptName', label: 'Script', minWidth: 100 },
-    { id: 'ltp', label: 'LTP', minWidth: 70 },
-    { id: 'changePercentage', label: 'Chg%', minWidth: 60 },
-    { id: 'priceChange', label: 'Chg', minWidth: 70 },
-    { id: 'barClosingStrength', label: 'Str%', minWidth: 60 },
-    { id: 'relativeVolumePercentage', label: 'RVol%', minWidth: 60 },
-    { id: 'gapPercentage', label: 'Gap%', minWidth: 60 },
-    { id: 'currentMinuteVolume', label: 'VolROC%', minWidth: 70 },
-    { id: 'sl', label: 'SL', minWidth: 60 },
-    { id: 'maxShareToBuy', label: 'Shares', minWidth: 60 },
-    { id: 'lossInMoney', label: 'Loss', minWidth: 60 },
-    { id: 'avgValueVolume21d', label: 'AvgVol', minWidth: 80 },
-    { id: 'placeOrder', label: 'Order', minWidth: 80 },
+    { id: 'flag', label: 'Flag', minWidth: 50 },
+    { id: 'scriptName', label: 'Script Name', minWidth: 100 },
+    { id: 'ltp', label: 'LTP (Last Traded Price)', minWidth: 70 },
+    { id: 'changePercentage', label: 'Change %', minWidth: 60 },
+    { id: 'priceChange', label: 'Price Change', minWidth: 70 },
+    { id: 'barClosingStrength', label: 'Bar Closing Strength %', minWidth: 60 },
+    { id: 'relativeVolumePercentage', label: 'Relative Vol % (21D)', minWidth: 60 },
+    { id: 'gapPercentage', label: 'Gap %', minWidth: 60 },
+    { id: 'currentMinuteVolume', label: 'Volume ROC %', minWidth: 70 },
+    { id: 'sl', label: 'Stop Loss (SL)', minWidth: 60 },
+    { id: 'maxShareToBuy', label: 'Max Shares', minWidth: 60 },
+    { id: 'lossInMoney', label: 'Loss in Money', minWidth: 60 },
+    { id: 'avgValueVolume21d', label: 'Avg Value Vol (21D)', minWidth: 80 },
+    { id: 'placeOrder', label: 'Buy / Sell Actions', minWidth: 80 },
 ];
 
 export const useTVChartContainer = () => {
@@ -57,7 +58,8 @@ export const useTVChartContainer = () => {
         scriptsToShow,
         counts,
         flaggedStocks, // New
-        toggleFlag     // New
+        toggleFlag,    // New
+        clearFlaggedList // New
     } = useWatchlistFilter();
 
     const [selectedSymbol, setSelectedSymbol] = useState(null);
@@ -261,7 +263,15 @@ export const useTVChartContainer = () => {
     // Handlers
     const handleStockClick = useCallback((row) => {
         const symbol = row.symbol;
-        const instrumentKey = row.instrumentKey;
+        let instrumentKey = row.instrumentKey;
+        
+        if (!instrumentKey) {
+            const foundScript = universe.find(s => s.tradingsymbol === symbol);
+            if (foundScript) {
+                instrumentKey = foundScript.instrument_key;
+            }
+        }
+
         setSelectedSymbol(symbol);
         if (tvWidgetRef.current) {
             // Construct composite symbol: InstrumentKey|TradingSymbol
@@ -342,6 +352,7 @@ export const useTVChartContainer = () => {
         AVAILABLE_COLUMNS,
         flaggedStocks, // Exposed
         toggleFlag,    // Exposed
+        clearFlaggedList, // Exposed
         LIST_METADATA, // Exposed for UI
         SCAN_KEYS,     // Exposed for UI
         FLAG_KEYS      // Exposed for UI

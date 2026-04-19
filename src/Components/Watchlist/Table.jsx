@@ -60,6 +60,10 @@ const WatchList = ({
   const dispatch = useDispatch();
   const tradingMode = useSelector((state) => state.settings?.tradingMode || 'PAPER');
   const token = useSelector((state) => state.auth?.token);
+  const { capital, holdings } = useSelector((state) => state.paperTrade || { capital: 1000000, holdings: [] });
+
+  const totalCurrentValue = useMemo(() => holdings.reduce((acc, curr) => acc + (curr.currentValue || (curr.ltp * curr.quantity) || 0), 0), [holdings]);
+  const totalPortfolioValue = capital + totalCurrentValue;
 
   const handleCloseSnackbar = (event, reason) => {
     if (reason === 'clickaway') {
@@ -308,6 +312,38 @@ const WatchList = ({
         }
       },
       {
+        field: "risk",
+        headerName: "Risk / SL",
+        width: 140,
+        renderCell: (params) => {
+          const risk = params.row.sl ? (params.row.avgPrice - params.row.sl) * params.row.quantity : null;
+          const hasRisk = risk > 0;
+          const color = hasRisk ? DOWN_COLOR : 'inherit';
+          const riskPercentage = risk !== null && totalPortfolioValue > 0 ? (risk / totalPortfolioValue) * 100 : null;
+          const slPercentage = params.row.sl && params.row.avgPrice ? ((params.row.avgPrice - params.row.sl) / params.row.avgPrice) * 100 : null;
+
+          return (
+            <Box sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'flex-end', height: '100%' }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                {riskPercentage !== null && (
+                  <Typography variant="caption" sx={{ fontSize: '0.65rem', color: color, bgcolor: hasRisk ? '#fef2f2' : 'transparent', px: 0.5, py: 0.2, borderRadius: 1, fontWeight: 600 }}>
+                    {riskPercentage.toFixed(2)}%
+                  </Typography>
+                )}
+                <Typography variant="body2" sx={{ fontWeight: 400, color: color }}>
+                  {risk !== null ? `₹${formatToIndianUnits(risk)}` : '-'}
+                </Typography>
+              </Box>
+              {params.row.sl > 0 && (
+                <Typography variant="caption" sx={{ fontSize: '0.7rem', color: 'text.secondary' }}>
+                  SL: ₹{params.row.sl.toFixed(2)} {slPercentage !== null && `(${slPercentage.toFixed(2)}%)`}
+                </Typography>
+              )}
+            </Box>
+          );
+        }
+      },
+      {
         field: "placeOrder", // Reusing placeOrder for consistency, or custom actions
         headerName: "Actions",
         width: 160,
@@ -344,7 +380,7 @@ const WatchList = ({
       { field: "allocPer", headerName: "Size" },
       { field: "riskPercentage", headerName: "Risk" },
     ],
-  }), [tradingMode, token, dispatch, flaggedStocks, onFlagChange]); // Props dependencies
+  }), [tradingMode, token, dispatch, flaggedStocks, onFlagChange, totalPortfolioValue]); // Props dependencies
 
   const columns = makeColumns(columnsConfig[type]);
 
