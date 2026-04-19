@@ -304,7 +304,18 @@ export const fetchAndCalculateInitialMetrics = createAsyncThunk('Orders/fetchAnd
     const liveFeed = { feeds };
     const metrics = await updateWatchlistWithMetrics(liveFeed, scriptMap, portfolio, stats, settings);
     console.log(Object.keys(metrics.metrics).length, 'metrics count');
-    return metrics;
+    
+    // Clear out scan results for initial fallback data so they don't incorrectly match before socket connects
+    return {
+        ...metrics,
+        bullishMB: {},
+        bearishMB: {},
+        bullishSLTB: {},
+        bearishSLTB: {},
+        bullishAnts: {},
+        dollar: {},
+        bearishDollar: {}
+    };
 });
 
 
