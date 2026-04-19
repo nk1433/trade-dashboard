@@ -8,6 +8,7 @@ import AddIcon from '@mui/icons-material/Add';
 import SettingsIcon from '@mui/icons-material/Settings';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import FlagIcon from '@mui/icons-material/Flag';
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 
 import WatchList from "../../Watchlist/Table";
 import { useTVChartContainer } from './useTVChartContainer';
@@ -38,10 +39,32 @@ const TVChartContainer = () => {
         AVAILABLE_COLUMNS,
         flaggedStocks,
         toggleFlag,
+        clearFlaggedList,
         LIST_METADATA,
         SCAN_KEYS,
         FLAG_KEYS
     } = useTVChartContainer();
+
+    const isFlagList = FLAG_KEYS.includes(selectedIndex);
+
+    const handleAddScript = () => {
+        if (isFlagList) {
+            const symbol = window.prompt(`Enter script symbol to add to ${selectedIndex.replace('List', '')} list (e.g. RELIANCE):`);
+            if (symbol) {
+                toggleFlag(symbol.toUpperCase().trim(), selectedIndex.replace('List', ''));
+            }
+        } else {
+            window.alert("Please select a flagged list (Red, Blue, etc.) to add a script manually.");
+        }
+    };
+
+    const handleClearList = () => {
+        if (isFlagList) {
+            if (window.confirm(`Are you sure you want to clear all scripts from the ${selectedIndex.replace('List', '')} list?`)) {
+                clearFlaggedList(selectedIndex.replace('List', ''));
+            }
+        }
+    };
 
     const renderScanLabel = (key, showCount = true) => {
         const metadata = LIST_METADATA[key];
@@ -108,6 +131,7 @@ const TVChartContainer = () => {
                             PaperProps={{ sx: { maxHeight: 400, width: 250 } }}
                         >
                             <MenuItem onClick={() => handleMenuClose('all')}>All Symbols ({counts.all})</MenuItem>
+                            <MenuItem onClick={() => handleMenuClose('holdings')}>Holdings ({counts.holdings || 0})</MenuItem>
                             <Divider />
                             {/* Flag Lists */}
                             {FLAG_KEYS.map(listKey => (
@@ -125,7 +149,14 @@ const TVChartContainer = () => {
                         </Menu>
 
                         <Box>
-                            <IconButton size="small" onClick={handleSettingsClick}><SettingsIcon fontSize="small" /></IconButton>
+                            {isFlagList && (
+                                <IconButton size="small" onClick={handleClearList} title={`Clear ${selectedIndex.replace('List', '')} list`}>
+                                    <DeleteOutlineIcon fontSize="small" />
+                                </IconButton>
+                            )}
+                            <IconButton size="small" onClick={handleSettingsClick} title="Settings">
+                                <SettingsIcon fontSize="small" />
+                            </IconButton>
                             <Popover
                                 open={openSettings}
                                 anchorEl={settingsAnchorEl}
@@ -152,7 +183,9 @@ const TVChartContainer = () => {
                                     </FormGroup>
                                 </Box>
                             </Popover>
-                            <IconButton size="small"><AddIcon fontSize="small" /></IconButton>
+                            <IconButton size="small" onClick={handleAddScript} title="Add script">
+                                <AddIcon fontSize="small" />
+                            </IconButton>
                             <IconButton size="small"><MoreHorizIcon fontSize="small" /></IconButton>
                         </Box>
                     </Box>
@@ -161,7 +194,8 @@ const TVChartContainer = () => {
                     <Box sx={styles.watchlistTableWrapper}>
                         <WatchList
                             scripts={scriptsToShow}
-                            visibleColumns={visibleColumns}
+                            type={selectedIndex === 'holdings' ? 'holdings' : 'dashboard'}
+                            visibleColumns={selectedIndex === 'holdings' ? undefined : visibleColumns}
                             onRowClick={handleStockClick}
                             compact={true}
                             flaggedStocks={flaggedStocks}

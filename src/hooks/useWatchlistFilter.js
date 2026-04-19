@@ -223,6 +223,18 @@ export const useWatchlistFilter = () => {
     purpleList: flagCounts.purple,
   }), [orderMetrics, bullishBurst, bearishBurst, bullishSLTB, bearishSLTB, bullishAnts, dollar, bearishDollar, holdings, flagCounts]);
 
+  const clearFlaggedList = useCallback((color) => {
+    setFlaggedStocks(prev => {
+      const next = { ...prev };
+      Object.keys(next).forEach((symbol) => {
+        if (next[symbol] === color) {
+          delete next[symbol];
+        }
+      });
+      return next;
+    });
+  }, []);
+
   return {
     selectedIndex,
     handleSelectionChange,
@@ -230,5 +242,6 @@ export const useWatchlistFilter = () => {
     counts,
     flaggedStocks,
     toggleFlag,
+    clearFlaggedList,
   };
 };
