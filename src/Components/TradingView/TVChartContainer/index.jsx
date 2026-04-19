@@ -1,8 +1,9 @@
 import React from "react";
 import {
     Box, Typography, Divider, IconButton, Menu, MenuItem, Checkbox, FormControlLabel,
-    Popover, FormGroup, ListItemIcon
+    Popover, FormGroup, ListItemIcon, Button
 } from '@mui/material';
+import { useSelector } from 'react-redux';
 import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
 import AddIcon from '@mui/icons-material/Add';
 import SettingsIcon from '@mui/icons-material/Settings';
@@ -11,6 +12,7 @@ import FlagIcon from '@mui/icons-material/Flag';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 
 import WatchList from "../../Watchlist/Table";
+import OrderPanel from '../../Watchlist/OrderPanel';
 import { useTVChartContainer } from './useTVChartContainer';
 import { styles } from './styles';
 import { ArrowUpward, ArrowDownward } from '@mui/icons-material';
@@ -31,6 +33,7 @@ const TVChartContainer = () => {
         counts,
         scriptsToShow,
         handleStockClick,
+        selectedRowId,
         handleSettingsClick,
         handleSettingsClose,
         openSettings,
@@ -44,6 +47,20 @@ const TVChartContainer = () => {
         SCAN_KEYS,
         FLAG_KEYS
     } = useTVChartContainer();
+
+    const tradingMode = useSelector((state) => state.settings?.tradingMode || 'PAPER');
+    const token = useSelector((state) => state.auth?.token);
+    const [orderPanelOpen, setOrderPanelOpen] = React.useState(false);
+
+    const activeScript = React.useMemo(() => {
+        if (!selectedRowId || !scriptsToShow) return null;
+        return Object.values(scriptsToShow).find(s => (s.instrumentKey || s.symbol) === selectedRowId);
+    }, [selectedRowId, scriptsToShow]);
+
+    const safeFormat = (val, toFixed = 2) => {
+        if (val == null || isNaN(Number(val))) return '-';
+        return Number(val).toFixed(toFixed);
+    };
 
     const isFlagList = FLAG_KEYS.includes(selectedIndex);
 
@@ -106,8 +123,70 @@ const TVChartContainer = () => {
         <Box sx={styles.container}>
             <Box sx={styles.mainRow}>
                 {/* Chart Area */}
-                <Box sx={styles.chartWrapper}>
-                    <div ref={chartContainerRef} style={styles.chartContainer} />
+                <Box sx={{ ...styles.chartWrapper, display: 'flex', flexDirection: 'column' }}>
+                    {activeScript && (
+                        <Box sx={{
+                            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                            px: 2, py: 1, bgcolor: 'var(--bg-secondary)', borderBottom: '1px solid var(--border-color)',
+                            minHeight: '40px'
+                        }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
+                                <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>{activeScript.symbol}</Typography>
+                                <Typography variant="body2" sx={{ color: activeScript.isUpDay ? '#26a69a' : '#ef5350', fontWeight: 500 }}>
+                                    ₹{safeFormat(activeScript.ltp)}
+                                </Typography>
+                                <Typography variant="body2" sx={{ color: activeScript.isUpDay ? '#26a69a' : '#ef5350' }}>
+                                    {activeScript.changePercentage > 0 ? '+' : ''}{safeFormat(activeScript.changePercentage)}%
+                                </Typography>
+                                <Divider orientation="vertical" flexItem sx={{ mx: 1 }} />
+                                
+                                <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                    Vol ROC: <span style={{ color: activeScript.currentMinuteVolume > 0 ? '#26a69a' : '#ef5350', fontWeight: 600 }}>
+                                        {safeFormat(activeScript.currentMinuteVolume)}%
+                                    </span>
+                                </Typography>
+                                <Divider orientation="vertical" flexItem sx={{ mx: 1 }} />
+
+                                <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                    R-Vol: <span style={{ fontWeight: 600 }}>{safeFormat(activeScript.relativeVolumePercentage)}%</span>
+                                </Typography>
+                                <Divider orientation="vertical" flexItem sx={{ mx: 1 }} />
+
+                                <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                    Gap: <span style={{ fontWeight: 600 }}>{safeFormat(activeScript.gapPercentage)}%</span>
+                                </Typography>
+                                <Divider orientation="vertical" flexItem sx={{ mx: 1 }} />
+
+                                <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                    Close Str: <span style={{ fontWeight: 600 }}>{safeFormat(activeScript.barClosingStrength)}%</span>
+                                </Typography>
+                                {activeScript.sl > 0 && (
+                                    <>
+                                        <Divider orientation="vertical" flexItem sx={{ mx: 1 }} />
+                                        <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                            SL: <span style={{ fontWeight: 600 }}>₹{safeFormat(activeScript.sl)}</span>
+                                        </Typography>
+                                    </>
+                                )}
+                            </Box>
+                            <Button 
+                                variant="contained" 
+                                size="small" 
+                                sx={{ 
+                                    height: 28, 
+                                    fontSize: '0.75rem', 
+                                    textTransform: 'none',
+                                    bgcolor: '#000',
+                                    color: '#fff',
+                                    '&:hover': { bgcolor: '#333' }
+                                }}
+                                onClick={() => setOrderPanelOpen(true)}
+                            >
+                                Trade {activeScript.symbol}
+                            </Button>
+                        </Box>
+                    )}
+                    <div ref={chartContainerRef} style={{ ...styles.chartContainer, flex: 1 }} />
                 </Box>
 
                 {/* Side Panel */}
@@ -200,10 +279,21 @@ const TVChartContainer = () => {
                             compact={true}
                             flaggedStocks={flaggedStocks}
                             onFlagChange={toggleFlag}
+                            selectedRowId={selectedRowId}
                         />
                     </Box>
                 </Box>
             </Box>
+
+            {/* Order Panel for the Active Banner */}
+            <OrderPanel
+                open={orderPanelOpen}
+                onClose={() => setOrderPanelOpen(false)}
+                script={activeScript}
+                currentPrice={activeScript?.ltp}
+                tradingMode={tradingMode}
+                token={token}
+            />
         </Box>
     );
 };

@@ -63,6 +63,7 @@ export const useTVChartContainer = () => {
     } = useWatchlistFilter();
 
     const [selectedSymbol, setSelectedSymbol] = useState(null);
+    const [selectedRowId, setSelectedRowId] = useState(null);
     const user = JSON.parse(localStorage.getItem('user') || '{}');
     const userId = user._id || user.id || 'public_user_id';
 
@@ -244,6 +245,19 @@ export const useTVChartContainer = () => {
                 } catch (error) {
                     console.error("TVChartContainer: Error setting up watermark", error);
                 }
+
+                // Listen for symbol changes from TradingView symbol search
+                tvWidget.activeChart().onSymbolChanged().subscribe(null, () => {
+                    const tvSymbol = tvWidget.activeChart().symbol();
+                    if (!tvSymbol) return;
+                    
+                    const parts = tvSymbol.split('|');
+                    const rawSymbol = parts[parts.length - 1];
+                    const instrumentKey = parts.length > 1 ? `${parts[0]}|${parts[1]}` : null;
+                    
+                    setSelectedSymbol(rawSymbol);
+                    setSelectedRowId(instrumentKey || rawSymbol);
+                });
             });
             tvWidgetRef.current = tvWidget;
         };
@@ -273,6 +287,8 @@ export const useTVChartContainer = () => {
         }
 
         setSelectedSymbol(symbol);
+        setSelectedRowId(instrumentKey || symbol);
+
         if (tvWidgetRef.current) {
             // Construct composite symbol: InstrumentKey|TradingSymbol
             const compositeSymbol = `${instrumentKey}|${symbol}`;
@@ -344,6 +360,7 @@ export const useTVChartContainer = () => {
         counts,
         scriptsToShow,
         handleStockClick,
+        selectedRowId, // Exposed for UI sync
         handleSettingsClick,
         handleSettingsClose,
         openSettings,

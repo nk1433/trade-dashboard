@@ -45,7 +45,8 @@ const WatchList = ({
   onRowClick,
   compact = false,
   flaggedStocks = {},
-  onFlagChange
+  onFlagChange,
+  selectedRowId
 }) => {
   const [filterModel, setFilterModel] = useState(initialfilterModel);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
@@ -476,6 +477,7 @@ const WatchList = ({
         getRowId={row => row.id}
         pageSizeOptions={[5, 10, 25, { value: -1, label: 'All' }]}
         columnVisibilityModel={columnVisibilityModel}
+        getRowClassName={(params) => params.row.id === selectedRowId ? 'selected-row' : ''}
         onRowClick={onRowClick ? (params) => onRowClick(params.row) : undefined}
         density={compact ? "compact" : "standard"}
         sx={{
@@ -498,6 +500,9 @@ const WatchList = ({
           '& .MuiDataGrid-row:hover': {
             backgroundColor: 'var(--bg-secondary)',
             cursor: onRowClick ? 'pointer' : 'default',
+          },
+          '& .selected-row': {
+            backgroundColor: 'rgba(25, 118, 210, 0.08) !important',
           }
         }}
       />
@@ -562,7 +567,8 @@ WatchList.propTypes = {
   onRowClick: PropTypes.func,
   compact: PropTypes.bool,
   flaggedStocks: PropTypes.object,
-  onFlagChange: PropTypes.func
+  onFlagChange: PropTypes.func,
+  selectedRowId: PropTypes.string
 };
 
 export default WatchList;
