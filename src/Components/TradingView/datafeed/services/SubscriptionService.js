@@ -59,6 +59,8 @@ const handleMarketData = (data) => {
 
         // Pure calculation derived
         const barTime = calculateBarTime(tradeTime, resolution, isDaily, dailyOHLC);
+        
+        let barData;
 
         if (isDaily && dailyOHLC) {
             // console.log(`[SubService] Daily Update: ${instrumentKey} Vol:${dailyOHLC?.vol}`);
