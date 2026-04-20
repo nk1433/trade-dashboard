@@ -13,6 +13,7 @@ import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 
 import WatchList from "../../Watchlist/Table";
 import OrderPanel from '../../Watchlist/OrderPanel';
+import FlagMenu from '../../Watchlist/FlagMenu';
 import { useTVChartContainer } from './useTVChartContainer';
 import { styles } from './styles';
 import { ArrowUpward, ArrowDownward } from '@mui/icons-material';
@@ -131,7 +132,13 @@ const TVChartContainer = () => {
                             minHeight: '40px'
                         }}>
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
-                                <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>{activeScript.symbol}</Typography>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                    <FlagMenu 
+                                        currentFlag={flaggedStocks[activeScript.symbol] || flaggedStocks[activeScript.instrumentKey] || null} 
+                                        onFlagChange={(flag) => toggleFlag(activeScript.symbol, flag)} 
+                                    />
+                                    <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>{activeScript.symbol}</Typography>
+                                </Box>
                                 <Typography variant="body2" sx={{ color: activeScript.isUpDay ? '#26a69a' : '#ef5350', fontWeight: 500 }}>
                                     ₹{safeFormat(activeScript.ltp)}
                                 </Typography>
