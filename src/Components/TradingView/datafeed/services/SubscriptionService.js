@@ -135,7 +135,34 @@ export const subscribeBars = (symbolInfo, resolution, onRealtimeCallback, subscr
         onRealtimeCallback
     });
 
-    // We rely purely on the websocket for ticks to prevent fallback data from corrupting the chart.
+    // Immediate tick update from Store to prevent lag and flickering
+    try {
+        const state = store.getState();
+        const metrics = state.orders?.orderMetrics;
+        const instrumentKey = symbolInfo.ticker;
+        const metric = metrics?.[instrumentKey];
+
+        // ONLY use the metric if it's a real live tick (!isFallback) and has a valid LTP
+        if (metric && metric.ltp > 0 && !metric.isFallback) {
+            const tradeTime = Date.now();
+            const isDaily = ['1D', 'D', '1W', 'W', '1M', 'M'].includes(resolution);
+            const barTime = calculateBarTime(tradeTime, resolution, isDaily, null);
+
+            if (isDaily) {
+                // For Daily, we have the full OHLC data in metrics (mapped from 'latestDayFeed')
+                onRealtimeCallback({
+                    time: barTime,
+                    open: metric.currentDayOpen || metric.ltp,
+                    high: metric.dayHigh || metric.ltp,
+                    low: metric.dayLow || metric.ltp,
+                    close: metric.ltp,
+                    volume: metric.dayVolume || 0
+                });
+            }
+        }
+    } catch (e) {
+        console.error("Immediate tick error", e);
+    }
 };
 
 export const unsubscribeBars = (subscriberUID) => {

@@ -111,6 +111,7 @@ export const updateWatchlistWithMetrics = async (liveFeed, scriptMap, portfolio,
             dayLow: latestDayFeed.low,
             dayVolume: currentVolume,
             trendIntensity,
+            isFallback: latestDayFeed.isFallback || false,
         };
 
         if (
@@ -263,6 +264,7 @@ export const fetchAndCalculateInitialMetrics = createAsyncThunk('Orders/fetchAnd
                 close: price,
                 vol: vol,
                 ts: ts,
+                isFallback: true,
             };
 
             // Minimal minute feed to avoid breaking calculations
@@ -284,7 +286,7 @@ export const fetchAndCalculateInitialMetrics = createAsyncThunk('Orders/fetchAnd
             console.log(instrumentKey, 'instrumentKey')
             // Initialize with defaults if stat strictly missing but we want it in the list
             // This ensures the row appears even if stats are loading/missing
-            const dayFeed = { interval: '1d', open: 0, high: 0, low: 0, close: 0, vol: 0, ts: '' };
+            const dayFeed = { interval: '1d', open: 0, high: 0, low: 0, close: 0, vol: 0, ts: '', isFallback: true };
             const minuteFeed = { interval: 'I1', open: 0, high: 0, low: 0, close: 0, vol: 0, ts: '' };
 
             feeds[instrumentKey] = {
