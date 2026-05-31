@@ -133,14 +133,14 @@ const columns = [
     headerName: 'Up 25% (Qtr)',
     width: 110,
     align: 'center',
-    renderCell: (params) => <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#c8e6c9', color: '#1b5e20' }}>{params.value}</div>
+    renderCell: (params) => <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{params.value}</div>
   },
   {
     field: 'down25PctQuarter',
     headerName: 'Down 25% (Qtr)',
     width: 110,
     align: 'center',
-    renderCell: (params) => <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#ffcdd2', color: '#b71c1c' }}>{params.value}</div>
+    renderCell: (params) => <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{params.value}</div>
   },
   {
     field: 'up25PctMonth',
@@ -191,7 +191,7 @@ const columns = [
     align: 'center',
     headerAlign: 'center',
     renderCell: (params) => (
-      <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#e8f5e9', color: '#1b5e20' }}>{params.value}</div>
+      <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{params.value}</div>
     )
   },
   {
@@ -201,7 +201,7 @@ const columns = [
     align: 'center',
     headerAlign: 'center',
     renderCell: (params) => (
-      <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#ffebee', color: '#b71c1c' }}>{params.value}</div>
+      <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{params.value}</div>
     )
   },
   {
@@ -211,7 +211,7 @@ const columns = [
     align: 'center',
     headerAlign: 'center',
     renderCell: (params) => (
-      <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#e8f5e9', color: '#1b5e20' }}>{params.value}</div>
+      <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', }}>{params.value}</div>
     )
   },
   {
@@ -221,7 +221,7 @@ const columns = [
     align: 'center',
     headerAlign: 'center',
     renderCell: (params) => (
-      <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#e8f5e9', color: '#1b5e20' }}>{params.value}</div>
+      <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{params.value}</div>
     )
   },
   {
@@ -231,7 +231,7 @@ const columns = [
     align: 'center',
     headerAlign: 'center',
     renderCell: (params) => (
-      <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#e8f5e9', color: '#1b5e20' }}>{params.value}</div>
+      <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{params.value}</div>
     )
   },
   {
@@ -242,7 +242,7 @@ const columns = [
     align: 'center',
     headerAlign: 'center',
     renderCell: (params) => (
-      <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#e8f5e9', color: '#1b5e20' }}>{(params.value * 100).toFixed(2)}%</div>
+      <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{(params.value * 100).toFixed(2)}%</div>
     )
   },
   {
@@ -253,7 +253,7 @@ const columns = [
     align: 'center',
     headerAlign: 'center',
     renderCell: (params) => (
-      <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#ffebee', color: '#b71c1c' }}>{(params.value * 100).toFixed(2)}%</div>
+      <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{(params.value * 100).toFixed(2)}%</div>
     )
   },
   {

@@ -70,7 +70,7 @@ export const useTVChartContainer = () => {
     const breadthData = useSelector(state => state.marketBreadth.data);
 
     // Column Customization State
-    const [visibleColumns, setVisibleColumns] = useState(['flag', 'scriptName', 'changePercentage', 'priceChange']); // Add 'flag' by default
+    const [visibleColumns, setVisibleColumns] = useState(['flag', 'scriptName', 'barClosingStrength', 'changePercentage', 'priceChange']); // Add 'flag' by default
     const [settingsAnchorEl, setSettingsAnchorEl] = useState(null);
     const [anchorEl, setAnchorEl] = useState(null);
 
@@ -249,11 +249,11 @@ export const useTVChartContainer = () => {
                 tvWidget.activeChart().onSymbolChanged().subscribe(null, () => {
                     const tvSymbol = tvWidget.activeChart().symbol();
                     if (!tvSymbol) return;
-                    
+
                     const parts = tvSymbol.split('|');
                     const rawSymbol = parts[parts.length - 1];
                     const instrumentKey = parts.length > 1 ? `${parts[0]}|${parts[1]}` : null;
-                    
+
                     setSelectedSymbol(rawSymbol);
                     setSelectedRowId(instrumentKey || rawSymbol);
                 });
@@ -277,7 +277,7 @@ export const useTVChartContainer = () => {
     const handleStockClick = useCallback((row) => {
         const symbol = row.symbol;
         let instrumentKey = row.instrumentKey;
-        
+
         if (!instrumentKey) {
             const foundScript = universe.find(s => s.tradingsymbol === symbol);
             if (foundScript) {
