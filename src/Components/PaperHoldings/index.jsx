@@ -1,10 +1,13 @@
 import React, { useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { Box, Typography, Paper, Chip, Button, Select, MenuItem } from '@mui/material';
+import { Box, Typography, Paper, Chip, Button, Select, MenuItem, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Collapse, IconButton } from '@mui/material';
+import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
+import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 import { DataGrid } from '@mui/x-data-grid';
 import { formatToIndianUnits } from '../../utils/index';
 import { executePaperOrder, updatePaperHoldingAsync } from '../../Store/paperTradeSlice';
 import OrderPanel from '../Watchlist/OrderPanel';
+import { LineChart } from '@mui/x-charts/LineChart';
 
 const PaperHoldings = () => {
     const dispatch = useDispatch();
@@ -454,153 +457,318 @@ const PaperHoldings = () => {
     );
 };
 
+const MonthlyRow = ({ row }) => {
+    const [open, setOpen] = useState(false);
+
+    return (
+        <React.Fragment>
+            <TableRow sx={{ '& > *': { borderBottom: 'unset' } }}>
+                <TableCell>
+                    <IconButton aria-label="expand row" size="small" onClick={() => setOpen(!open)}>
+                        {open ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />}
+                    </IconButton>
+                </TableCell>
+                <TableCell component="th" scope="row" sx={{ fontWeight: 'bold' }}>{row.month}</TableCell>
+                <TableCell align="right">{row.avgGain > 0 ? row.avgGain.toFixed(2) + '%' : '-'}</TableCell>
+                <TableCell align="right">{row.avgLoss > 0 ? row.avgLoss.toFixed(2) + '%' : '-'}</TableCell>
+                <TableCell align="right">{row.winPercentage.toFixed(2)}%</TableCell>
+                <TableCell align="right">{row.totalTrades}</TableCell>
+                <TableCell align="right">{row.lgGain > 0 ? row.lgGain.toFixed(2) + '%' : '-'}</TableCell>
+                <TableCell align="right">{row.lgLoss > 0 ? row.lgLoss.toFixed(2) + '%' : '-'}</TableCell>
+                <TableCell align="right">{Math.round(row.avgDaysGain)}</TableCell>
+                <TableCell align="right">{Math.round(row.avgDaysLoss)}</TableCell>
+            </TableRow>
+            <TableRow>
+                <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={10}>
+                    <Collapse in={open} timeout="auto" unmountOnExit>
+                        <Box sx={{ margin: 1, bgcolor: '#fdfdfd', p: 2, borderRadius: 1, border: '1px solid #e0e0e0' }}>
+                            <Typography variant="subtitle2" gutterBottom component="div" sx={{ fontWeight: 600 }}>
+                                Trade Details - {row.month}
+                            </Typography>
+                            <Table size="small" aria-label="trades">
+                                <TableHead>
+                                    <TableRow sx={{ bgcolor: '#f1f5f9' }}>
+                                        <TableCell sx={{ fontWeight: 600 }}>Date</TableCell>
+                                        <TableCell sx={{ fontWeight: 600 }}>Symbol</TableCell>
+                                        <TableCell align="right" sx={{ fontWeight: 600 }}>Qty</TableCell>
+                                        <TableCell align="right" sx={{ fontWeight: 600 }}>Buy Avg</TableCell>
+                                        <TableCell align="right" sx={{ fontWeight: 600 }}>Sell Price</TableCell>
+                                        <TableCell align="right" sx={{ fontWeight: 600 }}>Profit/Loss</TableCell>
+                                        <TableCell align="right" sx={{ fontWeight: 600 }}>Returns %</TableCell>
+                                        <TableCell align="right" sx={{ fontWeight: 600 }}>Days Held</TableCell>
+                                    </TableRow>
+                                </TableHead>
+                                <TableBody>
+                                    {row.trades.map((trade) => (
+                                        <TableRow key={trade.id}>
+                                            <TableCell>{new Date(trade.timestamp).toLocaleDateString()}</TableCell>
+                                            <TableCell>{trade.symbol}</TableCell>
+                                            <TableCell align="right">{trade.quantity}</TableCell>
+                                            <TableCell align="right">₹{trade.avgPrice.toFixed(2)}</TableCell>
+                                            <TableCell align="right">₹{trade.ltp.toFixed(2)}</TableCell>
+                                            <TableCell align="right" sx={{ color: trade.pnl > 0 ? '#059669' : '#dc2626', fontWeight: 500 }}>
+                                                {trade.pnl > 0 ? '+' : ''}₹{formatToIndianUnits(trade.pnl)}
+                                            </TableCell>
+                                            <TableCell align="right" sx={{ color: trade.pnlPercentage > 0 ? '#059669' : '#dc2626', fontWeight: 500 }}>
+                                                {trade.pnlPercentage > 0 ? '+' : ''}{trade.pnlPercentage.toFixed(2)}%
+                                            </TableCell>
+                                            <TableCell align="right">{trade.daysHeld}</TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </Box>
+                    </Collapse>
+                </TableCell>
+            </TableRow>
+        </React.Fragment>
+    );
+};
+
 const MonthlyTracker = () => {
-    // Static Data - Schema matches holdings where possible, plus specific tracker fields
-    const monthlyTrades = [
-        { id: 1, symbol: 'RELIANCE', quantity: 50, avgPrice: 2400, ltp: 2500, pnl: 5000, pnlPercentage: 4.16, invested: 120000, currentValue: 125000, daysHeld: 5, status: 'WIN' },
-        { id: 2, symbol: 'TATASTEEL', quantity: 100, avgPrice: 120, ltp: 115, pnl: -500, pnlPercentage: -4.16, invested: 12000, currentValue: 11500, daysHeld: 2, status: 'LOSS' },
-        { id: 3, symbol: 'INFY', quantity: 20, avgPrice: 1500, ltp: 1600, pnl: 2000, pnlPercentage: 6.66, invested: 30000, currentValue: 32000, daysHeld: 10, status: 'WIN' },
-        { id: 4, symbol: 'HDFCBANK', quantity: 30, avgPrice: 1600, ltp: 1550, pnl: -1500, pnlPercentage: -3.12, invested: 48000, currentValue: 46500, daysHeld: 4, status: 'LOSS' },
-        { id: 5, symbol: 'ICICIBANK', quantity: 40, avgPrice: 900, ltp: 950, pnl: 2000, pnlPercentage: 5.55, invested: 36000, currentValue: 38000, daysHeld: 7, status: 'WIN' },
-        { id: 6, symbol: 'SBIN', quantity: 100, avgPrice: 600, ltp: 580, pnl: -2000, pnlPercentage: -3.33, invested: 60000, currentValue: 58000, daysHeld: 3, status: 'LOSS' },
-        { id: 7, symbol: 'ITC', quantity: 200, avgPrice: 400, ltp: 420, pnl: 4000, pnlPercentage: 5.00, invested: 80000, currentValue: 84000, daysHeld: 12, status: 'WIN' },
-    ];
+    const orders = useSelector((state) => state.paperTrade.orders);
 
-    // Calculations
-    const totalTrades = monthlyTrades.length;
-    const winningTrades = monthlyTrades.filter(t => t.pnl > 0);
-    const losingTrades = monthlyTrades.filter(t => t.pnl <= 0);
+    const completedTrades = React.useMemo(() => {
+        const trades = [];
+        const activePositions = {};
+        const chronologicalOrders = [...orders].reverse();
 
-    const winPercentage = totalTrades > 0 ? (winningTrades.length / totalTrades) * 100 : 0;
+        chronologicalOrders.forEach(order => {
+            if(order.type === 'BUY') {
+                if(!activePositions[order.symbol]) {
+                    activePositions[order.symbol] = { quantity: 0, cost: 0, buyDates: [] };
+                }
+                activePositions[order.symbol].quantity += order.quantity;
+                activePositions[order.symbol].cost += order.quantity * order.price;
+                activePositions[order.symbol].buyDates.push(new Date(order.timestamp));
+            } else if(order.type === 'SELL') {
+                if(activePositions[order.symbol] && activePositions[order.symbol].quantity > 0) {
+                    const avgBuyPrice = activePositions[order.symbol].cost / activePositions[order.symbol].quantity;
+                    const pnl = (order.price - avgBuyPrice) * order.quantity;
+                    const invested = avgBuyPrice * order.quantity;
+                    const pnlPercentage = invested > 0 ? (pnl / invested) * 100 : 0;
+                    
+                    const earliestBuyDate = activePositions[order.symbol].buyDates[0] || new Date();
+                    const sellDate = new Date(order.timestamp);
+                    const daysHeld = Math.max(1, Math.ceil((sellDate - earliestBuyDate) / (1000 * 60 * 60 * 24)));
 
-    const totalGain = winningTrades.reduce((acc, curr) => acc + curr.pnl, 0);
-    const totalLoss = Math.abs(losingTrades.reduce((acc, curr) => acc + curr.pnl, 0));
+                    trades.push({
+                        id: order.id || order._id,
+                        symbol: order.symbol,
+                        quantity: order.quantity,
+                        avgPrice: avgBuyPrice,
+                        ltp: order.price,
+                        pnl,
+                        pnlPercentage,
+                        invested,
+                        currentValue: order.price * order.quantity,
+                        daysHeld,
+                        status: pnl > 0 ? 'WIN' : 'LOSS',
+                        timestamp: order.timestamp
+                    });
 
-    const avgGain = winningTrades.length > 0 ? totalGain / winningTrades.length : 0;
-    const avgLoss = losingTrades.length > 0 ? totalLoss / losingTrades.length : 0;
+                    activePositions[order.symbol].quantity -= order.quantity;
+                    activePositions[order.symbol].cost -= avgBuyPrice * order.quantity;
+                    if(activePositions[order.symbol].quantity <= 0) {
+                       delete activePositions[order.symbol];
+                    }
+                }
+            }
+        });
+        return trades;
+    }, [orders]);
 
-    const largestGain = winningTrades.length > 0 ? Math.max(...winningTrades.map(t => t.pnl)) : 0;
-    const largestLoss = losingTrades.length > 0 ? Math.min(...losingTrades.map(t => t.pnl)) : 0; // Keeping as negative value for display
+    const tradesByMonth = React.useMemo(() => {
+        return completedTrades.reduce((acc, trade) => {
+            const month = new Date(trade.timestamp).toLocaleString('default', { month: 'short', year: 'numeric' }).toUpperCase();
+            if (!acc[month]) acc[month] = [];
+            acc[month].push(trade);
+            return acc;
+        }, {});
+    }, [completedTrades]);
 
-    const avgDaysGain = winningTrades.length > 0 ? winningTrades.reduce((acc, curr) => acc + curr.daysHeld, 0) / winningTrades.length : 0;
-    const avgDaysLoss = losingTrades.length > 0 ? losingTrades.reduce((acc, curr) => acc + curr.daysHeld, 0) / losingTrades.length : 0;
+    const monthlyStats = React.useMemo(() => {
+        return Object.keys(tradesByMonth).map(monthStr => {
+            const trades = tradesByMonth[monthStr];
+            const winningTrades = trades.filter(t => t.pnl > 0);
+            const losingTrades = trades.filter(t => t.pnl <= 0);
+            
+            const totalTrades = trades.length;
+            const winPercentage = totalTrades > 0 ? (winningTrades.length / totalTrades) * 100 : 0;
+            
+            const avgGain = winningTrades.length > 0 ? winningTrades.reduce((a, b) => a + b.pnlPercentage, 0) / winningTrades.length : 0;
+            const avgLoss = losingTrades.length > 0 ? Math.abs(losingTrades.reduce((a, b) => a + b.pnlPercentage, 0)) / losingTrades.length : 0;
+            
+            const lgGain = winningTrades.length > 0 ? Math.max(...winningTrades.map(t => t.pnlPercentage)) : 0;
+            const lgLoss = losingTrades.length > 0 ? Math.min(...losingTrades.map(t => t.pnlPercentage)) : 0;
+            
+            const avgDaysGain = winningTrades.length > 0 ? winningTrades.reduce((a, b) => a + b.daysHeld, 0) / winningTrades.length : 0;
+            const avgDaysLoss = losingTrades.length > 0 ? losingTrades.reduce((a, b) => a + b.daysHeld, 0) / losingTrades.length : 0;
 
-    const winLossRatio = avgLoss > 0 ? avgGain / avgLoss : 0; // Avg Gain / Avg Loss
-    const adjustedWinLossRatio = totalLoss > 0 ? totalGain / totalLoss : 0; // Profit Factor (Gross Gain / Gross Loss)
+            return {
+                month: monthStr,
+                trades,
+                avgGain,
+                avgLoss,
+                winPercentage,
+                totalTrades,
+                lgGain,
+                lgLoss: Math.abs(lgLoss),
+                avgDaysGain,
+                avgDaysLoss
+            };
+        });
+    }, [tradesByMonth]);
 
-    const summaryRows = [
-        {
-            id: 1,
-            winPercentage: winPercentage,
-            avgGain: avgGain,
-            avgLoss: avgLoss,
-            winLossRatio: winLossRatio,
-            adjustedWinLossRatio: adjustedWinLossRatio
-        }
-    ];
+    const totalStats = React.useMemo(() => {
+        const winningTrades = completedTrades.filter(t => t.pnl > 0);
+        const losingTrades = completedTrades.filter(t => t.pnl <= 0);
+        
+        const totalTrades = completedTrades.length;
+        const winPercentage = totalTrades > 0 ? (winningTrades.length / totalTrades) * 100 : 0;
+        
+        const avgGain = winningTrades.length > 0 ? winningTrades.reduce((a, b) => a + b.pnlPercentage, 0) / winningTrades.length : 0;
+        const avgLoss = losingTrades.length > 0 ? Math.abs(losingTrades.reduce((a, b) => a + b.pnlPercentage, 0)) / losingTrades.length : 0;
+        
+        const lgGain = winningTrades.length > 0 ? Math.max(...winningTrades.map(t => t.pnlPercentage)) : 0;
+        const lgLoss = losingTrades.length > 0 ? Math.min(...losingTrades.map(t => t.pnlPercentage)) : 0;
+        
+        const avgDaysGain = winningTrades.length > 0 ? winningTrades.reduce((a, b) => a + b.daysHeld, 0) / winningTrades.length : 0;
+        const avgDaysLoss = losingTrades.length > 0 ? losingTrades.reduce((a, b) => a + b.daysHeld, 0) / losingTrades.length : 0;
 
-    const summaryColumns = [
-        {
-            field: 'winPercentage',
-            headerName: 'Winning %',
-            flex: 1,
-            align: 'center',
-            headerAlign: 'center',
-            renderCell: (params) => (
-                <Typography variant="body2" sx={{ width: '100%', textAlign: 'center', fontWeight: 600, color: params.value >= 50 ? '#059669' : '#dc2626' }}>
-                    {params.value.toFixed(2)}%
-                </Typography>
-            )
-        },
-        {
-            field: 'avgGain',
-            headerName: 'Avg Gain',
-            flex: 1,
-            align: 'center',
-            headerAlign: 'center',
-            renderCell: (params) => `₹${formatToIndianUnits(params.value)}`
-        },
-        {
-            field: 'avgLoss',
-            headerName: 'Avg Loss',
-            flex: 1,
-            align: 'center',
-            headerAlign: 'center',
-            renderCell: (params) => `₹${formatToIndianUnits(params.value)}`
-        },
-        {
-            field: 'winLossRatio',
-            headerName: 'Win/Loss Ratio',
-            flex: 1,
-            align: 'center',
-            headerAlign: 'center',
-            renderCell: (params) => params.value.toFixed(2)
-        },
-        {
-            field: 'adjustedWinLossRatio',
-            headerName: 'Adj Win/Loss Ratio',
-            flex: 1,
-            align: 'center',
-            headerAlign: 'center',
-            renderCell: (params) => (
-                <Typography variant="body2" sx={{ width: '100%', textAlign: 'center', fontWeight: 600, color: params.value >= 1.5 ? '#059669' : params.value >= 1 ? '#eab308' : '#dc2626' }}>
-                    {params.value.toFixed(2)}
-                </Typography>
-            )
-        },
-    ];
+        const totalGainVal = winningTrades.reduce((acc, curr) => acc + curr.pnl, 0);
+        const totalLossVal = Math.abs(losingTrades.reduce((acc, curr) => acc + curr.pnl, 0));
+        
+        const avgGainVal = winningTrades.length > 0 ? totalGainVal / winningTrades.length : 0;
+        const avgLossVal = losingTrades.length > 0 ? totalLossVal / losingTrades.length : 0;
+        
+        const winLossRatio = avgLossVal > 0 ? avgGainVal / avgLossVal : 0;
+        const adjustedWinLossRatio = totalLossVal > 0 ? totalGainVal / totalLossVal : 0;
+
+        return {
+            winPercentage,
+            avgGain,
+            avgLoss,
+            totalTrades,
+            lgGain,
+            lgLoss: Math.abs(lgLoss),
+            avgDaysGain,
+            avgDaysLoss,
+            winLossRatio,
+            adjustedWinLossRatio
+        };
+    }, [completedTrades]);
+
+    const equityCurveData = React.useMemo(() => {
+        let cumulative = 0;
+        return completedTrades.map((t, index) => {
+            cumulative += t.pnl;
+            return {
+                id: index,
+                label: new Date(t.timestamp).toLocaleDateString(),
+                equity: cumulative,
+            };
+        });
+    }, [completedTrades]);
 
     return (
         <Box sx={{ mt: 4 }}>
             <Typography variant="h6" sx={{ mb: 2, fontWeight: 700 }}>
-                Monthly Tracker (January)
+                Monthly Tracker
             </Typography>
 
-            <Paper elevation={0} sx={{ p: 2, mb: 3, border: '1px solid #e0e0e0', borderRadius: 2 }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
-                    <Box sx={{ textAlign: 'center' }}>
-                        <Typography variant="caption" color="text.secondary">Total Trades</Typography>
-                        <Typography variant="h6">{totalTrades}</Typography>
-                    </Box>
-                    <Box sx={{ textAlign: 'center' }}>
-                        <Typography variant="caption" color="text.secondary">Largest Gain</Typography>
-                        <Typography variant="h6" color="#059669">+{formatToIndianUnits(largestGain)}</Typography>
-                    </Box>
-                    <Box sx={{ textAlign: 'center' }}>
-                        <Typography variant="caption" color="text.secondary">Largest Loss</Typography>
-                        <Typography variant="h6" color="#dc2626">{formatToIndianUnits(largestLoss)}</Typography>
-                    </Box>
-                    <Box sx={{ textAlign: 'center' }}>
-                        <Typography variant="caption" color="text.secondary">Avg Days (Gain)</Typography>
-                        <Typography variant="h6">{avgDaysGain.toFixed(1)}</Typography>
-                    </Box>
-                    <Box sx={{ textAlign: 'center' }}>
-                        <Typography variant="caption" color="text.secondary">Avg Days (Loss)</Typography>
-                        <Typography variant="h6">{avgDaysLoss.toFixed(1)}</Typography>
+            <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid #e0e0e0', mb: 4, borderRadius: 2 }}>
+                <Table aria-label="monthly tracker">
+                    <TableHead sx={{ bgcolor: '#f8fafc' }}>
+                        <TableRow>
+                            <TableCell />
+                            <TableCell sx={{ fontWeight: 'bold' }}>MONTH</TableCell>
+                            <TableCell align="right" sx={{ fontWeight: 'bold' }}>AVG GAIN</TableCell>
+                            <TableCell align="right" sx={{ fontWeight: 'bold' }}>AVG LOSS</TableCell>
+                            <TableCell align="right" sx={{ fontWeight: 'bold' }}>WIN %</TableCell>
+                            <TableCell align="right" sx={{ fontWeight: 'bold' }}>TOTAL TRADES</TableCell>
+                            <TableCell align="right" sx={{ fontWeight: 'bold' }}>LG GAIN</TableCell>
+                            <TableCell align="right" sx={{ fontWeight: 'bold' }}>LG LOSS</TableCell>
+                            <TableCell align="right" sx={{ fontWeight: 'bold' }}>AVG DAYS GAINS</TableCell>
+                            <TableCell align="right" sx={{ fontWeight: 'bold' }}>AVG DAYS LOSS</TableCell>
+                        </TableRow>
+                    </TableHead>
+                    <TableBody>
+                        {monthlyStats.map((row) => (
+                            <MonthlyRow key={row.month} row={row} />
+                        ))}
+                        {monthlyStats.length > 0 && (
+                            <TableRow sx={{ bgcolor: '#f1f5f9' }}>
+                                <TableCell />
+                                <TableCell sx={{ fontWeight: 'bold' }}>AVG.</TableCell>
+                                <TableCell align="right" sx={{ fontWeight: 'bold' }}>{totalStats.avgGain.toFixed(2)}%</TableCell>
+                                <TableCell align="right" sx={{ fontWeight: 'bold' }}>{totalStats.avgLoss.toFixed(2)}%</TableCell>
+                                <TableCell align="right" sx={{ fontWeight: 'bold' }}>{totalStats.winPercentage.toFixed(2)}%</TableCell>
+                                <TableCell align="right" sx={{ fontWeight: 'bold' }}>{totalStats.totalTrades}</TableCell>
+                                <TableCell align="right" sx={{ fontWeight: 'bold' }}>{totalStats.lgGain > 0 ? totalStats.lgGain.toFixed(2) + '%' : '-'}</TableCell>
+                                <TableCell align="right" sx={{ fontWeight: 'bold' }}>{totalStats.lgLoss > 0 ? totalStats.lgLoss.toFixed(2) + '%' : '-'}</TableCell>
+                                <TableCell align="right" sx={{ fontWeight: 'bold' }}>{Math.round(totalStats.avgDaysGain)}</TableCell>
+                                <TableCell align="right" sx={{ fontWeight: 'bold' }}>{Math.round(totalStats.avgDaysLoss)}</TableCell>
+                            </TableRow>
+                        )}
+                    </TableBody>
+                </Table>
+            </TableContainer>
+
+            <Typography variant="h6" sx={{ mb: 2, fontWeight: 700 }}>
+                Trading Summary
+            </Typography>
+
+            <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid #e0e0e0', mb: 4, borderRadius: 2, width: { xs: '100%', md: '50%' } }}>
+                <Table size="small">
+                    <TableBody>
+                        <TableRow>
+                            <TableCell component="th" scope="row" sx={{ fontWeight: 'bold', borderRight: '1px solid #e0e0e0' }}>Winning Percentage</TableCell>
+                            <TableCell align="right">{totalStats.winPercentage.toFixed(2)}%</TableCell>
+                        </TableRow>
+                        <TableRow>
+                            <TableCell component="th" scope="row" sx={{ fontWeight: 'bold', borderRight: '1px solid #e0e0e0' }}>Average Gain</TableCell>
+                            <TableCell align="right">{totalStats.avgGain.toFixed(2)}%</TableCell>
+                        </TableRow>
+                        <TableRow>
+                            <TableCell component="th" scope="row" sx={{ fontWeight: 'bold', borderRight: '1px solid #e0e0e0' }}>Average Loss</TableCell>
+                            <TableCell align="right">{totalStats.avgLoss.toFixed(2)}%</TableCell>
+                        </TableRow>
+                        <TableRow>
+                            <TableCell component="th" scope="row" sx={{ fontWeight: 'bold', borderRight: '1px solid #e0e0e0' }}>Win / Loss Ratio</TableCell>
+                            <TableCell align="right">{totalStats.winLossRatio.toFixed(2)}</TableCell>
+                        </TableRow>
+                        <TableRow>
+                            <TableCell component="th" scope="row" sx={{ fontWeight: 'bold', borderRight: '1px solid #e0e0e0' }}>Adjusted Win / Loss Ratio</TableCell>
+                            <TableCell align="right">{totalStats.adjustedWinLossRatio.toFixed(2)}</TableCell>
+                        </TableRow>
+                    </TableBody>
+                </Table>
+            </TableContainer>
+            
+            {equityCurveData.length > 0 && (
+                <Box sx={{ mt: 4, p: 2, border: '1px solid #e0e0e0', borderRadius: 2, bgcolor: '#fff' }}>
+                    <Typography variant="h6" sx={{ mb: 2, fontWeight: 700 }}>
+                        Equity Curve
+                    </Typography>
+                    <Box sx={{ height: 350, width: '100%' }}>
+                        <LineChart
+                            dataset={equityCurveData}
+                            xAxis={[{ 
+                                dataKey: 'id',
+                                valueFormatter: (val) => equityCurveData.find(d => d.id === val)?.label || val
+                            }]}
+                            series={[{
+                                dataKey: 'equity',
+                                area: true,
+                                color: '#059669',
+                                showMark: false
+                            }]}
+                            margin={{ left: 60, right: 20, top: 20, bottom: 30 }}
+                        />
                     </Box>
                 </Box>
-            </Paper>
-
-            <Box sx={{ height: 150, width: '100%' }}>
-                <DataGrid
-                    rows={summaryRows}
-                    columns={summaryColumns}
-                    hideFooter
-                    disableColumnMenu
-                    sx={{
-                        border: '1px solid #e0e0e0',
-                        borderRadius: 2,
-                        '& .MuiDataGrid-columnHeaders': {
-                            bgcolor: '#f8fafc',
-                            color: '#64748b',
-                            fontWeight: 600
-                        },
-                        '& .MuiDataGrid-cell:focus': {
-                            outline: 'none',
-                        },
-                    }}
-                />
-            </Box>
+            )}
         </Box>
     );
 };
