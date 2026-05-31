@@ -11,6 +11,7 @@ import { commonSelectSx, commonInputLabelSx } from '../../utils/themeStyles';
 import moment from 'moment';
 import { syncMarketBreadthData } from '../../Store/marketBreadth';
 import { Button } from '@mui/material';
+import SAInsights from './SAInsights';
 
 // Helper for Up/Down 4% Coloring
 const getUpDown4Color = (params, type) => {
@@ -649,6 +650,10 @@ const MarketBreadthTable = () => {
             <li>Extremely bearish breadth = bullish and start of a bounce or bottom. Short term extremely bullish breadth = pullback. For tops there are no reliable indicators as it is gradual process. I look for extremes in breadth on any time frames to reduce or add risks. Rest of the time breadth is not much useful.</li>
           </Box>
         </Paper>
+
+        {/* Situational Awareness Insights */}
+        <SAInsights />
+
       </Box>
     </Box>
   );
