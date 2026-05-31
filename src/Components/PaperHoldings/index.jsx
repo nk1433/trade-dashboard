@@ -488,7 +488,9 @@ const MonthlyRow = ({ row }) => {
                             <Table size="small" aria-label="trades">
                                 <TableHead>
                                     <TableRow sx={{ bgcolor: '#f1f5f9' }}>
-                                        <TableCell sx={{ fontWeight: 600 }}>Date</TableCell>
+                                        <TableCell sx={{ fontWeight: 600 }}>Buy Date</TableCell>
+                                        <TableCell sx={{ fontWeight: 600 }}>Sell Date</TableCell>
+                                        <TableCell sx={{ fontWeight: 600 }}>Intraday</TableCell>
                                         <TableCell sx={{ fontWeight: 600 }}>Symbol</TableCell>
                                         <TableCell align="right" sx={{ fontWeight: 600 }}>Qty</TableCell>
                                         <TableCell align="right" sx={{ fontWeight: 600 }}>Buy Avg</TableCell>
@@ -501,7 +503,13 @@ const MonthlyRow = ({ row }) => {
                                 <TableBody>
                                     {row.trades.map((trade) => (
                                         <TableRow key={trade.id}>
-                                            <TableCell>{new Date(trade.timestamp).toLocaleDateString()}</TableCell>
+                                            <TableCell>{new Date(trade.buyDate).toLocaleDateString()}</TableCell>
+                                            <TableCell>{new Date(trade.sellDate).toLocaleDateString()}</TableCell>
+                                            <TableCell>
+                                                <Box component="span" sx={{ px: 1, py: 0.5, borderRadius: 1, fontSize: '0.75rem', fontWeight: 'bold', bgcolor: trade.isIntraday ? '#e0f2fe' : '#f1f5f9', color: trade.isIntraday ? '#0284c7' : '#64748b' }}>
+                                                    {trade.isIntraday ? 'Yes' : 'No'}
+                                                </Box>
+                                            </TableCell>
                                             <TableCell>{trade.symbol}</TableCell>
                                             <TableCell align="right">{trade.quantity}</TableCell>
                                             <TableCell align="right">₹{trade.avgPrice.toFixed(2)}</TableCell>
@@ -551,6 +559,7 @@ const MonthlyTracker = () => {
                     const earliestBuyDate = activePositions[order.symbol].buyDates[0] || new Date();
                     const sellDate = new Date(order.timestamp);
                     const daysHeld = Math.max(1, Math.ceil((sellDate - earliestBuyDate) / (1000 * 60 * 60 * 24)));
+                    const isIntraday = earliestBuyDate.toDateString() === sellDate.toDateString();
 
                     trades.push({
                         id: order.id || order._id,
@@ -564,7 +573,10 @@ const MonthlyTracker = () => {
                         currentValue: order.price * order.quantity,
                         daysHeld,
                         status: pnl > 0 ? 'WIN' : 'LOSS',
-                        timestamp: order.timestamp
+                        timestamp: order.timestamp,
+                        buyDate: earliestBuyDate,
+                        sellDate: sellDate,
+                        isIntraday
                     });
 
                     activePositions[order.symbol].quantity -= order.quantity;
