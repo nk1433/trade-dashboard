@@ -10,6 +10,7 @@ import {
 } from "@mui/material";
 import universe from '../../../index/universe.json';
 import IndustryVolumeShockers from './IndustryVolumeShockers';
+import TopVolumeShockers from './TopVolumeShockers';
 
 export default function MarketHighLowWormChart() {
     const [seriesData, setSeriesData] = useState([]);
@@ -268,6 +269,8 @@ export default function MarketHighLowWormChart() {
                     )}
                 </Box>
             </Paper>
+
+            <TopVolumeShockers />
 
             {/* Turnover Chart Section */}
             <Box sx={{ mt: 6, mb: 2, textAlign: 'center' }}>
