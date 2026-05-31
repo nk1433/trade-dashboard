@@ -9,6 +9,8 @@ import CombinedMarketBreadthChart from './CombinedMarketBreadthChart';
 import BreadthTwoPaneChart from './TVLightChart';
 import { commonSelectSx, commonInputLabelSx } from '../../utils/themeStyles';
 import moment from 'moment';
+import { syncMarketBreadthData } from '../../Store/marketBreadth';
+import { Button } from '@mui/material';
 
 // Helper for Up/Down 4% Coloring
 const getUpDown4Color = (params, type) => {
@@ -336,6 +338,17 @@ const MarketBreadthTable = () => {
     dispatch(fetchMarketBreadth());
   }, [dispatch]);
 
+  const [isSyncing, setIsSyncing] = useState(false);
+  const handleSync = async (fullSync) => {
+    setIsSyncing(true);
+    try {
+      await dispatch(syncMarketBreadthData(fullSync)).unwrap();
+    } catch (error) {
+      console.error('Sync failed:', error);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
 
   // Helper to filter data based on time range
   const filterDataByRange = (data, range) => {
@@ -379,7 +392,15 @@ const MarketBreadthTable = () => {
           <Typography variant="h5" sx={{ fontWeight: 600, color: '#1a1a1a' }}>
             Market Breadth
           </Typography>
-          <Box sx={{ display: 'flex', gap: 2 }}>
+          <Box sx={{ display: 'flex', gap: 2, color: '#1a1a1a' }}>
+            <Button
+              color="primary"
+              sx={{ color: '#1a1a1a', border: "1px solid #d6d6d6" }}
+              onClick={() => handleSync(false)}
+              disabled={isSyncing}
+            >
+              {isSyncing ? 'Syncing...' : 'Daily Sync'}
+            </Button>
             {/* Time Range Selector */}
             <FormControl size="small" sx={{ minWidth: 120, bgcolor: 'white' }}>
               <InputLabel sx={commonInputLabelSx}>Time Range</InputLabel>
