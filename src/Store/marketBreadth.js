@@ -13,6 +13,17 @@ export const fetchMarketBreadth = createAsyncThunk(
   }
 );
 
+export const syncMarketBreadthData = createAsyncThunk(
+  'marketBreadth/syncMarketBreadthData',
+  async (fullSync = false, { dispatch }) => {
+    const env = import.meta.env.VITE_ENV;
+    const baseUrl = env === 'DEV' ? 'http://localhost:3015' : import.meta.env.VITE_PROD_HOST;
+    const response = await axios.post(`${baseUrl}/sync-52week-marketbreath?fullSync=${fullSync}`);
+    dispatch(fetchMarketBreadth()); // Refresh data after sync
+    return response.data;
+  }
+);
+
 const marketBreadthSlice = createSlice({
   name: 'marketBreadth',
   initialState: {

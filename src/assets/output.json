@@ -1870,17 +1870,6 @@
     "exchange": "NSE_EQ"
   },
   {
-    "instrument_key": "NSE_EQ|INE675C01017",
-    "exchange_token": 5142,
-    "tradingsymbol": "CIGNITITEC",
-    "name": "CIGNITI TECHNOLOGIES LTD",
-    "last_price": 1584.8,
-    "tick_size": 0.1,
-    "lot_size": 1,
-    "instrument_type": "EQUITY",
-    "exchange": "NSE_EQ"
-  },
-  {
     "instrument_key": "NSE_EQ|IN2820230133",
     "exchange_token": 18405,
     "tradingsymbol": "745PN34A",
@@ -17644,7 +17633,7 @@
     "exchange": "NSE_EQ"
   },
   {
-    "instrument_key": "NSE_EQ|INE625X01018",
+    "instrument_key": "NSE_EQ|INE625X01026",
     "exchange_token": 9422,
     "tradingsymbol": "SILVERTUC",
     "name": "SILVER TOUCH TECHNO LTD",
@@ -52690,7 +52679,7 @@
     "exchange": "NSE_EQ"
   },
   {
-    "instrument_key": "NSE_EQ|INE732I01013",
+    "instrument_key": "NSE_EQ|INE732I01021",
     "exchange_token": 324,
     "tradingsymbol": "ANGELONE",
     "name": "ANGEL ONE LIMITED",
@@ -53163,7 +53152,7 @@
     "exchange": "NSE_EQ"
   },
   {
-    "instrument_key": "NSE_EQ|INE945H01013",
+    "instrument_key": "NSE_EQ|INE945H01021",
     "exchange_token": 14770,
     "tradingsymbol": "V2RETAIL",
     "name": "V2 RETAIL LIMITED",
