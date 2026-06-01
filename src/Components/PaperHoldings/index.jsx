@@ -542,20 +542,20 @@ const MonthlyTracker = () => {
         const chronologicalOrders = [...orders].reverse();
 
         chronologicalOrders.forEach(order => {
-            if(order.type === 'BUY') {
-                if(!activePositions[order.symbol]) {
+            if (order.type === 'BUY') {
+                if (!activePositions[order.symbol]) {
                     activePositions[order.symbol] = { quantity: 0, cost: 0, buyDates: [] };
                 }
                 activePositions[order.symbol].quantity += order.quantity;
                 activePositions[order.symbol].cost += order.quantity * order.price;
                 activePositions[order.symbol].buyDates.push(new Date(order.timestamp));
-            } else if(order.type === 'SELL') {
-                if(activePositions[order.symbol] && activePositions[order.symbol].quantity > 0) {
+            } else if (order.type === 'SELL') {
+                if (activePositions[order.symbol] && activePositions[order.symbol].quantity > 0) {
                     const avgBuyPrice = activePositions[order.symbol].cost / activePositions[order.symbol].quantity;
                     const pnl = (order.price - avgBuyPrice) * order.quantity;
                     const invested = avgBuyPrice * order.quantity;
                     const pnlPercentage = invested > 0 ? (pnl / invested) * 100 : 0;
-                    
+
                     const earliestBuyDate = activePositions[order.symbol].buyDates[0] || new Date();
                     const sellDate = new Date(order.timestamp);
                     const daysHeld = Math.max(1, Math.ceil((sellDate - earliestBuyDate) / (1000 * 60 * 60 * 24)));
@@ -581,8 +581,8 @@ const MonthlyTracker = () => {
 
                     activePositions[order.symbol].quantity -= order.quantity;
                     activePositions[order.symbol].cost -= avgBuyPrice * order.quantity;
-                    if(activePositions[order.symbol].quantity <= 0) {
-                       delete activePositions[order.symbol];
+                    if (activePositions[order.symbol].quantity <= 0) {
+                        delete activePositions[order.symbol];
                     }
                 }
             }
@@ -604,16 +604,16 @@ const MonthlyTracker = () => {
             const trades = tradesByMonth[monthStr];
             const winningTrades = trades.filter(t => t.pnl > 0);
             const losingTrades = trades.filter(t => t.pnl <= 0);
-            
+
             const totalTrades = trades.length;
             const winPercentage = totalTrades > 0 ? (winningTrades.length / totalTrades) * 100 : 0;
-            
+
             const avgGain = winningTrades.length > 0 ? winningTrades.reduce((a, b) => a + b.pnlPercentage, 0) / winningTrades.length : 0;
             const avgLoss = losingTrades.length > 0 ? Math.abs(losingTrades.reduce((a, b) => a + b.pnlPercentage, 0)) / losingTrades.length : 0;
-            
+
             const lgGain = winningTrades.length > 0 ? Math.max(...winningTrades.map(t => t.pnlPercentage)) : 0;
             const lgLoss = losingTrades.length > 0 ? Math.min(...losingTrades.map(t => t.pnlPercentage)) : 0;
-            
+
             const avgDaysGain = winningTrades.length > 0 ? winningTrades.reduce((a, b) => a + b.daysHeld, 0) / winningTrades.length : 0;
             const avgDaysLoss = losingTrades.length > 0 ? losingTrades.reduce((a, b) => a + b.daysHeld, 0) / losingTrades.length : 0;
 
@@ -635,25 +635,25 @@ const MonthlyTracker = () => {
     const totalStats = React.useMemo(() => {
         const winningTrades = completedTrades.filter(t => t.pnl > 0);
         const losingTrades = completedTrades.filter(t => t.pnl <= 0);
-        
+
         const totalTrades = completedTrades.length;
         const winPercentage = totalTrades > 0 ? (winningTrades.length / totalTrades) * 100 : 0;
-        
+
         const avgGain = winningTrades.length > 0 ? winningTrades.reduce((a, b) => a + b.pnlPercentage, 0) / winningTrades.length : 0;
         const avgLoss = losingTrades.length > 0 ? Math.abs(losingTrades.reduce((a, b) => a + b.pnlPercentage, 0)) / losingTrades.length : 0;
-        
+
         const lgGain = winningTrades.length > 0 ? Math.max(...winningTrades.map(t => t.pnlPercentage)) : 0;
         const lgLoss = losingTrades.length > 0 ? Math.min(...losingTrades.map(t => t.pnlPercentage)) : 0;
-        
+
         const avgDaysGain = winningTrades.length > 0 ? winningTrades.reduce((a, b) => a + b.daysHeld, 0) / winningTrades.length : 0;
         const avgDaysLoss = losingTrades.length > 0 ? losingTrades.reduce((a, b) => a + b.daysHeld, 0) / losingTrades.length : 0;
 
         const totalGainVal = winningTrades.reduce((acc, curr) => acc + curr.pnl, 0);
         const totalLossVal = Math.abs(losingTrades.reduce((acc, curr) => acc + curr.pnl, 0));
-        
+
         const avgGainVal = winningTrades.length > 0 ? totalGainVal / winningTrades.length : 0;
         const avgLossVal = losingTrades.length > 0 ? totalLossVal / losingTrades.length : 0;
-        
+
         const winLossRatio = avgLossVal > 0 ? avgGainVal / avgLossVal : 0;
         const adjustedWinLossRatio = totalLossVal > 0 ? totalGainVal / totalLossVal : 0;
 
@@ -757,8 +757,8 @@ const MonthlyTracker = () => {
                     </TableBody>
                 </Table>
             </TableContainer>
-            
-            {equityCurveData.length > 0 && (
+
+            {/* {equityCurveData.length > 0 && (
                 <Box sx={{ mt: 4, p: 2, border: '1px solid #e0e0e0', borderRadius: 2, bgcolor: '#fff' }}>
                     <Typography variant="h6" sx={{ mb: 2, fontWeight: 700 }}>
                         Equity Curve
@@ -780,7 +780,7 @@ const MonthlyTracker = () => {
                         />
                     </Box>
                 </Box>
-            )}
+            )} */}
         </Box>
     );
 };
