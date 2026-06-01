@@ -566,8 +566,7 @@ const MarketBreadthTable = () => {
             columnHeaderHeight={100} // Increased for multiline headers
             sx={{
               boxShadow: 2,
-              border: 2,
-              borderColor: 'primary.light',
+              border: 1,
               '& .MuiDataGrid-cell:hover': {
                 color: 'primary.main',
               },

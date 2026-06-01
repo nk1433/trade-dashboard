@@ -278,6 +278,40 @@ export default function MarketHighLowWormChart() {
                     MARKET TURNOVER
                 </Typography>
 
+                {/* Comparison Block */}
+                <Box sx={{
+                    mt: 2,
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'baseline',
+                    gap: 4
+                }}>
+                    <Box sx={{ textAlign: 'right' }}>
+                        <Typography variant="h2" sx={{ fontWeight: 800, lineHeight: 1 }}>
+                            {formatTurnover(latestUp)}
+                        </Typography>
+                        <Typography variant="caption" sx={{ fontWeight: 600, color: '#000' }}>BUYING</Typography>
+                    </Box>
+
+                    <Typography variant="h6" sx={{ color: '#e0e0e0', fontWeight: 300, alignSelf: 'center' }}>
+                        VS
+                    </Typography>
+
+                    <Box sx={{ textAlign: 'left' }}>
+                        <Typography variant="h2" sx={{ fontWeight: 800, lineHeight: 1 }}>
+                            {formatTurnover(latestDown)}
+                        </Typography>
+                        <Typography variant="caption" sx={{ fontWeight: 600, color: '#000' }}>SELLING</Typography>
+                    </Box>
+                </Box>
+
+                {/* Ratio Bar */}
+                <Box sx={{ width: '100%', maxWidth: 400, mx: 'auto', mt: 2, mb: 4 }}>
+                    <Box sx={{ height: 6, width: '100%', bgcolor: '#e0e0e0', borderRadius: 3, overflow: 'hidden', display: 'flex' }}>
+                        <Box sx={{ width: `${(latestUp + latestDown) > 0 ? (latestUp / (latestUp + latestDown)) * 100 : 50}%`, bgcolor: '#000000', transition: 'width 0.5s ease' }} />
+                    </Box>
+                </Box>
+
                 {/* Toggle Pills */}
                 <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1, mb: 2 }}>
                     {renderPill('TOTAL', 'Total Active')}

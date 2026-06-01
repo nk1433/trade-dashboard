@@ -99,6 +99,8 @@ export default function TopVolumeShockers() {
                 symbol: script.tradingsymbol,
                 name: script.name || script.tradingsymbol,
                 instrumentKey: script.instrument_key,
+                sector: script.sector,
+                industry: script.industry,
                 currentVolume,
                 avgVolume1w,
                 volChangePct
@@ -150,7 +152,10 @@ export default function TopVolumeShockers() {
                                 </TableCell>
                                 <TableCell component="th" scope="row">
                                     <Typography variant="subtitle2" fontWeight={700}>{stock.symbol}</Typography>
-                                    <Typography variant="caption" color="text.secondary">{stock.name}</Typography>
+                                    <Typography variant="caption" color="text.secondary" display="block">{stock.name}</Typography>
+                                    <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 0.5 }}>
+                                        {stock.sector} • {stock.industry}
+                                    </Typography>
                                 </TableCell>
                                 <TableCell align="right">
                                     <Typography
