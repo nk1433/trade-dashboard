@@ -27,7 +27,11 @@ const Home = () => {
     return (
         <Box sx={styles.container}>
             {/* Top Toolbar / Controls */}
-            <Box sx={styles.topToolbar}>
+            {/* 
+            <Box sx={{
+                ...styles.topToolbar,
+                right: view === 'chart' ? 390 : 24
+            }}>
                 <Button
                     onClick={handleMenuClick}
                     endIcon={<KeyboardArrowDownIcon />}
@@ -67,6 +71,7 @@ const Home = () => {
                     </MenuItem>
                 </Menu>
             </Box>
+            */}
 
             {/* Auth Warning from Upstox */}
             {(authStatus === 'expired' || authStatus === 'missing') && (

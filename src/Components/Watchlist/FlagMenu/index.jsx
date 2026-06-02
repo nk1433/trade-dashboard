@@ -1,11 +1,13 @@
 import React from 'react';
-import { IconButton, Popover, Box, Tooltip } from '@mui/material';
+import { IconButton, Popover, Box, Tooltip, Typography, Divider, MenuItem } from '@mui/material';
 import FlagIcon from '@mui/icons-material/Flag';
 import FlagOutlinedIcon from '@mui/icons-material/FlagOutlined';
 import ClearIcon from '@mui/icons-material/Clear';
+import CheckIcon from '@mui/icons-material/Check';
 
 import { useFlagMenu } from './useFlagMenu';
 import { styles, FLAG_COLORS } from './styles';
+import { useWatchlistFilter } from '../../../hooks/useWatchlistFilter';
 
 const FlagMenu = ({ currentFlag, onFlagChange }) => {
     const {
@@ -16,8 +18,10 @@ const FlagMenu = ({ currentFlag, onFlagChange }) => {
         handleSelectFlag
     } = useFlagMenu({ onFlagChange });
 
+    const { customLists } = useWatchlistFilter();
+
     // Determine icon color
-    const iconColor = currentFlag && FLAG_COLORS[currentFlag] ? FLAG_COLORS[currentFlag] : 'action';
+    const iconColor = currentFlag && FLAG_COLORS[currentFlag] ? FLAG_COLORS[currentFlag] : (currentFlag ? 'text.secondary' : 'action');
     const IconComponent = currentFlag ? FlagIcon : FlagOutlinedIcon;
 
     return (
@@ -46,33 +50,66 @@ const FlagMenu = ({ currentFlag, onFlagChange }) => {
                 }}
                 PaperProps={{ sx: styles.menuPaper }}
             >
-                <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                    <Box sx={styles.colorContainer}>
-                        {Object.entries(FLAG_COLORS).map(([name, color]) => (
-                            <Tooltip key={name} title={name.charAt(0).toUpperCase() + name.slice(1)}>
-                                <Box
+                <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', mb: customLists.length > 0 ? 1 : 0 }}>
+                        <Box sx={styles.colorContainer}>
+                            {Object.entries(FLAG_COLORS).map(([name, color]) => (
+                                <Tooltip key={name} title={name.charAt(0).toUpperCase() + name.slice(1)}>
+                                    <Box
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleSelectFlag(name);
+                                        }}
+                                        sx={styles.colorCircle(color, currentFlag === name)}
+                                    />
+                                </Tooltip>
+                            ))}
+                        </Box>
+                        {currentFlag && (
+                            <Tooltip title="Remove Flag">
+                                <IconButton
+                                    size="small"
                                     onClick={(e) => {
                                         e.stopPropagation();
-                                        handleSelectFlag(name);
+                                        handleSelectFlag(null); // Clear flag
                                     }}
-                                    sx={styles.colorCircle(color, currentFlag === name)}
-                                />
+                                    sx={{ ml: 1 }}
+                                >
+                                    <ClearIcon fontSize="small" />
+                                </IconButton>
                             </Tooltip>
-                        ))}
+                        )}
                     </Box>
-                    {currentFlag && (
-                        <Tooltip title="Remove Flag">
-                            <IconButton
-                                size="small"
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleSelectFlag(null); // Clear flag
-                                }}
-                                sx={{ ml: 1 }}
-                            >
-                                <ClearIcon fontSize="small" />
-                            </IconButton>
-                        </Tooltip>
+
+                    {customLists.length > 0 && (
+                        <>
+                            <Divider sx={{ my: 0.5 }} />
+                            <Typography variant="caption" sx={{ px: 1, py: 0.5, color: 'text.secondary', fontWeight: 'bold' }}>
+                                Custom Watchlists
+                            </Typography>
+                            {customLists.map(listName => (
+                                <MenuItem 
+                                    key={listName} 
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleSelectFlag(listName);
+                                    }}
+                                    sx={{ 
+                                        px: 1, 
+                                        py: 0.5, 
+                                        fontSize: '0.85rem',
+                                        display: 'flex',
+                                        justifyContent: 'space-between',
+                                        alignItems: 'center',
+                                        minHeight: 'auto',
+                                        borderRadius: 1
+                                    }}
+                                >
+                                    {listName}
+                                    {currentFlag === listName && <CheckIcon fontSize="small" sx={{ ml: 1, color: 'primary.main' }} />}
+                                </MenuItem>
+                            ))}
+                        </>
                     )}
                 </Box>
             </Popover>

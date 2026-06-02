@@ -96,7 +96,9 @@ export const getBars = async (
     }
 
     // --- 2. Intraday Data (Today) ---
-    if (isIntraday && includesToday) {
+    // Fetch intraday data to get today's live/closing candle when market is closed or websocket hasn't sent it yet.
+    // We do this for intraday intervals and for Daily ('days') intervals.
+    if (includesToday && (isIntraday || category === 'days')) {
       promises.push(
         fetchIntradayData(instrumentKey, category, value)
           .then(res => {

@@ -18,7 +18,6 @@ import { useTVChartContainer } from './useTVChartContainer';
 import { styles } from './styles';
 import { ArrowUpward, ArrowDownward } from '@mui/icons-material';
 
-// Colors for the menu items
 // Colors for the menu items are now handled via LIST_METADATA in useTVChartContainer
 
 const TVChartContainer = () => {
@@ -44,6 +43,9 @@ const TVChartContainer = () => {
         flaggedStocks,
         toggleFlag,
         clearFlaggedList,
+        customLists,
+        createCustomList,
+        deleteCustomList,
         LIST_METADATA,
         SCAN_KEYS,
         FLAG_KEYS
@@ -52,6 +54,7 @@ const TVChartContainer = () => {
     const tradingMode = useSelector((state) => state.settings?.tradingMode || 'PAPER');
     const token = useSelector((state) => state.auth?.token);
     const [orderPanelOpen, setOrderPanelOpen] = React.useState(false);
+    const [moreAnchorEl, setMoreAnchorEl] = React.useState(null);
 
     const activeScript = React.useMemo(() => {
         if (!selectedRowId || !scriptsToShow) return null;
@@ -63,34 +66,73 @@ const TVChartContainer = () => {
         return Number(val).toFixed(toFixed);
     };
 
-    const isFlagList = FLAG_KEYS.includes(selectedIndex);
+    const isFlagList = FLAG_KEYS.includes(selectedIndex) || customLists.includes(selectedIndex);
 
     const handleAddScript = () => {
         if (isFlagList) {
-            const symbol = window.prompt(`Enter script symbol to add to ${selectedIndex.replace('List', '')} list (e.g. RELIANCE):`);
+            const listName = customLists.includes(selectedIndex) ? selectedIndex : selectedIndex.replace('List', '');
+            const symbol = window.prompt(`Enter script symbol to add to ${listName} list (e.g. RELIANCE):`);
             if (symbol) {
-                toggleFlag(symbol.toUpperCase().trim(), selectedIndex.replace('List', ''));
+                toggleFlag(symbol.toUpperCase().trim(), listName);
             }
         } else {
-            window.alert("Please select a flagged list (Red, Blue, etc.) to add a script manually.");
+            window.alert("Please select a flagged or custom list to add a script manually.");
         }
     };
 
     const handleClearList = () => {
         if (isFlagList) {
-            if (window.confirm(`Are you sure you want to clear all scripts from the ${selectedIndex.replace('List', '')} list?`)) {
-                clearFlaggedList(selectedIndex.replace('List', ''));
+            const listName = customLists.includes(selectedIndex) ? selectedIndex : selectedIndex.replace('List', '');
+            if (window.confirm(`Are you sure you want to clear all scripts from the ${listName} list?`)) {
+                clearFlaggedList(listName);
             }
         }
     };
 
-    const renderScanLabel = (key, showCount = true) => {
-        const metadata = LIST_METADATA[key];
-        if (!metadata) return null;
+    const handleMoreClick = (event) => {
+        setMoreAnchorEl(event.currentTarget);
+    };
 
+    const handleMoreClose = () => {
+        setMoreAnchorEl(null);
+    };
+
+    const handleCreateCustomList = () => {
+        const name = window.prompt("Enter new watchlist name:");
+        if (name) {
+            createCustomList(name);
+        }
+        handleMoreClose();
+    };
+
+    const handleDeleteCustomList = () => {
+        if (customLists.includes(selectedIndex)) {
+            if (window.confirm(`Are you sure you want to delete the watchlist "${selectedIndex}"?`)) {
+                deleteCustomList(selectedIndex);
+            }
+        }
+        handleMoreClose();
+    };
+
+    const renderScanLabel = (key, showCount = true) => {
         const count = counts[key] || 0;
         const countElement = showCount ? <span style={{ color: 'black', marginLeft: '4px' }}>{count}</span> : null;
         const labelStyle = { display: 'flex', alignItems: 'center', fontWeight: 'bold', gap: 0.5 };
+
+        if (customLists.includes(key)) {
+            return (
+                <Box sx={{ ...labelStyle }}>
+                    <FlagIcon sx={{ color: 'gray', fontSize: 18, mr: 0.5 }} />
+                    <Typography variant="body2" sx={{ textTransform: 'capitalize' }}>
+                        {key}
+                    </Typography>
+                    {countElement}
+                </Box>
+            );
+        }
+
+        const metadata = LIST_METADATA[key];
+        if (!metadata) return null;
 
         if (metadata.icon === 'up' || metadata.icon === 'down') {
             const Icon = metadata.icon === 'up' ? ArrowUpward : ArrowDownward;
@@ -133,9 +175,9 @@ const TVChartContainer = () => {
                         }}>
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
                                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                                    <FlagMenu 
-                                        currentFlag={flaggedStocks[activeScript.symbol] || flaggedStocks[activeScript.instrumentKey] || null} 
-                                        onFlagChange={(flag) => toggleFlag(activeScript.symbol, flag)} 
+                                    <FlagMenu
+                                        currentFlag={flaggedStocks[activeScript.symbol] || flaggedStocks[activeScript.instrumentKey] || null}
+                                        onFlagChange={(flag) => toggleFlag(activeScript.symbol, flag)}
                                     />
                                     <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>{activeScript.symbol}</Typography>
                                 </Box>
@@ -146,7 +188,7 @@ const TVChartContainer = () => {
                                     {activeScript.changePercentage > 0 ? '+' : ''}{safeFormat(activeScript.changePercentage)}%
                                 </Typography>
                                 <Divider orientation="vertical" flexItem sx={{ mx: 1 }} />
-                                
+
                                 <Typography variant="caption" sx={{ color: 'text.secondary' }}>
                                     Vol ROC: <span style={{ color: activeScript.currentMinuteVolume > 0 ? '#26a69a' : '#ef5350', fontWeight: 600 }}>
                                         {safeFormat(activeScript.currentMinuteVolume)}%
@@ -176,12 +218,12 @@ const TVChartContainer = () => {
                                     </>
                                 )}
                             </Box>
-                            <Button 
-                                variant="contained" 
-                                size="small" 
-                                sx={{ 
-                                    height: 28, 
-                                    fontSize: '0.75rem', 
+                            <Button
+                                variant="contained"
+                                size="small"
+                                sx={{
+                                    height: 28,
+                                    fontSize: '0.75rem',
                                     textTransform: 'none',
                                     bgcolor: '#000',
                                     color: '#fff',
@@ -219,24 +261,31 @@ const TVChartContainer = () => {
                             <MenuItem onClick={() => handleMenuClose('all')}>All Symbols ({counts.all})</MenuItem>
                             <MenuItem onClick={() => handleMenuClose('holdings')}>Holdings ({counts.holdings || 0})</MenuItem>
                             <Divider />
-                            {/* Flag Lists */}
-                            {FLAG_KEYS.map(listKey => (
-                                <MenuItem key={listKey} onClick={() => handleMenuClose(listKey)}>
-                                    {renderScanLabel(listKey)}
-                                </MenuItem>
-                            ))}
-                            <Divider />
                             {/* Scan Lists */}
                             {SCAN_KEYS.map(key => (
                                 <MenuItem key={key} onClick={() => handleMenuClose(key)}>
                                     {renderScanLabel(key)}
                                 </MenuItem>
                             ))}
+                            <Divider />
+
+                            {/* Flag Lists */}
+                            {FLAG_KEYS.map(listKey => (
+                                <MenuItem key={listKey} onClick={() => handleMenuClose(listKey)}>
+                                    {renderScanLabel(listKey)}
+                                </MenuItem>
+                            ))}
+                            {/* Custom Lists */}
+                            {customLists.map(listKey => (
+                                <MenuItem key={listKey} onClick={() => handleMenuClose(listKey)}>
+                                    {renderScanLabel(listKey)}
+                                </MenuItem>
+                            ))}
                         </Menu>
 
                         <Box>
                             {isFlagList && (
-                                <IconButton size="small" onClick={handleClearList} title={`Clear ${selectedIndex.replace('List', '')} list`}>
+                                <IconButton size="small" onClick={handleClearList} title={`Clear ${customLists.includes(selectedIndex) ? selectedIndex : selectedIndex.replace('List', '')} list`}>
                                     <DeleteOutlineIcon fontSize="small" />
                                 </IconButton>
                             )}
@@ -272,7 +321,20 @@ const TVChartContainer = () => {
                             <IconButton size="small" onClick={handleAddScript} title="Add script">
                                 <AddIcon fontSize="small" />
                             </IconButton>
-                            <IconButton size="small"><MoreHorizIcon fontSize="small" /></IconButton>
+
+                            <IconButton size="small" onClick={handleMoreClick} title="More Options">
+                                <MoreHorizIcon fontSize="small" />
+                            </IconButton>
+                            <Menu
+                                anchorEl={moreAnchorEl}
+                                open={Boolean(moreAnchorEl)}
+                                onClose={handleMoreClose}
+                            >
+                                <MenuItem onClick={handleCreateCustomList}>Create New Watchlist</MenuItem>
+                                {customLists.includes(selectedIndex) && (
+                                    <MenuItem onClick={handleDeleteCustomList}>Delete Current Watchlist</MenuItem>
+                                )}
+                            </Menu>
                         </Box>
                     </Box>
 

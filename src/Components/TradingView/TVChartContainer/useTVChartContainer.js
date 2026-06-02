@@ -56,9 +56,12 @@ export const useTVChartContainer = () => {
         handleSelectionChange,
         scriptsToShow,
         counts,
-        flaggedStocks, // New
-        toggleFlag,    // New
-        clearFlaggedList // New
+        flaggedStocks,
+        toggleFlag,
+        clearFlaggedList,
+        customLists,
+        createCustomList,
+        deleteCustomList
     } = useWatchlistFilter();
 
     const [selectedSymbol, setSelectedSymbol] = useState(null);
@@ -328,7 +331,7 @@ export const useTVChartContainer = () => {
     }, []);
 
     const getListName = useCallback((index) => {
-        return LIST_METADATA[index]?.label || 'Watchlist';
+        return LIST_METADATA[index]?.label || index;
     }, []);
 
     // Listen for external symbol change requests (e.g., from Industry Volume Shockers)
@@ -369,6 +372,9 @@ export const useTVChartContainer = () => {
         flaggedStocks, // Exposed
         toggleFlag,    // Exposed
         clearFlaggedList, // Exposed
+        customLists,
+        createCustomList,
+        deleteCustomList,
         LIST_METADATA, // Exposed for UI
         SCAN_KEYS,     // Exposed for UI
         FLAG_KEYS      // Exposed for UI

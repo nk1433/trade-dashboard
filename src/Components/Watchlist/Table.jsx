@@ -89,7 +89,7 @@ const WatchList = ({
       {
         field: "flag",
         headerName: "", // Icon only header? Or empty
-        width: 50,
+        width: 40, // Reduced from 50
         renderCell: (params) => {
           const symbol = params.row.symbol;
           const currentFlag = flaggedStocks[symbol] || null;
@@ -118,7 +118,7 @@ const WatchList = ({
       {
         field: "scriptName",
         headerName: "Script",
-        width: 270, // widened for icon
+        width: 270, // This will be overridden by compact mode in makeColumns
         renderCell: (params) => {
           const isUp = params.row.isUpDay;
           const color = isUp ? UP_COLOR : DOWN_COLOR;
@@ -152,11 +152,11 @@ const WatchList = ({
         },
       },
 
-      { field: "barClosingStrength", headerName: "Closing Strength %", type: 'number', },
+      { field: "barClosingStrength", headerName: "Closing Strength %", type: 'number', width: 85 }, // Set specific width
       {
         field: "changePercentage",
         headerName: "Change %",
-        width: 60,
+        width: 65, // slightly adjusted
         renderCell: (params) => {
           const isUp = params.row.isUpDay;
           const color = isUp ? UP_COLOR : DOWN_COLOR;
@@ -168,7 +168,7 @@ const WatchList = ({
       {
         field: "priceChange",
         headerName: "Change",
-        width: 60,
+        width: 65, // slightly adjusted
         renderCell: (params) => {
           const value = params.value;
           const color = value > 0 ? UP_COLOR : DOWN_COLOR;
@@ -387,8 +387,10 @@ const WatchList = ({
         }
 
         if (field === 'scriptName') {
+          let flex;
           if (compact) {
-            width = 120;
+            flex = 1;
+            width = undefined;
           }
           renderCell = (params) => {
             const isUp = params.row.isUpDay;
@@ -413,6 +415,16 @@ const WatchList = ({
                 )}
               </Box>
             );
+          };
+
+          return {
+            field,
+            headerName,
+            ...(width && { width }),
+            ...(flex && { flex }),
+            ...(renderCell && { renderCell }),
+            ...(filterable !== undefined && { filterable }),
+            ...(type && { type }),
           };
         }
 
@@ -446,7 +458,7 @@ const WatchList = ({
     : undefined;
 
   return (
-    <div className="geist-card" style={{ padding: 0, overflow: 'hidden', height: '100%', display: 'flex', flexDirection: 'column' }}>
+    <div className="geist-card" style={{ padding: 0, overflow: 'hidden', height: '100%', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
       <DataGrid
         filterModel={filterModel}
         onFilterModelChange={setFilterModel}
@@ -456,12 +468,13 @@ const WatchList = ({
         rows={rows}
         columns={columns}
         getRowId={row => row.id}
-        pageSizeOptions={[5, 10, 25, { value: -1, label: 'All' }]}
+        pageSizeOptions={[5, 10, 25, 100]}
         columnVisibilityModel={columnVisibilityModel}
         getRowClassName={(params) => params.row.id === selectedRowId ? 'selected-row' : ''}
         onRowClick={onRowClick ? (params) => onRowClick(params.row) : undefined}
         density={compact ? "compact" : "standard"}
         sx={{
+          flex: 1,
           border: 'none',
           fontSize: '0.8rem', // Slimmer text
           '& .MuiDataGrid-cell': {

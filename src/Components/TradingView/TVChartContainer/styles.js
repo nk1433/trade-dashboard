@@ -54,7 +54,10 @@ export const styles = {
         fontWeight: 600
     },
     watchlistTableWrapper: {
-        height: 650, // Static height as requested
-        overflow: 'hidden'
+        flex: 1,
+        overflow: 'hidden',
+        display: 'flex',
+        flexDirection: 'column',
+        minHeight: 0
     }
 };

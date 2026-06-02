@@ -4,9 +4,12 @@ export const styles = {
         width: '100%',
         display: 'flex',
         flexDirection: 'column',
+        position: 'relative'
     },
     topToolbar: {
-        p: 1,
+        position: 'absolute',
+        top: 8,
+        zIndex: 1000,
         display: 'flex',
         justifyContent: 'flex-end',
         alignItems: 'center',
@@ -59,6 +62,8 @@ export const styles = {
         justifyContent: 'space-between',
         alignItems: 'center',
         borderRadius: 2,
+        position: 'relative',
+        zIndex: 10
     }),
     connectButton: {
         textTransform: 'none',
@@ -70,5 +75,10 @@ export const styles = {
     contentArea: {
         flex: 1,
         overflow: 'hidden',
+        position: 'relative',
+        zIndex: 1,
+        display: 'flex',
+        flexDirection: 'column',
+        minHeight: 0
     }
 };
