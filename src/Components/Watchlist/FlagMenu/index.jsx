@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { IconButton, Popover, Box, Tooltip, Typography, Divider, MenuItem } from '@mui/material';
 import FlagIcon from '@mui/icons-material/Flag';
 import FlagOutlinedIcon from '@mui/icons-material/FlagOutlined';
@@ -7,7 +7,6 @@ import CheckIcon from '@mui/icons-material/Check';
 
 import { useFlagMenu } from './useFlagMenu';
 import { styles, FLAG_COLORS } from './styles';
-import { useWatchlistFilter } from '../../../hooks/useWatchlistFilter';
 
 const FlagMenu = ({ currentFlag, onFlagChange }) => {
     const {
@@ -18,7 +17,20 @@ const FlagMenu = ({ currentFlag, onFlagChange }) => {
         handleSelectFlag
     } = useFlagMenu({ onFlagChange });
 
-    const { customLists } = useWatchlistFilter();
+    const [customLists, setCustomLists] = useState(() => {
+        try {
+            const stored = localStorage.getItem('customLists');
+            return stored ? JSON.parse(stored) : [];
+        } catch (e) {
+            return [];
+        }
+    });
+
+    useEffect(() => {
+        const handleCustomListsUpdated = (e) => setCustomLists(e.detail);
+        window.addEventListener('CUSTOM_LISTS_UPDATED_EVENT', handleCustomListsUpdated);
+        return () => window.removeEventListener('CUSTOM_LISTS_UPDATED_EVENT', handleCustomListsUpdated);
+    }, []);
 
     // Determine icon color
     const iconColor = currentFlag && FLAG_COLORS[currentFlag] ? FLAG_COLORS[currentFlag] : (currentFlag ? 'text.secondary' : 'action');

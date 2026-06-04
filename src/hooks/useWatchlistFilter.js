@@ -1,5 +1,5 @@
 import { useSelector } from 'react-redux';
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import axios from 'axios';
 import universe from '../index/universe.json';
 import { BACKEND_URL } from '../utils/config';
@@ -56,6 +56,12 @@ export const useWatchlistFilter = () => {
   const [otherSettings, setOtherSettings] = useState({});
   const [selectedIndex, setSelectedIndex] = useState('all');
 
+  const lastSyncedRef = useRef(JSON.stringify({
+    ...otherSettings,
+    flaggedStocks,
+    customLists
+  }));
+
   // 1. Fetch Settings from Backend on Mount
   useEffect(() => {
     const fetchSettings = async () => {
@@ -72,13 +78,30 @@ export const useWatchlistFilter = () => {
           const backendFlags = settings.flaggedStocks || {};
 
           const { flaggedStocks: _, customLists: backendCustomLists, ...others } = settings;
-          setOtherSettings(others);
-
-          if (backendCustomLists) {
-            setCustomLists(backendCustomLists);
-          }
-
-          setFlaggedStocks(prev => ({ ...prev, ...backendFlags }));
+          
+          setFlaggedStocks(prevFlags => {
+            const newFlags = { ...prevFlags, ...backendFlags };
+            
+            setCustomLists(prevLists => {
+              const newLists = backendCustomLists || prevLists;
+              
+              setOtherSettings(prevOthers => {
+                const newOthers = others;
+                
+                lastSyncedRef.current = JSON.stringify({
+                  ...newOthers,
+                  flaggedStocks: newFlags,
+                  customLists: newLists
+                });
+                
+                return newOthers;
+              });
+              
+              return newLists;
+            });
+            
+            return newFlags;
+          });
         }
       } catch (error) {
         console.error("Failed to load user settings", error);
@@ -126,17 +149,23 @@ export const useWatchlistFilter = () => {
     const token = localStorage.getItem('token');
     if (!token) return;
 
+    const payload = {
+      ...otherSettings,
+      flaggedStocks: flaggedStocks,
+      customLists: customLists
+    };
+
+    const payloadStr = JSON.stringify(payload);
+    if (lastSyncedRef.current === payloadStr) {
+      return;
+    }
+
     const syncToBackend = async () => {
       try {
-        const payload = {
-          ...otherSettings,
-          flaggedStocks: flaggedStocks,
-          customLists: customLists
-        };
-
         await axios.post(`${BACKEND_URL}/settings`, payload, {
           headers: { Authorization: `Bearer ${token}` }
         });
+        lastSyncedRef.current = payloadStr;
       } catch (error) {
         console.error("Failed to sync watchlist settings", error);
       }
