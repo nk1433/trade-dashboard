@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Box, TextField, MenuItem, Select, FormControl, InputLabel, Button, Typography, Paper, Chip } from '@mui/material';
+import { Box, TextField, MenuItem, Select, FormControl, InputLabel, Button, Typography, Paper, Chip, Snackbar, Alert } from '@mui/material';
 import { DataGrid } from '@mui/x-data-grid';
-import { ArrowUpward, ArrowDownward, TrendingUp } from '@mui/icons-material';
+import { ArrowUpward, ArrowDownward, TrendingUp, ContentCopy } from '@mui/icons-material';
 import axios from 'axios';
 import moment from 'moment';
 import { BACKEND_URL } from '../../utils/config';
@@ -15,7 +15,9 @@ const Scans = () => {
     const [scans, setScans] = useState([]);
     const [scanCount, setScanCount] = useState(0);
     const [loading, setLoading] = useState(false);
-    
+    const [snackbarOpen, setSnackbarOpen] = useState(false);
+    const [snackbarMessage, setSnackbarMessage] = useState('');
+
     // Import watchlist filter to manage flags
     const { flaggedStocks, toggleFlag } = useWatchlistFilter();
 
@@ -65,10 +67,25 @@ const Scans = () => {
         fetchScans();
     }, [selectedDate, scanType]);
 
+    const handleCopySymbols = () => {
+        if (scans.length === 0) return;
+        const symbols = scans.map(scan => scan.tradingSymbol).join(',');
+        navigator?.clipboard?.writeText(symbols)
+            .then(() => {
+                setSnackbarMessage(`Copied ${scans.length} symbols to clipboard!`);
+                setSnackbarOpen(true);
+            })
+            .catch(err => {
+                console.error('Failed to copy text: ', err);
+                setSnackbarMessage('Failed to copy symbols.');
+                setSnackbarOpen(true);
+            });
+    };
+
     const columns = [
         {
             field: "flag",
-            headerName: "", 
+            headerName: "",
             width: 50,
             renderCell: (params) => {
                 const symbol = params.row.tradingSymbol; // Use tradingSymbol for flag mapping
@@ -89,9 +106,9 @@ const Scans = () => {
             }
         },
         { field: 'symbol', headerName: 'Instrument Key', width: 180 },
-        { 
-            field: 'tradingSymbol', 
-            headerName: 'Symbol', 
+        {
+            field: 'tradingSymbol',
+            headerName: 'Symbol',
             width: 150,
             renderCell: (params) => (
                 <Typography variant="body2" sx={{ fontWeight: 600 }}>
@@ -199,6 +216,27 @@ const Scans = () => {
                         </FormControl>
 
                         <Button
+                            variant="outlined"
+                            onClick={handleCopySymbols}
+                            disabled={loading || scans.length === 0}
+                            startIcon={<ContentCopy />}
+                            sx={{
+                                height: 40,
+                                textTransform: 'none',
+                                fontWeight: 600,
+                                borderRadius: 1.5,
+                                borderColor: 'var(--border-color)',
+                                color: 'text.primary',
+                                '&:hover': {
+                                    borderColor: 'primary.main',
+                                    bgcolor: 'rgba(25, 118, 210, 0.04)'
+                                }
+                            }}
+                        >
+                            Copy
+                        </Button>
+
+                        <Button
                             variant="contained"
                             onClick={fetchScans}
                             disabled={loading}
@@ -254,6 +292,17 @@ const Scans = () => {
                     />
                 </Paper>
             </Box>
+
+            <Snackbar
+                open={snackbarOpen}
+                autoHideDuration={3000}
+                onClose={() => setSnackbarOpen(false)}
+                anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+            >
+                <Alert onClose={() => setSnackbarOpen(false)} severity="success" sx={{ width: '100%', borderRadius: 2 }}>
+                    {snackbarMessage}
+                </Alert>
+            </Snackbar>
         </Box>
     );
 };
