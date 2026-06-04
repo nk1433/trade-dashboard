@@ -1,5 +1,6 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import { calculateAllocationIntent, computeMetrics } from "../utils/calculateMetrics";
+import moment from "moment";
 
 
 const getMarketQuote = async (instrumentKey) => {
@@ -306,10 +307,14 @@ export const fetchAndCalculateInitialMetrics = createAsyncThunk('Orders/fetchAnd
     const liveFeed = { feeds };
     const metrics = await updateWatchlistWithMetrics(liveFeed, scriptMap, portfolio, stats, settings);
     console.log(Object.keys(metrics.metrics).length, 'metrics count');
-    
-    // Clear out scan results for initial fallback data so they don't incorrectly match before socket connects
-    return {
-        ...metrics,
+
+    // FETCH HISTORICAL SCANS FOR TODAY
+    const env = import.meta.env.VITE_ENV;
+    const baseUrl = env === 'DEV' ? 'http://localhost:3015' : import.meta.env.VITE_PROD_HOST;
+
+    const today = moment().format('YYYY-MM-DD');
+
+    const prePopulated = {
         bullishMB: {},
         bearishMB: {},
         bullishSLTB: {},
@@ -317,6 +322,40 @@ export const fetchAndCalculateInitialMetrics = createAsyncThunk('Orders/fetchAnd
         bullishAnts: {},
         dollar: {},
         bearishDollar: {}
+    };
+
+    try {
+        const token = localStorage.getItem('token');
+        const response = await fetch(`${baseUrl}/api/scans?date=${today}`, {
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+            }
+        });
+        const scanData = await response.json();
+
+        if (scanData && scanData.data) {
+            scanData.data.forEach(scan => {
+                const ik = scan.symbol; // symbol in DB is the instrumentKey
+                const baseMetric = metrics.metrics[ik]; // the calculated baseline metric
+
+                if (baseMetric) {
+                    if (scan.scanType === '4PercentBO') prePopulated.bullishMB[ik] = baseMetric;
+                    if (scan.scanType === '4PercentBD') prePopulated.bearishMB[ik] = baseMetric;
+                    if (scan.scanType === 'dollarBO') prePopulated.dollar[ik] = baseMetric;
+                    if (scan.scanType === 'dollarBD') prePopulated.bearishDollar[ik] = baseMetric;
+                }
+            });
+            console.log(`Pre-populated historical scans for ${today}:`, prePopulated);
+        }
+    } catch (error) {
+        console.error("Failed to fetch historical scans on init", error);
+    }
+
+    return {
+        ...metrics,
+        ...prePopulated
     };
 });
 
