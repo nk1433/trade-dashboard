@@ -66,7 +66,7 @@ export const fetchHolidays = createAsyncThunk(
 
 const initialState = {
     timings: [], // Today's exchange timings
-    // holidays: [], // REMOVED: List of holidays (optimization)
+    holidays: [], // List of holidays
     isLoading: false,
     error: null,
     marketStatus: 'UNKNOWN', // 'OPEN', 'CLOSED'
@@ -140,8 +140,7 @@ const marketStatusSlice = createSlice({
             })
             .addCase(fetchHolidays.fulfilled, (state, action) => {
                 state.isLoading = false;
-                // We do not store the full list of holidays as per user request
-                // state.holidays = action.payload; 
+                state.holidays = action.payload; 
 
                 // Check if today is a holiday
                 const todayStr = moment().format('YYYY-MM-DD');

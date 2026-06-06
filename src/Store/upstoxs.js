@@ -222,7 +222,8 @@ export const updateWatchlistWithMetrics = async (liveFeed, scriptMap, portfolio,
 
 // Updated thunk to populate metrics from Stats (no API calls)
 export const fetchAndCalculateInitialMetrics = createAsyncThunk('Orders/fetchAndCalculateInitialMetrics', async (scripts, { getState }) => {
-    const { portfolio, settings, orders: { stats } } = getState();
+    const { portfolio, settings, orders: { stats }, marketStatus } = getState();
+    const holidays = marketStatus?.holidays || [];
 
     // Construct "liveFeed" structure from Stats data
     const feeds = {};
@@ -308,11 +309,35 @@ export const fetchAndCalculateInitialMetrics = createAsyncThunk('Orders/fetchAnd
     const metrics = await updateWatchlistWithMetrics(liveFeed, scriptMap, portfolio, stats, settings);
     console.log(Object.keys(metrics.metrics).length, 'metrics count');
 
-    // FETCH HISTORICAL SCANS FOR TODAY
+    // FETCH HISTORICAL SCANS FOR THE LAST WORKING DAY
     const env = import.meta.env.VITE_ENV;
     const baseUrl = env === 'DEV' ? 'http://localhost:3015' : import.meta.env.VITE_PROD_HOST;
 
-    const today = moment().format('YYYY-MM-DD');
+    const getLastWorkingDay = (dateStr, holidaysData) => {
+        let currentDate = moment(dateStr);
+        const isHoliday = (dStr) => holidaysData?.some(h => {
+            if (h.date === dStr) {
+                const isNSEClosed = h.closed_exchanges.includes('NSE');
+                const isNSEOpenSpecial = h.open_exchanges.some(e => e.exchange === 'NSE');
+                return isNSEClosed && !isNSEOpenSpecial;
+            }
+            return false;
+        });
+
+        let attempts = 0;
+        while (attempts < 15) {
+            const isWeekend = currentDate.day() === 0 || currentDate.day() === 6;
+            const currentStr = currentDate.format('YYYY-MM-DD');
+            if (!isWeekend && !isHoliday(currentStr)) {
+                return currentStr;
+            }
+            currentDate.subtract(1, 'days');
+            attempts++;
+        }
+        return currentDate.format('YYYY-MM-DD');
+    };
+
+    const targetDate = getLastWorkingDay(moment().format('YYYY-MM-DD'), holidays);
 
     const prePopulated = {
         bullishMB: {},
@@ -326,7 +351,7 @@ export const fetchAndCalculateInitialMetrics = createAsyncThunk('Orders/fetchAnd
 
     try {
         const token = localStorage.getItem('token');
-        const response = await fetch(`${baseUrl}/api/scans?date=${today}`, {
+        const response = await fetch(`${baseUrl}/api/scans?date=${targetDate}`, {
             headers: {
                 'Authorization': `Bearer ${token}`,
                 'Content-Type': 'application/json',
@@ -347,7 +372,7 @@ export const fetchAndCalculateInitialMetrics = createAsyncThunk('Orders/fetchAnd
                     if (scan.scanType === 'dollarBD') prePopulated.bearishDollar[ik] = baseMetric;
                 }
             });
-            console.log(`Pre-populated historical scans for ${today}:`, prePopulated);
+            console.log(`Pre-populated historical scans for ${targetDate}:`, prePopulated);
         }
     } catch (error) {
         console.error("Failed to fetch historical scans on init", error);

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useSelector } from 'react-redux';
 import { Box, TextField, MenuItem, Select, FormControl, InputLabel, Button, Typography, Paper, Chip, Snackbar, Alert } from '@mui/material';
 import { DataGrid } from '@mui/x-data-grid';
 import { ArrowUpward, ArrowDownward, TrendingUp, ContentCopy } from '@mui/icons-material';
@@ -21,6 +22,8 @@ const Scans = () => {
     // Import watchlist filter to manage flags
     const { flaggedStocks, toggleFlag } = useWatchlistFilter();
 
+    const holidays = useSelector((state) => state.marketStatus.holidays);
+
     const scanTypes = [
         { value: 'all', label: 'All Scans' },
         { value: 'newHigh', label: 'New High' },
@@ -29,7 +32,40 @@ const Scans = () => {
         { value: '4PercentBD', label: '4% Breakdown' }
     ];
 
+    const getLastWorkingDay = (dateStr, holidaysData) => {
+        let currentDate = moment(dateStr);
+        
+        const isHoliday = (dStr) => holidaysData?.some(h => {
+            if (h.date === dStr) {
+                const isNSEClosed = h.closed_exchanges.includes('NSE');
+                const isNSEOpenSpecial = h.open_exchanges.some(e => e.exchange === 'NSE');
+                return isNSEClosed && !isNSEOpenSpecial;
+            }
+            return false;
+        });
+
+        let attempts = 0;
+        while (attempts < 15) { // Check up to 15 days back
+            const isWeekend = currentDate.day() === 0 || currentDate.day() === 6;
+            const currentStr = currentDate.format('YYYY-MM-DD');
+            if (!isWeekend && !isHoliday(currentStr)) {
+                return currentStr;
+            }
+            currentDate.subtract(1, 'days');
+            attempts++;
+        }
+        return currentDate.format('YYYY-MM-DD');
+    };
+
     const fetchScans = async () => {
+        const validDate = getLastWorkingDay(selectedDate, holidays);
+        
+        if (validDate !== selectedDate) {
+            console.log(`Date ${selectedDate} is a weekend/holiday. Falling back to ${validDate}`);
+            setSelectedDate(validDate); // Update UI state; useEffect will handle re-fetching
+            return;
+        }
+
         setLoading(true);
         try {
             const token = localStorage.getItem('token');
@@ -65,7 +101,7 @@ const Scans = () => {
 
     useEffect(() => {
         fetchScans();
-    }, [selectedDate, scanType]);
+    }, [selectedDate, scanType, holidays]);
 
     const handleCopySymbols = () => {
         if (scans.length === 0) return;
