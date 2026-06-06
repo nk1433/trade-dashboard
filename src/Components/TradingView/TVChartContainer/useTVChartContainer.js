@@ -94,6 +94,74 @@ export const useTVChartContainer = () => {
         }
     }, [dispatch, breadthData]);
 
+    const [currentMarketStatus, setCurrentMarketStatus] = useState(null);
+
+    useEffect(() => {
+        let interval;
+        const fetchStatus = async () => {
+            try {
+                const token = localStorage.getItem('token');
+                if (!token) return;
+
+                const response = await fetch('https://api.upstox.com/v2/market/status/NSE', {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                const result = await response.json();
+                console.log('market status', result);
+                if (result?.status === 'success' && result.data) {
+                    const data = result.data;
+                    let mStatus = '';
+                    if (Array.isArray(data)) {
+                        const eqStatus = data.find(d => d.market_type === 'EQ' || d.market_type === 'CM' || d.exchange === 'NSE');
+                        mStatus = eqStatus ? eqStatus.status : data[0].status;
+                    } else {
+                        mStatus = data.status || data.market_status;
+                    }
+                    if (mStatus) {
+                        setCurrentMarketStatus(mStatus);
+                    }
+                }
+            } catch (error) {
+                console.error("Failed to fetch market status", error);
+            }
+        };
+
+        fetchStatus();
+        interval = setInterval(fetchStatus, 60000); // every minute
+        return () => clearInterval(interval);
+    }, []);
+
+    useEffect(() => {
+        if (!tvWidgetRef.current || !currentMarketStatus) return;
+
+        const applyStatus = () => {
+            const statusMap = {
+                'NORMAL_OPEN': { color: '#00e676', tooltip: 'Normal session open' },
+                'NORMAL_CLOSE': { color: '#ff5252', tooltip: 'Normal session closed' },
+                'PRE_OPEN_START': { color: '#ffa726', tooltip: 'Pre-market session started' },
+                'PRE_OPEN_END': { color: '#ffa726', tooltip: 'Pre-market session ended' },
+                'CLOSING_START': { color: '#ffa726', tooltip: 'Closing phase started' },
+                'CLOSING_END': { color: '#ff5252', tooltip: 'Closing phase ended' },
+            };
+
+            const mapData = statusMap[currentMarketStatus] || { color: '#bdbdbd', tooltip: currentMarketStatus };
+
+            tvWidgetRef.current.onChartReady(() => {
+                const adapter = tvWidgetRef.current.customSymbolStatus().symbol();
+                adapter.setVisible(true)
+                    .setColor(mapData.color)
+                    .setTooltip(mapData.tooltip);
+            });
+        };
+
+        applyStatus();
+    }, [currentMarketStatus, selectedRowId]); // Re-apply when status or symbol changes
+
     useEffect(() => {
         // Wait for breadth data to populate to ensure study works correctly
         if (!breadthData || breadthData.length === 0) return;
