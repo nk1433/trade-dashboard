@@ -128,7 +128,50 @@ const columns = [
       );
     }
   },
-  // New Metrics
+  {
+    field: 'strongCloseUpCount',
+    headerName: 'Strong Close Up Count',
+    width: 140,
+    type: 'number',
+    align: 'center',
+    headerAlign: 'center',
+    renderCell: (params) => (
+      <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{params.value}</div>
+    )
+  },
+  {
+    field: 'strongCloseUpRatio',
+    headerName: 'Strong Close Up %',
+    width: 140,
+    type: 'number',
+    align: 'center',
+    headerAlign: 'center',
+    renderCell: (params) => (
+      <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{(params.value * 100).toFixed(2)}%</div>
+    )
+  },
+  {
+    field: 'strongCloseDownCount',
+    headerName: 'Strong Close Up Count',
+    width: 140,
+    type: 'number',
+    align: 'center',
+    headerAlign: 'center',
+    renderCell: (params) => (
+      <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{params.value}</div>
+    )
+  },
+  {
+    field: 'strongCloseDownRatio',
+    headerName: 'Strong Close Down %',
+    width: 140,
+    type: 'number',
+    align: 'center',
+    headerAlign: 'center',
+    renderCell: (params) => (
+      <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{(params.value * 100).toFixed(2)}%</div>
+    )
+  },
   {
     field: 'up25PctQuarter',
     headerName: 'Up 25% (Qtr)',
@@ -212,7 +255,7 @@ const columns = [
     align: 'center',
     headerAlign: 'center',
     renderCell: (params) => (
-      <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', }}>{params.value}</div>
+      <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{params.value}</div>
     )
   },
   {
@@ -233,28 +276,6 @@ const columns = [
     headerAlign: 'center',
     renderCell: (params) => (
       <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{params.value}</div>
-    )
-  },
-  {
-    field: 'strongCloseUpRatio',
-    headerName: 'Strong Close Up',
-    width: 140,
-    type: 'number',
-    align: 'center',
-    headerAlign: 'center',
-    renderCell: (params) => (
-      <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{(params.value * 100).toFixed(2)}%</div>
-    )
-  },
-  {
-    field: 'strongCloseDownRatio',
-    headerName: 'Strong Close Down',
-    width: 140,
-    type: 'number',
-    align: 'center',
-    headerAlign: 'center',
-    renderCell: (params) => (
-      <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{(params.value * 100).toFixed(2)}%</div>
     )
   },
   {
@@ -312,6 +333,7 @@ const chartViewColumns = [
   { value: 'fourPercentage', label: '4%' },
   { value: 'eightPercentage', label: '8%' },
   { value: 'twentyPercentage', label: '20%' },
+  { value: 'fourPercentAndStrongClose', label: '4% & Strong Close' },
 ];
 
 const MarketBreadthTable = () => {
@@ -518,6 +540,10 @@ const MarketBreadthTable = () => {
                   { field: 'down4Percent' },
                   { field: 'ratio5d' },
                   { field: 'ratio10d' },
+                  { field: 'strongCloseUpCount' },
+                  { field: 'strongCloseUpRatio' },
+                  { field: 'strongCloseDownCount' },
+                  { field: 'strongCloseDownRatio' },
                   { field: 'up25PctQuarter' },
                   { field: 'down25PctQuarter' },
                 ],
@@ -545,8 +571,6 @@ const MarketBreadthTable = () => {
                   { field: 'up50RsCount' },
                   { field: 'up250Rs5dCount' },
                   { field: 'up80Pct52WL' },
-                  { field: 'strongCloseUpRatio' },
-                  { field: 'strongCloseDownRatio' },
                   { field: 'up20Pct5d' },
                   { field: 'down20Pct5d' },
                   { field: 'intentScoreUp' },
