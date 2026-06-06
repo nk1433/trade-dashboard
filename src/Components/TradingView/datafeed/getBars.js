@@ -71,28 +71,29 @@ export const getBars = async (
       }
     } else if (!isIntraday) {
       // Daily/Weekly/Monthly Logic
-      const now = new Date();
-      const fiveYearsAgo = new Date(now);
-      fiveYearsAgo.setFullYear(now.getFullYear() - 5);
+      // Instead of a hardcoded 5-year fetch, use the exact dates TradingView requests and cache them.
+      // This prevents fetching 5 years of data on every single pan/scroll event.
+      const apiCacheKey = `${instrumentKey}-${category}-${value}-${requestToStr}-${requestFromStr}`;
 
-      const fromDate = getISTDate(fiveYearsAgo.getTime());
-      const toDate = getISTDate(now.getTime());
-
-      const apiCacheKey = `${instrumentKey}-${category}-${value}-${toDate}-${fromDate}`;
-
-      promises.push(
-        fetchHistoricalData(instrumentKey, category, value, fromDate, toDate)
-          .then(res => {
-            if (isValidResponse(res)) {
-              return res.data.data.candles.map(c => transformCandle(c, resolution));
-            }
-            return [];
-          })
-          .catch(err => {
-            console.error("Daily API Error:", err);
-            return [];
-          })
-      );
+      if (barsCache.has(apiCacheKey)) {
+        promises.push(Promise.resolve(barsCache.get(apiCacheKey)));
+      } else {
+        promises.push(
+          fetchHistoricalData(instrumentKey, category, value, requestFromStr, requestToStr)
+            .then(res => {
+              if (isValidResponse(res)) {
+                const bars = res.data.data.candles.map(c => transformCandle(c, resolution));
+                barsCache.set(apiCacheKey, bars);
+                return bars;
+              }
+              return [];
+            })
+            .catch(err => {
+              console.error("Daily API Error:", err);
+              return [];
+            })
+        );
+      }
     }
 
     // --- 2. Intraday Data (Today) ---

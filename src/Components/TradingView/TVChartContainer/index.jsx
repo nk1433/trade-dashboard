@@ -48,7 +48,8 @@ const TVChartContainer = () => {
         deleteCustomList,
         LIST_METADATA,
         SCAN_KEYS,
-        FLAG_KEYS
+        FLAG_KEYS,
+        newsItems
     } = useTVChartContainer();
 
     const tradingMode = useSelector((state) => state.settings?.tradingMode || 'PAPER');
@@ -162,8 +163,40 @@ const TVChartContainer = () => {
         );
     };
 
+    const sortedNewsItems = React.useMemo(() => {
+        if (!newsItems || !Array.isArray(newsItems)) return [];
+        return [...newsItems].sort((a, b) => b.published_time - a.published_time);
+    }, [newsItems]);
+
     return (
         <Box sx={styles.container}>
+            {sortedNewsItems && sortedNewsItems.length > 0 && (
+                <Box sx={{
+                    bgcolor: '#000000',
+                    color: '#ffffff',
+                    py: 0.5,
+                    px: 2,
+                    borderBottom: '1px solid #333333',
+                    fontSize: '0.85rem',
+                    fontWeight: 500,
+                    display: 'flex',
+                    alignItems: 'center'
+                }}>
+                    <strong style={{ marginRight: '15px', whiteSpace: 'nowrap', textTransform: 'uppercase', letterSpacing: '1px' }}>LATEST NEWS:</strong>
+                    <marquee behavior="scroll" direction="left" scrollamount="5" style={{ display: 'flex', alignItems: 'center' }}>
+                        {sortedNewsItems.map((news, idx) => (
+                            <span key={idx} style={{ marginRight: '30px' }}>
+                                <a href={news.article_link} target="_blank" rel="noreferrer" style={{ color: '#ffffff', textDecoration: 'none' }}>
+                                    {news.heading}
+                                </a>
+                                {idx < sortedNewsItems.length - 1 && (
+                                    <span style={{ marginLeft: '30px', color: '#888888' }}>{' • '}</span>
+                                )}
+                            </span>
+                        ))}
+                    </marquee>
+                </Box>
+            )}
             <Box sx={styles.mainRow}>
                 {/* Chart Area */}
                 <Box sx={{ ...styles.chartWrapper, display: 'flex', flexDirection: 'column' }}>
