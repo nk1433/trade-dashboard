@@ -227,7 +227,8 @@ const OrderPanel = ({ open, onClose, script, currentPrice = 0, tradingMode, toke
         }
 
         // PROD Order Logic
-        const accessToken = 'Bearer ' + token;
+        const upstoxToken = 'Bearer ' + token;
+        const appToken = localStorage.getItem('token');
 
         const mainOrderPayload = {
             instrument_token: script.instrumentKey,
@@ -249,7 +250,8 @@ const OrderPanel = ({ open, onClose, script, currentPrice = 0, tradingMode, toke
                 headers: {
                     'Content-Type': 'application/json',
                     accept: 'application/json',
-                    Authorization: accessToken,
+                    Authorization: `Bearer ${appToken}`,
+                    'Upstox-Token': upstoxToken,
                 },
                 body: JSON.stringify(mainOrderPayload),
             });

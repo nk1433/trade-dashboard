@@ -13,9 +13,12 @@ export const executePaperOrder = createAsyncThunk(
             if (!userStr) throw new Error('User not found');
             const user = JSON.parse(userStr);
 
+            const token = localStorage.getItem('token');
             const response = await axios.post(`${BACKEND_URL}/api/paper-trade/place-order`, {
                 ...orderData,
                 userId: user.id || user._id
+            }, {
+                headers: { Authorization: `Bearer ${token}` }
             });
             return response.data.data; // Returns { trade, portfolio }
         } catch (error) {
@@ -33,9 +36,16 @@ export const fetchPaperTradesAsync = createAsyncThunk(
             if (!userStr) throw new Error('User not found');
             const user = JSON.parse(userStr);
 
+            const token = localStorage.getItem('token');
             const [tradesResponse, portfolioResponse] = await Promise.all([
-                axios.get(`${BACKEND_URL}/api/paper-trade/trades`, { params: { userId: user.id || user._id } }),
-                axios.get(`${BACKEND_URL}/api/paper-trade/portfolio`, { params: { userId: user.id || user._id } })
+                axios.get(`${BACKEND_URL}/api/paper-trade/trades`, { 
+                    params: { userId: user.id || user._id },
+                    headers: { Authorization: `Bearer ${token}` }
+                }),
+                axios.get(`${BACKEND_URL}/api/paper-trade/portfolio`, { 
+                    params: { userId: user.id || user._id },
+                    headers: { Authorization: `Bearer ${token}` }
+                })
             ]);
 
             return {
@@ -57,10 +67,13 @@ export const updatePaperHoldingAsync = createAsyncThunk(
             if (!userStr) throw new Error('User not found');
             const user = JSON.parse(userStr);
 
+            const token = localStorage.getItem('token');
             const response = await axios.put(`${BACKEND_URL}/api/paper-trade/holdings`, {
                 userId: user.id || user._id,
                 symbol,
                 sl
+            }, {
+                headers: { Authorization: `Bearer ${token}` }
             });
             return response.data.data; // Returns portfolio
         } catch (error) {

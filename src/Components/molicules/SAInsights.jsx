@@ -60,7 +60,10 @@ const SAInsights = () => {
 
   const fetchInsights = async () => {
     try {
-      const response = await axios.get(`${BACKEND_URL}/market-breadth/sa-insights`);
+      const token = localStorage.getItem('token');
+      const response = await axios.get(`${BACKEND_URL}/market-breadth/sa-insights`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       if (response.data.status === 'success') {
         setInsights(response.data.data);
       }
@@ -76,9 +79,12 @@ const SAInsights = () => {
 
   const handleSubmit = async () => {
     try {
+      const token = localStorage.getItem('token');
       await axios.post(`${BACKEND_URL}/market-breadth/sa-insights`, {
         ...formData,
         date: currentDate
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
       });
       setIsEditing(false);
       setFormData(initialFormState);
@@ -92,7 +98,10 @@ const SAInsights = () => {
   const handleDelete = async (date) => {
     if (!window.confirm(`Are you sure you want to delete the insight for ${date}?`)) return;
     try {
-      await axios.delete(`${BACKEND_URL}/market-breadth/sa-insights/${date}`);
+      const token = localStorage.getItem('token');
+      await axios.delete(`${BACKEND_URL}/market-breadth/sa-insights/${date}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       fetchInsights();
     } catch (error) {
       console.error('Failed to delete SA insight:', error);

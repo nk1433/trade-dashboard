@@ -8,7 +8,10 @@ export const fetchMarketBreadth = createAsyncThunk(
     // TODO: Use environment variable for base URL
     const env = import.meta.env.VITE_ENV;
     const baseUrl = env === 'DEV' ? 'http://localhost:3015' : import.meta.env.VITE_PROD_HOST;
-    const response = await axios.get(`${baseUrl}/market-breadth`);
+    const token = localStorage.getItem('token');
+    const response = await axios.get(`${baseUrl}/market-breadth`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
     return response.data.data || [];
   }
 );
@@ -18,7 +21,10 @@ export const syncMarketBreadthData = createAsyncThunk(
   async (fullSync = false, { dispatch }) => {
     const env = import.meta.env.VITE_ENV;
     const baseUrl = env === 'DEV' ? 'http://localhost:3015' : import.meta.env.VITE_PROD_HOST;
-    const response = await axios.post(`${baseUrl}/sync-52week-marketbreath?fullSync=${fullSync}`);
+    const token = localStorage.getItem('token');
+    const response = await axios.post(`${baseUrl}/sync-52week-marketbreath?fullSync=${fullSync}`, {}, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
     dispatch(fetchMarketBreadth()); // Refresh data after sync
     return response.data;
   }
