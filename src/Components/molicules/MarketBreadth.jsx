@@ -39,6 +39,23 @@ const getUpDown4Color = (params, type) => {
   }
 };
 
+const getStrongCloseColor = (params, type) => {
+  let style = { width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' };
+  const ratio = type === 'up' ? params.row.strongCloseUpRatio : params.row.strongCloseDownRatio;
+  
+  if (ratio >= 0.8) {
+    return type === 'up'
+      ? { ...style, backgroundColor: '#c6efce', color: '#004d00' } // Light Green
+      : { ...style, backgroundColor: '#ffc7ce', color: '#800000' }; // Light Red for Down
+  }
+  if (ratio <= 0.4) {
+    return type === 'up'
+      ? { ...style, backgroundColor: '#ffc7ce', color: '#800000' } // Light Red
+      : { ...style, backgroundColor: '#c6efce', color: '#004d00' }; // Light Green for Down
+  }
+  return style;
+};
+
 // Generic Helper for Threshold Coloring
 const getCellStyle = (value, threshold, type) => {
   let style = { width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' };
@@ -136,7 +153,7 @@ const columns = [
     align: 'center',
     headerAlign: 'center',
     renderCell: (params) => (
-      <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{params.value}</div>
+      <div style={getStrongCloseColor(params, 'up')}>{params.value}</div>
     )
   },
   {
@@ -152,13 +169,13 @@ const columns = [
   },
   {
     field: 'strongCloseDownCount',
-    headerName: 'Strong Close Up Count',
+    headerName: 'Strong Close Down Count',
     width: 140,
     type: 'number',
     align: 'center',
     headerAlign: 'center',
     renderCell: (params) => (
-      <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{params.value}</div>
+      <div style={getStrongCloseColor(params, 'down')}>{params.value}</div>
     )
   },
   {
