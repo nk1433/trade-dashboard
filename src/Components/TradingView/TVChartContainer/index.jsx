@@ -17,6 +17,7 @@ import FlagMenu from '../../Watchlist/FlagMenu';
 import { useTVChartContainer } from './useTVChartContainer';
 import { styles } from './styles';
 import { ArrowUpward, ArrowDownward } from '@mui/icons-material';
+import moment from "moment";
 
 // Colors for the menu items are now handled via LIST_METADATA in useTVChartContainer
 
@@ -172,11 +173,11 @@ const TVChartContainer = () => {
         <Box sx={styles.container}>
             {sortedNewsItems && sortedNewsItems.length > 0 && (
                 <Box sx={{
-                    bgcolor: '#000000',
-                    color: '#ffffff',
+                    // bgcolor: '#000000',
+
                     py: 0.5,
                     px: 2,
-                    borderBottom: '1px solid #333333',
+                    // borderBottom: '1px solid #333333',
                     fontSize: '0.85rem',
                     fontWeight: 500,
                     display: 'flex',
@@ -186,8 +187,8 @@ const TVChartContainer = () => {
                     <marquee behavior="scroll" direction="left" scrollamount="5" style={{ display: 'flex', alignItems: 'center' }}>
                         {sortedNewsItems.map((news, idx) => (
                             <span key={idx} style={{ marginRight: '30px' }}>
-                                <a href={news.article_link} target="_blank" rel="noreferrer" style={{ color: '#ffffff', textDecoration: 'none' }}>
-                                    {news.heading}
+                                <a href={news.article_link} target="_blank" rel="noreferrer" style={{ color: '#000000', textDecoration: 'none' }}>
+                                    {moment(news.published_time).format('D MMMM YYYY H:mm')} - {news.heading}
                                 </a>
                                 {idx < sortedNewsItems.length - 1 && (
                                     <span style={{ marginLeft: '30px', color: '#888888' }}>{' • '}</span>
