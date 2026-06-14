@@ -488,8 +488,9 @@ const MonthlyRow = ({ row }) => {
                             <Table size="small" aria-label="trades">
                                 <TableHead>
                                     <TableRow sx={{ bgcolor: '#f1f5f9' }}>
-                                        <TableCell sx={{ fontWeight: 600 }}>Buy Date</TableCell>
-                                        <TableCell sx={{ fontWeight: 600 }}>Sell Date</TableCell>
+                                        <TableCell sx={{ fontWeight: 600 }}>Buy Time</TableCell>
+                                        <TableCell sx={{ fontWeight: 600 }}>Sell Time</TableCell>
+                                        <TableCell sx={{ fontWeight: 600 }}>Entry Type</TableCell>
                                         <TableCell sx={{ fontWeight: 600 }}>Intraday</TableCell>
                                         <TableCell sx={{ fontWeight: 600 }}>Symbol</TableCell>
                                         <TableCell align="right" sx={{ fontWeight: 600 }}>Qty</TableCell>
@@ -503,8 +504,21 @@ const MonthlyRow = ({ row }) => {
                                 <TableBody>
                                     {row.trades.map((trade) => (
                                         <TableRow key={trade.id}>
-                                            <TableCell>{new Date(trade.buyDate).toLocaleDateString()}</TableCell>
-                                            <TableCell>{new Date(trade.sellDate).toLocaleDateString()}</TableCell>
+                                            <TableCell sx={{ whiteSpace: 'nowrap', fontSize: '0.8rem' }}>
+                                                {new Date(trade.buyDate).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', hour12: true })}
+                                            </TableCell>
+                                            <TableCell sx={{ whiteSpace: 'nowrap', fontSize: '0.8rem' }}>
+                                                {new Date(trade.sellDate).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', hour12: true })}
+                                            </TableCell>
+                                            <TableCell>
+                                                <Box component="span" sx={{ 
+                                                    px: 1, py: 0.5, borderRadius: 1, fontSize: '0.7rem', fontWeight: 'bold', 
+                                                    bgcolor: trade.entryType === 'Peak' ? '#fff7ed' : trade.entryType === 'Edge' ? '#f3e8ff' : trade.entryType === 'Subtile' ? '#f0fdf4' : '#f1f5f9', 
+                                                    color: trade.entryType === 'Peak' ? '#ea580c' : trade.entryType === 'Edge' ? '#9333ea' : trade.entryType === 'Subtile' ? '#16a34a' : '#64748b'
+                                                }}>
+                                                    {trade.entryType}
+                                                </Box>
+                                            </TableCell>
                                             <TableCell>
                                                 <Box component="span" sx={{ px: 1, py: 0.5, borderRadius: 1, fontSize: '0.75rem', fontWeight: 'bold', bgcolor: trade.isIntraday ? '#e0f2fe' : '#f1f5f9', color: trade.isIntraday ? '#0284c7' : '#64748b' }}>
                                                     {trade.isIntraday ? 'Yes' : 'No'}
@@ -561,6 +575,24 @@ const MonthlyTracker = () => {
                     const daysHeld = Math.max(1, Math.ceil((sellDate - earliestBuyDate) / (1000 * 60 * 60 * 24)));
                     const isIntraday = earliestBuyDate.toDateString() === sellDate.toDateString();
 
+                    // Calculate Entry Type
+                    const hours = earliestBuyDate.getHours();
+                    const minutes = earliestBuyDate.getMinutes();
+                    const timeInMinutes = hours * 60 + minutes;
+                    
+                    let entryType = 'Unknown';
+                    if (timeInMinutes >= 9 * 60 + 15 && timeInMinutes < 9 * 60 + 45) {
+                        entryType = 'Peak';
+                    } else if (timeInMinutes >= 9 * 60 + 45 && timeInMinutes < 15 * 60) {
+                        entryType = 'Subtile';
+                    } else if (timeInMinutes >= 15 * 60 && timeInMinutes <= 15 * 60 + 15) {
+                        entryType = 'Edge';
+                    } else if (timeInMinutes < 9 * 60 + 15) {
+                        entryType = 'Pre-market';
+                    } else if (timeInMinutes > 15 * 60 + 15) {
+                        entryType = 'Post-market';
+                    }
+
                     trades.push({
                         id: order.id || order._id,
                         symbol: order.symbol,
@@ -576,7 +608,8 @@ const MonthlyTracker = () => {
                         timestamp: order.timestamp,
                         buyDate: earliestBuyDate,
                         sellDate: sellDate,
-                        isIntraday
+                        isIntraday,
+                        entryType
                     });
 
                     activePositions[order.symbol].quantity -= order.quantity;
