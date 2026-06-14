@@ -7,6 +7,7 @@ import { fetchMarketBreadth } from '../../../Store/marketBreadth';
 import { createBreadthStudy } from '../studies/breadthStudy';
 import { createMomentumBurstStudy } from '../studies/momentumBurstStudy';
 import { createTI65Study } from '../studies/ti65Study';
+import { createCustomDataStudy } from '../studies/customDataStudy';
 import { BACKEND_URL } from '../../../utils/config';
 import universe from '../../../index/universe.json';
 
@@ -79,6 +80,7 @@ export const useTVChartContainer = () => {
     const [settingsAnchorEl, setSettingsAnchorEl] = useState(null);
     const [anchorEl, setAnchorEl] = useState(null);
     const [newsItems, setNewsItems] = useState([]);
+    const [headerButton, setHeaderButton] = useState(null);
 
     const openMenu = Boolean(anchorEl);
     const openSettings = Boolean(settingsAnchorEl);
@@ -129,6 +131,56 @@ export const useTVChartContainer = () => {
 
         fetchNews();
     }, [selectedRowId, universeMap]);
+
+    useEffect(() => {
+        if (!selectedRowId || !headerButton) return;
+
+        const fetchCompanyProfile = async () => {
+            try {
+                const token = import.meta.env.VITE_UPSTOXS_ANALYTICS_TOKEN;
+                if (!token) return;
+
+                let instrumentKey = selectedRowId;
+                const parts = instrumentKey.split('|');
+                if (parts.length === 1) {
+                    const foundScript = universeMap[instrumentKey] || universe.find(s => s.tradingsymbol === instrumentKey || s.instrument_key === instrumentKey);
+                    if (foundScript) instrumentKey = foundScript.instrument_key;
+                }
+
+                headerButton.innerHTML = '<span style="color: grey; padding: 0 8px; font-size: 13px;">Loading profile...</span>';
+                console.log('instrument key', instrumentKey.split('|')[1])
+
+                const response = await fetch(`https://api.upstox.com/v2/fundamentals/${instrumentKey.split('|')[1]}/profile`, {
+                    headers: {
+                        'Accept': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                const result = await response.json();
+                if (result?.status === 'success' && result.data) {
+                    const { sector, sector_market_cap_inr, sector_market_cap_usd } = result.data;
+                    const inr = sector_market_cap_inr?.formatted || '';
+                    const usd = sector_market_cap_usd?.formatted || '';
+
+                    headerButton.innerHTML = `
+                        <div style="display: flex; gap: 15px; font-size: 13px; padding: 0 10px; align-items: center; height: 100%;">
+                            ${sector ? `<span style="color: #2196F3; font-weight: bold;">${sector}</span>` : ''}
+                            ${inr ? `<span style="color: #4CAF50; font-weight: 500;">₹ ${inr}</span>` : ''}
+                            ${usd ? `<span style="color: #FF9800; font-weight: 500;">${usd}</span>` : ''}
+                        </div>
+                    `;
+                } else {
+                    headerButton.innerHTML = '';
+                }
+            } catch (error) {
+                console.error("Failed to fetch company profile", error);
+                headerButton.innerHTML = '';
+            }
+        };
+
+        fetchCompanyProfile();
+    }, [selectedRowId, headerButton, universeMap]);
 
     useEffect(() => {
         if (!breadthData || breadthData.length === 0) {
@@ -234,7 +286,8 @@ export const useTVChartContainer = () => {
                             color: '#FF0000' // Red
                         }, breadthData),
                         createMomentumBurstStudy(PineJS),
-                        createTI65Study(PineJS)
+                        createTI65Study(PineJS),
+                        createCustomDataStudy(PineJS)
                     ]);
                 }
             };
@@ -243,6 +296,17 @@ export const useTVChartContainer = () => {
 
             tvWidget.onChartReady(() => {
                 try {
+                    // 1. Add to the Top Toolbar (Header Widget)
+                    tvWidget.headerReady().then(() => {
+                        const button = tvWidget.createButton();
+                        button.setAttribute('title', 'Company Profile');
+                        button.classList.add('apply-common-tooltip');
+                        setHeaderButton(button);
+                    });
+
+                    // 2. Add Custom Study to Chart automatically so it shows in the legend
+                    // tvWidget.activeChart().createStudy('Custom Data Legend', false, false);
+
                     // Get the IWatermarkApi instance
                     const watermarkApi = tvWidget.watermark();
 
