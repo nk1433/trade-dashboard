@@ -141,7 +141,7 @@ const OrderPanel = ({ open, onClose, script, currentPrice = 0, tradingMode, toke
         // So we should re-run `calculateAllocationIntent` with the NEW SL.
 
         const effectiveCapital = capital || 100000;
-        const riskPct = 0.25; // Hardcoded fallback for now, needs real value
+        const riskPct = settings?.riskOfPortfolio || 0.25;
 
         const intent = calculateAllocationIntent(
             settings?.maxAllowedAllocation || 15,
@@ -153,6 +153,32 @@ const OrderPanel = ({ open, onClose, script, currentPrice = 0, tradingMode, toke
 
         if (intent.sharesToBuy > 0) {
             setQuantity(intent.sharesToBuy);
+        }
+    };
+
+    // NEW HANDLER for Quantity Change
+    const handleQuantityChange = (newQty) => {
+        setQuantity(newQty);
+        
+        const qty = Number(newQty);
+        if (qty > 0 && price) {
+            const entry = Number(price);
+            const effectiveCapital = capital || 100000;
+            const riskPct = settings?.riskOfPortfolio || 0.25;
+            
+            // Calculate target risk amount based on portfolio risk %
+            const targetRiskAmount = (riskPct / 100) * effectiveCapital;
+            
+            // Calculate required Risk Per Share to keep risk static
+            const riskPerShare = targetRiskAmount / qty;
+            
+            // Calculate new SL based on side
+            const calculatedSl = side === 'BUY' ? entry - riskPerShare : entry + riskPerShare;
+            
+            // Auto-update SL
+            if (calculatedSl > 0) {
+                setSlPrice(calculatedSl.toFixed(2));
+            }
         }
     };
 
@@ -382,17 +408,28 @@ const OrderPanel = ({ open, onClose, script, currentPrice = 0, tradingMode, toke
                 {/* Inputs */}
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
                     <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-                        <Box sx={{ flex: 1 }}>
+                        <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 0.5 }}>
                             <TextField
                                 label="Shares"
                                 type="number"
                                 value={quantity}
-                                onChange={(e) => setQuantity(e.target.value)}
+                                onChange={(e) => handleQuantityChange(e.target.value)}
                                 size="small"
                                 fullWidth
                                 {...commonInputProps}
                             />
-
+                            <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
+                                {[25, 50, 75, 100, 200].map(qty => (
+                                    <Typography 
+                                        key={qty}
+                                        variant="caption" 
+                                        sx={{ cursor: 'pointer', color: '#1976d2', '&:hover': { textDecoration: 'underline' } }} 
+                                        onClick={() => handleQuantityChange(qty)}
+                                    >
+                                        {qty}
+                                    </Typography>
+                                ))}
+                            </Box>
                         </Box>
                         {orderType !== 'MARKET' && (
                             <Box sx={{ flex: 1 }}>
@@ -431,32 +468,52 @@ const OrderPanel = ({ open, onClose, script, currentPrice = 0, tradingMode, toke
 
                     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                         {/* Stop Loss Row */}
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <FormControlLabel
-                                control={
-                                    <Checkbox
-                                        checked={slEnabled}
-                                        onChange={(e) => setSlEnabled(e.target.checked)}
-                                        size="small"
-                                        sx={{ p: 0.5, color: '#b2b5be', '&.Mui-checked': { color: '#000' } }}
-                                    />
-                                }
-                                label={<Typography variant="body2" sx={{ fontSize: '0.85rem' }}>Stop Loss</Typography>}
-                                sx={{ mr: 0, minWidth: 90 }}
-                            />
-                            {slEnabled && (
-                                <TextField
-                                    type="number"
-                                    value={slPrice}
-                                    onChange={(e) => handleSlChange(e.target.value)}
-                                    size="small"
-                                    fullWidth
-                                    placeholder="Price"
-                                    InputProps={{
-                                        style: { fontSize: '0.85rem', padding: 0 },
-                                        sx: { '& input': { py: 0.5 } }
-                                    }}
+                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                <FormControlLabel
+                                    control={
+                                        <Checkbox
+                                            checked={slEnabled}
+                                            onChange={(e) => setSlEnabled(e.target.checked)}
+                                            size="small"
+                                            sx={{ p: 0.5, color: '#b2b5be', '&.Mui-checked': { color: '#000' } }}
+                                        />
+                                    }
+                                    label={<Typography variant="body2" sx={{ fontSize: '0.85rem' }}>Stop Loss</Typography>}
+                                    sx={{ mr: 0, minWidth: 90 }}
                                 />
+                                {slEnabled && (
+                                    <TextField
+                                        type="number"
+                                        value={slPrice}
+                                        onChange={(e) => handleSlChange(e.target.value)}
+                                        size="small"
+                                        fullWidth
+                                        placeholder="Price"
+                                        InputProps={{
+                                            style: { fontSize: '0.85rem', padding: 0 },
+                                            sx: { '& input': { py: 0.5 } }
+                                        }}
+                                    />
+                                )}
+                            </Box>
+                            {slEnabled && (
+                                <Box sx={{ display: 'flex', gap: 2, ml: 12 }}>
+                                    <Typography 
+                                        variant="caption" 
+                                        sx={{ cursor: 'pointer', color: '#1976d2', '&:hover': { textDecoration: 'underline' } }}
+                                        onClick={() => handleSlChange((Number(price) * (side === 'BUY' ? 0.98 : 1.02)).toFixed(2))}
+                                    >
+                                        2% (LTP)
+                                    </Typography>
+                                    <Typography 
+                                        variant="caption" 
+                                        sx={{ cursor: 'pointer', color: '#1976d2', '&:hover': { textDecoration: 'underline' } }}
+                                        onClick={() => handleSlChange(Number(script?.sl || script?.currentDayOpen || (Number(price) * 0.99)).toFixed(2))}
+                                    >
+                                        System (Open)
+                                    </Typography>
+                                </Box>
                             )}
                         </Box>
 
@@ -507,10 +564,6 @@ const OrderPanel = ({ open, onClose, script, currentPrice = 0, tradingMode, toke
                     <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                         <Typography variant="caption" color="text.secondary">Quantity</Typography>
                         <Typography variant="caption" fontWeight={600}>{quantity}</Typography>
-                    </Box>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <Typography variant="caption" color="text.secondary">Quantity</Typography>
-                        <Typography variant="caption" fontWeight={600}>{calcMetrics.quantity}</Typography>
                     </Box>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                         <Typography variant="caption" color="text.secondary">Allocation</Typography>

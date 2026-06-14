@@ -80,16 +80,20 @@ export const updateWatchlistWithMetrics = async (liveFeed, scriptMap, portfolio,
         const riskPercentage = activePortfolio?.riskPercentage || 0.25;
         const maxAllocation = settings?.maxAllowedAllocation || 15;
 
+        // Detect flat weekend/fallback OHLC from Upstox where open=high=low=close
+        const isFlatOHLC = latestDayFeed.open === latestDayFeed.close && latestDayFeed.high === latestDayFeed.low;
+        const effectiveOpen = isFlatOHLC && prevStats.lastPrice > 0 ? prevStats.lastPrice : latestDayFeed.open;
+
         const metric = await computeMetrics({
             scriptName: scriptMap[instrumentKey]?.name || '',
             symbol: scriptMap[instrumentKey]?.tradingsymbol,
             instrumentKey,
             size: portfolioSize,
             riskOfPortfolio: riskPercentage,
-            currentDayOpen: latestDayFeed.open,
-            lowPrice: latestDayFeed.low,
+            currentDayOpen: effectiveOpen,
+            lowPrice: isFlatOHLC && prevStats.lastPrice > 0 ? prevStats.lastPrice : latestDayFeed.low,
             currentVolume,
-            high: latestDayFeed.high,
+            high: isFlatOHLC && prevStats.lastPrice > 0 ? prevStats.lastPrice : latestDayFeed.high,
             ltp: currentClose,
             stats,
             volSurgeRate,

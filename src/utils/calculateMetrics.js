@@ -238,6 +238,7 @@ export const computeMetrics = async (context) => {
 
   const maxAlloc = context.maxAllocation || 15;
   let allocation;
+
   if (ltp > currentDayOpen) {
     allocation = calculateAllocationIntent(maxAlloc, size, ltp, currentDayOpen, riskOfPortfolio);
   } else {
