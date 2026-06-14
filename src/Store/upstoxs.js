@@ -341,6 +341,7 @@ export const fetchAndCalculateInitialMetrics = createAsyncThunk('Orders/fetchAnd
     const targetDate = getLastWorkingDay(moment().format('YYYY-MM-DD'), holidays);
 
     const prePopulated = {
+        newHighs: {},
         bullishMB: {},
         bearishMB: {},
         bullishSLTB: {},
@@ -367,8 +368,11 @@ export const fetchAndCalculateInitialMetrics = createAsyncThunk('Orders/fetchAnd
                 const baseMetric = metrics.metrics[ik]; // the calculated baseline metric
 
                 if (baseMetric) {
+                    if (scan.scanType === 'newHigh') prePopulated.newHighs[ik] = baseMetric;
                     if (scan.scanType === '4PercentBO') prePopulated.bullishMB[ik] = baseMetric;
                     if (scan.scanType === '4PercentBD') prePopulated.bearishMB[ik] = baseMetric;
+                    if (scan.scanType === 'sltbBO') prePopulated.bullishSLTB[ik] = baseMetric;
+                    if (scan.scanType === 'sltbBD') prePopulated.bearishSLTB[ik] = baseMetric;
                     if (scan.scanType === 'dollarBO') prePopulated.dollar[ik] = baseMetric;
                     if (scan.scanType === 'dollarBD') prePopulated.bearishDollar[ik] = baseMetric;
                 }
@@ -454,6 +458,7 @@ const orders = createSlice({
         dollar: [],
         bearishDollar: [],
         holdings: [],
+        newHighs: [],
     },
     reducers: {
         setOrderMetrics(state, action) {
@@ -515,6 +520,13 @@ const orders = createSlice({
                 ...newMetrics,
             };
         },
+        setNewHighs(state, action) {
+            const newMetrics = action.payload;
+            state.newHighs = {
+                ...state.newHighs,
+                ...newMetrics,
+            };
+        },
         resetMetrics(state) {
             state.orderMetrics = {};
             state.bullishBurst = {};
@@ -524,6 +536,7 @@ const orders = createSlice({
             state.bullishAnts = {};
             state.dollar = {};
             state.bearishDollar = {};
+            state.newHighs = {};
         },
     },
     extraReducers: (builder) => {
@@ -531,7 +544,7 @@ const orders = createSlice({
             state.orders.push(action.payload);
         });
         builder.addCase(fetchAndCalculateInitialMetrics.fulfilled, (state, action) => {
-            const { metrics, bullishMB, bearishMB, bullishSLTB, bearishSLTB, bullishAnts, dollar, bearishDollar } = action.payload;
+            const { metrics, bullishMB, bearishMB, bullishSLTB, bearishSLTB, bullishAnts, dollar, bearishDollar, newHighs } = action.payload;
 
             state.orderMetrics = metrics;
             state.bullishBurst = bullishMB;
@@ -541,6 +554,7 @@ const orders = createSlice({
             state.bullishAnts = bullishAnts;
             state.dollar = dollar;
             state.bearishDollar = bearishDollar;
+            state.newHighs = newHighs;
         });
         builder.addCase(getStatsForScripts.fulfilled, (state, action) => {
             state.stats = action.payload;
@@ -560,5 +574,5 @@ export const {
     setOrderMetrics, setLiveFeed, setBullishMB,
     setBearishMB, setBullishSLTB, setBearishSLTB,
     setBullishAnts, setDollarBo, setBearishDollarBo,
-    resetMetrics,
+    setNewHighs, resetMetrics,
 } = orders.actions;

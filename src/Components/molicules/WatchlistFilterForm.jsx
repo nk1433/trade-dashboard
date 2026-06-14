@@ -25,6 +25,7 @@ const WatchlistFilterForm = ({ selectedIndex, handleSelectionChange, counts }) =
         { value: 'bullishSLTB', label: 'SLTB', count: counts.bullishSLTB },
         { value: 'bullishAnts', label: 'Ants', count: counts.bullishAnts },
         { value: 'dollar', label: '$ Dollar', count: counts.dollar },
+        { value: 'newHighs', label: 'New Highs', count: counts.newHighs },
       ]
     },
     {

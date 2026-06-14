@@ -27,7 +27,8 @@ export const useWatchlistFilter = () => {
     bullishAnts,
     dollar,
     bearishDollar,
-  } = useSelector(state => state.orders);
+    newHighs
+  } = useSelector((state) => state.orders);
 
   const { holdings } = useSelector(state => state.paperTrade);
   // Removed dependency on state.auth.token (which is Upstox token)
@@ -277,6 +278,7 @@ export const useWatchlistFilter = () => {
       case 'bullishAnts': return bullishAnts || {};
       case 'dollar': return dollar || {};
       case 'bearishDollar': return bearishDollar || {};
+      case 'newHighs': return newHighs || {};
       case 'holdings': return holdingsMap || {};
       case 'redList': return getFlaggedList('red');
       case 'blueList': return getFlaggedList('blue');
@@ -308,6 +310,7 @@ export const useWatchlistFilter = () => {
       bullishAnts: Object.keys(bullishAnts || {}).length,
       dollar: Object.keys(dollar || {}).length,
       bearishDollar: Object.keys(bearishDollar || {}).length,
+      newHighs: Object.keys(newHighs || {}).length,
       holdings: holdings.length,
       redList: flagCounts.red || 0,
       blueList: flagCounts.blue || 0,
@@ -321,7 +324,7 @@ export const useWatchlistFilter = () => {
     });
     
     return defaultCounts;
-  }, [orderMetrics, bullishBurst, bearishBurst, bullishSLTB, bearishSLTB, bullishAnts, dollar, bearishDollar, holdings, flagCounts, customLists]);
+  }, [orderMetrics, bullishBurst, bearishBurst, bullishSLTB, bearishSLTB, bullishAnts, dollar, bearishDollar, newHighs, holdings, flagCounts, customLists]);
 
   const clearFlaggedList = useCallback((color) => {
     setFlaggedStocks(prev => {
