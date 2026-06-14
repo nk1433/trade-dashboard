@@ -73,9 +73,19 @@ const TVChartContainer = () => {
     const handleAddScript = () => {
         if (isFlagList) {
             const listName = customLists.includes(selectedIndex) ? selectedIndex : selectedIndex.replace('List', '');
-            const symbol = window.prompt(`Enter script symbol to add to ${listName} list (e.g. RELIANCE):`);
-            if (symbol) {
-                toggleFlag(symbol.toUpperCase().trim(), listName);
+            const input = window.prompt(`Enter script symbols to add to ${listName} list (e.g. RELIANCE, TCS):`);
+            if (input) {
+                const symbols = input.split(/[\n,]+/).map(s => s.trim().toUpperCase()).filter(s => s);
+                let addedCount = 0;
+
+                symbols.forEach(symbol => {
+                    toggleFlag(symbol, listName);
+                    addedCount++;
+                });
+
+                if (addedCount > 0 && symbols.length > 1) {
+                    // Optional: show success for multiple adds, or just fail silently since it's instant
+                }
             }
         } else {
             window.alert("Please select a flagged or custom list to add a script manually.");
