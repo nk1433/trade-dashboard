@@ -189,7 +189,7 @@ export const useTVChartContainer = () => {
                 library_path: "/charting_library/",
                 locale: "en",
                 timezone: "Asia/Kolkata",
-                fullscreen: true,
+                fullscreen: false,
                 autosize: true,
                 auto_save_delay: 5,
                 charts_storage_url: `${BACKEND_URL}/api/tv`,

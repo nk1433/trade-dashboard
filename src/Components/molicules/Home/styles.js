@@ -1,7 +1,8 @@
 export const styles = {
     container: {
-        height: '100%',
-        width: '100%',
+        height: 'calc(100vh - 60px)', 
+        margin: '0 -2rem -2rem -2rem',
+        width: 'calc(100% + 4rem)',
         display: 'flex',
         flexDirection: 'column',
         position: 'relative'
