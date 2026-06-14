@@ -41,6 +41,22 @@ const getUpDown4Color = (params, type) => {
 
 const getStrongCloseColor = (params, type) => {
   let style = { width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' };
+  
+  if (type === 'down') {
+    if (params.row.strongCloseDownCount >= 50) {
+      return { ...style, backgroundColor: '#8b0000', color: '#fff' }; // Dark Red
+    }
+    if (params.row.strongCloseDownCount < 10) {
+      return { ...style, backgroundColor: '#c6efce', color: '#004d00' }; // Light Green
+    }
+  }
+
+  if (type === 'up') {
+    if (params.row.strongCloseUpCount >= 50) {
+      return { ...style, backgroundColor: '#006400', color: '#fff' }; // Dark Green
+    }
+  }
+
   const ratio = type === 'up' ? params.row.strongCloseUpRatio : params.row.strongCloseDownRatio;
 
   if (ratio >= 0.6) {

@@ -304,7 +304,7 @@ const TVChartContainer = () => {
                             <Divider />
 
                             {/* Flag Lists */}
-                            {FLAG_KEYS.map(listKey => (
+                            {FLAG_KEYS.filter(listKey => counts[listKey] >= 1).map(listKey => (
                                 <MenuItem key={listKey} onClick={() => handleMenuClose(listKey)}>
                                     {renderScanLabel(listKey)}
                                 </MenuItem>
