@@ -47,13 +47,16 @@ const getStrongCloseColor = (params, type) => {
       return { ...style, backgroundColor: '#8b0000', color: '#fff' }; // Dark Red
     }
     if (params.row.strongCloseDownCount < 10) {
-      return { ...style, backgroundColor: '#c6efce', color: '#004d00' }; // Light Green
+      return { ...style, backgroundColor: '#006400', color: '#fff' }; // Dark Green
     }
   }
 
   if (type === 'up') {
     if (params.row.strongCloseUpCount >= 50) {
       return { ...style, backgroundColor: '#006400', color: '#fff' }; // Dark Green
+    }
+    if (params.row.strongCloseUpCount < 10) {
+      return { ...style, backgroundColor: '#8b0000', color: '#fff' }; // Dark Red
     }
   }
 
