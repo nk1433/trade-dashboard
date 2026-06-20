@@ -498,6 +498,7 @@ const MonthlyRow = ({ row }) => {
                                         <TableCell align="right" sx={{ fontWeight: 600 }}>Sell Price</TableCell>
                                         <TableCell align="right" sx={{ fontWeight: 600 }}>Profit/Loss</TableCell>
                                         <TableCell align="right" sx={{ fontWeight: 600 }}>Returns %</TableCell>
+                                        <TableCell align="right" sx={{ fontWeight: 600 }}>PF Impact</TableCell>
                                         <TableCell align="right" sx={{ fontWeight: 600 }}>Days Held</TableCell>
                                     </TableRow>
                                 </TableHead>
@@ -534,6 +535,9 @@ const MonthlyRow = ({ row }) => {
                                             <TableCell align="right" sx={{ color: trade.pnlPercentage > 0 ? '#059669' : '#dc2626', fontWeight: 500 }}>
                                                 {trade.pnlPercentage > 0 ? '+' : ''}{trade.pnlPercentage.toFixed(2)}%
                                             </TableCell>
+                                            <TableCell align="right" sx={{ color: trade.pfImpact > 0 ? '#059669' : '#dc2626', fontWeight: 500 }}>
+                                                {trade.pfImpact > 0 ? '+' : ''}{trade.pfImpact.toFixed(2)}%
+                                            </TableCell>
                                             <TableCell align="right">{trade.daysHeld}</TableCell>
                                         </TableRow>
                                     ))}
@@ -549,6 +553,7 @@ const MonthlyRow = ({ row }) => {
 
 const MonthlyTracker = () => {
     const orders = useSelector((state) => state.paperTrade.orders);
+    const capital = useSelector((state) => state.paperTrade.capital);
 
     const completedTrades = React.useMemo(() => {
         const trades = [];
@@ -585,11 +590,11 @@ const MonthlyTracker = () => {
                         entryType = 'Peak';
                     } else if (timeInMinutes >= 9 * 60 + 45 && timeInMinutes < 15 * 60) {
                         entryType = 'Subtile';
-                    } else if (timeInMinutes >= 15 * 60 && timeInMinutes <= 15 * 60 + 15) {
+                    } else if (timeInMinutes >= 15 * 60 && timeInMinutes <= 15 * 60 + 30) {
                         entryType = 'Edge';
                     } else if (timeInMinutes < 9 * 60 + 15) {
                         entryType = 'Pre-market';
-                    } else if (timeInMinutes > 15 * 60 + 15) {
+                    } else if (timeInMinutes > 15 * 60 + 30) {
                         entryType = 'Post-market';
                     }
 
@@ -603,6 +608,7 @@ const MonthlyTracker = () => {
                         pnlPercentage,
                         invested,
                         currentValue: order.price * order.quantity,
+                        pfImpact: capital > 0 ? (pnl / capital) * 100 : 0,
                         daysHeld,
                         status: pnl > 0 ? 'WIN' : 'LOSS',
                         timestamp: order.timestamp,
@@ -621,7 +627,7 @@ const MonthlyTracker = () => {
             }
         });
         return trades;
-    }, [orders]);
+    }, [orders, capital]);
 
     const tradesByMonth = React.useMemo(() => {
         return completedTrades.reduce((acc, trade) => {
