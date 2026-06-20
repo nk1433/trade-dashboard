@@ -113,8 +113,23 @@ const Home = () => {
 
             {/* Main Content Area */}
             <Box sx={styles.contentArea}>
-                {view === 'chart' && <TVChartContainer />}
-                {view === 'watchlist' && <Watchlist />}
+                <Box sx={{ 
+                    position: 'absolute',
+                    top: 0,
+                    left: view === 'chart' ? 0 : '-9999vw',
+                    visibility: view === 'chart' ? 'visible' : 'hidden',
+                    height: '100%', 
+                    width: '100%',
+                    zIndex: view === 'chart' ? 1 : -1,
+                    transition: 'none' // Ensure no animations trigger layout thrashing
+                }}>
+                    <TVChartContainer />
+                </Box>
+                {view === 'watchlist' && (
+                    <Box sx={{ height: '100%', width: '100%', position: 'relative', zIndex: 1, bgcolor: 'background.default' }}>
+                        <Watchlist />
+                    </Box>
+                )}
             </Box>
         </Box>
     );
