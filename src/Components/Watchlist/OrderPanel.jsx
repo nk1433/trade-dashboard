@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
     Box,
     Drawer,
@@ -15,7 +15,11 @@ import {
     Snackbar,
     Alert,
     ToggleButton,
-    ToggleButtonGroup
+    ToggleButtonGroup,
+    Select,
+    MenuItem,
+    FormControl,
+    InputLabel
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import { useDispatch, useSelector } from 'react-redux';
@@ -31,12 +35,14 @@ const OrderPanel = ({ open, onClose, script, currentPrice = 0, tradingMode, toke
     const [quantity, setQuantity] = useState(1);
     const [price, setPrice] = useState(currentPrice);
     const [triggerPrice, setTriggerPrice] = useState(currentPrice);
+    const [tactic, setTactic] = useState('custom'); // 'custom', '2pct_open', 'open_price', 'fixed_qty_risk'
 
     // Risk Management
     const [slEnabled, setSlEnabled] = useState(false);
     const [slPrice, setSlPrice] = useState(0);
     const [tpEnabled, setTpEnabled] = useState(false);
     const [tpPrice, setTpPrice] = useState(0);
+    const [maxAlloc, setMaxAlloc] = useState(15);
 
     // Calculated Values
     const [rewardAmount, setRewardAmount] = useState(0);
@@ -65,6 +71,7 @@ const OrderPanel = ({ open, onClose, script, currentPrice = 0, tradingMode, toke
     // Initial Load when Panel Opens
     useEffect(() => {
         if (open && script) {
+            setMaxAlloc(settings?.maxAllowedAllocation || 15);
             const effectivePrice = currentPrice || script.ltp || 0;
             // Only set price on open
             setPrice(effectivePrice);
@@ -126,25 +133,99 @@ const OrderPanel = ({ open, onClose, script, currentPrice = 0, tradingMode, toke
 
     }, [quantity, price, slPrice, slEnabled, capital]);
 
+    // Pre-calculate projections for UI
+    const tacticProjections = useMemo(() => {
+        const entry = Number(price) || 0;
+        const openPrice = Number(script?.currentDayOpen || script?.open || (entry * 0.99));
+        const effectiveCapital = capital || 100000;
+        const riskPct = settings?.riskOfPortfolio || 0.25;
+
+        // 2% Open
+        const sl2Pct = side === 'BUY' ? openPrice * 0.98 : openPrice * 1.02;
+        const intent2Pct = calculateAllocationIntent(maxAlloc, effectiveCapital, entry, sl2Pct, riskPct);
+
+        // Open Price
+        const intentOpen = calculateAllocationIntent(maxAlloc, effectiveCapital, entry, openPrice, riskPct);
+
+        // Fixed Qty (uses current input quantity)
+        const currentQty = Number(quantity) || 1;
+        const targetRiskAmount = (riskPct / 100) * effectiveCapital;
+        const riskPerShare = targetRiskAmount / currentQty;
+        const slFixedQty = side === 'BUY' ? entry - riskPerShare : entry + riskPerShare;
+
+        return {
+            '2pct_open': { sl: sl2Pct.toFixed(2), qty: intent2Pct.sharesToBuy },
+            'open_price': { sl: openPrice.toFixed(2), qty: intentOpen.sharesToBuy },
+            'fixed_qty_risk': { sl: slFixedQty.toFixed(2), qty: currentQty }
+        };
+    }, [price, side, script, capital, settings, quantity, maxAlloc]);
+
+    // Apply Tactic Logic
+    const applyTactic = (selectedTactic, currentQty, currentPriceVal) => {
+        const entry = Number(currentPriceVal) || 0;
+        const openPrice = Number(script?.currentDayOpen || script?.open || (entry * 0.99)); // Fallback if open price missing
+        const effectiveCapital = capital || 100000;
+        const riskPct = settings?.riskOfPortfolio || 0.25;
+
+        let newSl = slPrice;
+        let newQty = currentQty;
+
+        if (selectedTactic === '2pct_open') {
+            setSlEnabled(true);
+            newSl = side === 'BUY' ? openPrice * 0.98 : openPrice * 1.02;
+            setSlPrice(newSl.toFixed(2));
+
+            const intent = calculateAllocationIntent(maxAlloc, effectiveCapital, entry, newSl, riskPct);
+            if (intent.sharesToBuy > 0) {
+                newQty = intent.sharesToBuy;
+            } else {
+                newQty = 0; // Explicitly clear if invalid
+            }
+            setQuantity(newQty);
+        } else if (selectedTactic === 'open_price') {
+            setSlEnabled(true);
+            newSl = openPrice;
+            setSlPrice(newSl.toFixed(2));
+
+            const intent = calculateAllocationIntent(maxAlloc, effectiveCapital, entry, newSl, riskPct);
+            if (intent.sharesToBuy > 0) {
+                newQty = intent.sharesToBuy;
+            } else {
+                newQty = 0; // Explicitly clear if invalid
+            }
+            setQuantity(newQty);
+        } else if (selectedTactic === 'fixed_qty_risk') {
+            setSlEnabled(true);
+            const qty = Number(currentQty) || 1;
+            const targetRiskAmount = (riskPct / 100) * effectiveCapital;
+            const riskPerShare = targetRiskAmount / qty;
+            newSl = side === 'BUY' ? entry - riskPerShare : entry + riskPerShare;
+            if (newSl > 0) setSlPrice(newSl.toFixed(2));
+        }
+
+        return { newSl, newQty };
+    };
+
+    // React to Tactic Change
+    const handleTacticChange = (e) => {
+        const newTactic = e.target.value;
+        setTactic(newTactic);
+        applyTactic(newTactic, quantity, price);
+    };
+
     // NEW HANDLER for SL Change
     const handleSlChange = (newSl) => {
         setSlPrice(newSl);
+        setTactic('custom'); // User manually overrode SL
         if (!newSl || !price) return;
 
         const entry = Number(price);
         const sl = Number(newSl);
-        const riskPerShare = Math.abs(entry - sl);
-
-        // Target Risk: maintain the 'intended' risk or use the standard 0.25% rule?
-        // User said: "metric should be calculated using same funcitionality... updateWatchlistWithMetrics"
-        // updateWatchlistWithMetrics uses `calculateMetrics` -> `calculateAllocationIntent`.
-        // So we should re-run `calculateAllocationIntent` with the NEW SL.
-
         const effectiveCapital = capital || 100000;
         const riskPct = settings?.riskOfPortfolio || 0.25;
 
         const intent = calculateAllocationIntent(
-            settings?.maxAllowedAllocation || 15,
+            maxAlloc,
             effectiveCapital,
             entry,
             sl,
@@ -159,28 +240,41 @@ const OrderPanel = ({ open, onClose, script, currentPrice = 0, tradingMode, toke
     // NEW HANDLER for Quantity Change
     const handleQuantityChange = (newQty) => {
         setQuantity(newQty);
-        
+
+        // If not fixed_qty_risk, switch to custom.
+        if (tactic !== 'fixed_qty_risk') {
+            setTactic('custom');
+        }
+
         const qty = Number(newQty);
         if (qty > 0 && price) {
             const entry = Number(price);
             const effectiveCapital = capital || 100000;
             const riskPct = settings?.riskOfPortfolio || 0.25;
-            
-            // Calculate target risk amount based on portfolio risk %
-            const targetRiskAmount = (riskPct / 100) * effectiveCapital;
-            
-            // Calculate required Risk Per Share to keep risk static
-            const riskPerShare = targetRiskAmount / qty;
-            
-            // Calculate new SL based on side
-            const calculatedSl = side === 'BUY' ? entry - riskPerShare : entry + riskPerShare;
-            
-            // Auto-update SL
-            if (calculatedSl > 0) {
-                setSlPrice(calculatedSl.toFixed(2));
+
+            // Auto-update SL ONLY if we want static risk (fixed_qty_risk)
+            if (tactic === 'fixed_qty_risk' || tactic === 'custom') { // Wait, if custom, do they want auto-SL on Qty change? No. The user said 'Another one is for high priced stocks where i will buy static quantities... it will automatically adjust the sl price'. So ONLY fixed_qty_risk should do this.
+                if (tactic === 'fixed_qty_risk') {
+                    const targetRiskAmount = (riskPct / 100) * effectiveCapital;
+                    const riskPerShare = targetRiskAmount / qty;
+                    const calculatedSl = side === 'BUY' ? entry - riskPerShare : entry + riskPerShare;
+                    if (calculatedSl > 0) {
+                        setSlPrice(calculatedSl.toFixed(2));
+                    }
+                }
             }
         }
     };
+
+    // Re-apply tactic if side or price changes (for auto-tactics)
+    useEffect(() => {
+        if (!open) return;
+        if (tactic === 'fixed_qty_risk') {
+            applyTactic('fixed_qty_risk', quantity, price);
+        } else if (tactic === '2pct_open' || tactic === 'open_price') {
+            applyTactic(tactic, quantity, price);
+        }
+    }, [side, price, tactic, maxAlloc]);
 
     // Replaces the direct setSlPrice in render
 
@@ -314,7 +408,7 @@ const OrderPanel = ({ open, onClose, script, currentPrice = 0, tradingMode, toke
             open={open}
             onClose={onClose}
             PaperProps={{
-                sx: { width: 320, bgcolor: '#fff', color: '#131722' }
+                sx: { width: 500, bgcolor: '#fff', color: '#131722' }
             }}
         >
             {/* Header */}
@@ -404,6 +498,77 @@ const OrderPanel = ({ open, onClose, script, currentPrice = 0, tradingMode, toke
                     <Tab label="Stop" value="STOP" />
                 </Tabs>
 
+                {/* Entry Tactics */}
+                <Box sx={{ mb: 2 }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                        <Typography variant="caption" sx={{ fontWeight: 600, color: '#787b86' }}>ENTRY TACTIC</Typography>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <Typography variant="caption" sx={{ color: '#787b86' }}>Max Alloc %</Typography>
+                            <TextField
+                                type="number"
+                                value={maxAlloc}
+                                onChange={(e) => setMaxAlloc(Number(e.target.value) || 0)}
+                                size="small"
+                                sx={{ width: 60 }}
+                                InputProps={{
+                                    style: { fontSize: '0.75rem', padding: 0, height: 24 },
+                                    sx: { '& input': { py: 0, px: 1, textAlign: 'center' } }
+                                }}
+                            />
+                        </Box>
+                    </Box>
+                    <ToggleButtonGroup
+                        value={tactic}
+                        exclusive
+                        onChange={(e, val) => { if (val) handleTacticChange({ target: { value: val } }) }}
+                        fullWidth
+                        size="small"
+                        sx={{
+                            display: 'flex',
+                            gap: 0.5,
+                            "& .MuiToggleButtonGroup-grouped": {
+                                border: '1px solid #e0e3eb !important',
+                                borderRadius: '4px !important',
+                                textTransform: 'none',
+                                flex: 1,
+                                py: 0.75,
+                                px: 0.5,
+                                fontSize: '0.75rem',
+                                lineHeight: 1.2,
+                                color: '#787b86',
+                                "&.Mui-selected": {
+                                    bgcolor: '#f0f3fa',
+                                    color: '#1976d2',
+                                    borderColor: '#1976d2 !important',
+                                    fontWeight: 600,
+                                    zIndex: 1
+                                },
+                                "&:hover": {
+                                    bgcolor: '#f9fafb'
+                                }
+                            }
+                        }}
+                    >
+                        <ToggleButton value="custom" sx={{ flexDirection: 'column', gap: 0.25, justifyContent: 'center' }}>
+                            <Typography sx={{ fontSize: '0.75rem', fontWeight: 'inherit', textTransform: 'none' }}>Manual Custom</Typography>
+                        </ToggleButton>
+                        <ToggleButton value="2pct_open" sx={{ flexDirection: 'column', gap: 0.25 }}>
+                            <Typography sx={{ fontSize: '0.75rem', fontWeight: 'inherit', textTransform: 'none' }}>2% Open Risk</Typography>
+                            <Typography sx={{ fontSize: '0.65rem', opacity: 0.8, textTransform: 'none' }}>SL: {tacticProjections['2pct_open'].sl}</Typography>
+                            <Typography sx={{ fontSize: '0.65rem', opacity: 0.8, textTransform: 'none' }}>Qty: {tacticProjections['2pct_open'].qty}</Typography>
+                        </ToggleButton>
+                        <ToggleButton value="open_price" sx={{ flexDirection: 'column', gap: 0.25 }}>
+                            <Typography sx={{ fontSize: '0.75rem', fontWeight: 'inherit', textTransform: 'none' }}>Open Price SL</Typography>
+                            <Typography sx={{ fontSize: '0.65rem', opacity: 0.8, textTransform: 'none' }}>SL: {tacticProjections['open_price'].sl}</Typography>
+                            <Typography sx={{ fontSize: '0.65rem', opacity: 0.8, textTransform: 'none' }}>Qty: {tacticProjections['open_price'].qty}</Typography>
+                        </ToggleButton>
+                        <ToggleButton value="fixed_qty_risk" sx={{ flexDirection: 'column', gap: 0.25 }}>
+                            <Typography sx={{ fontSize: '0.75rem', fontWeight: 'inherit', textTransform: 'none' }}>Fixed Qty Risk</Typography>
+                            <Typography sx={{ fontSize: '0.65rem', opacity: 0.8, textTransform: 'none' }}>SL: {tacticProjections['fixed_qty_risk'].sl}</Typography>
+                            <Typography sx={{ fontSize: '0.65rem', opacity: 0.8, textTransform: 'none' }}>Qty: {tacticProjections['fixed_qty_risk'].qty}</Typography>
+                        </ToggleButton>
+                    </ToggleButtonGroup>
+                </Box>
 
                 {/* Inputs */}
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
@@ -420,10 +585,10 @@ const OrderPanel = ({ open, onClose, script, currentPrice = 0, tradingMode, toke
                             />
                             <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
                                 {[25, 50, 75, 100, 200].map(qty => (
-                                    <Typography 
+                                    <Typography
                                         key={qty}
-                                        variant="caption" 
-                                        sx={{ cursor: 'pointer', color: '#1976d2', '&:hover': { textDecoration: 'underline' } }} 
+                                        variant="caption"
+                                        sx={{ cursor: 'pointer', color: '#1976d2', '&:hover': { textDecoration: 'underline' } }}
                                         onClick={() => handleQuantityChange(qty)}
                                     >
                                         {qty}
@@ -482,38 +647,25 @@ const OrderPanel = ({ open, onClose, script, currentPrice = 0, tradingMode, toke
                                     label={<Typography variant="body2" sx={{ fontSize: '0.85rem' }}>Stop Loss</Typography>}
                                     sx={{ mr: 0, minWidth: 90 }}
                                 />
-                                {slEnabled && (
-                                    <TextField
-                                        type="number"
-                                        value={slPrice}
-                                        onChange={(e) => handleSlChange(e.target.value)}
-                                        size="small"
-                                        fullWidth
-                                        placeholder="Price"
-                                        InputProps={{
-                                            style: { fontSize: '0.85rem', padding: 0 },
-                                            sx: { '& input': { py: 0.5 } }
-                                        }}
-                                    />
-                                )}
+                                <TextField
+                                    size="small"
+                                    fullWidth
+                                    type="number"
+                                    value={slPrice}
+                                    onChange={(e) => handleSlChange(e.target.value)}
+                                    disabled={!slEnabled}
+                                    error={slEnabled && Number(slPrice) >= Number(price)}
+                                    {...commonInputProps}
+                                    sx={{
+                                        ...commonInputProps.sx,
+                                        opacity: slEnabled ? 1 : 0.5,
+                                    }}
+                                />
                             </Box>
-                            {slEnabled && (
-                                <Box sx={{ display: 'flex', gap: 2, ml: 12 }}>
-                                    <Typography 
-                                        variant="caption" 
-                                        sx={{ cursor: 'pointer', color: '#1976d2', '&:hover': { textDecoration: 'underline' } }}
-                                        onClick={() => handleSlChange((Number(price) * (side === 'BUY' ? 0.98 : 1.02)).toFixed(2))}
-                                    >
-                                        2% (LTP)
-                                    </Typography>
-                                    <Typography 
-                                        variant="caption" 
-                                        sx={{ cursor: 'pointer', color: '#1976d2', '&:hover': { textDecoration: 'underline' } }}
-                                        onClick={() => handleSlChange(Number(script?.sl || script?.currentDayOpen || (Number(price) * 0.99)).toFixed(2))}
-                                    >
-                                        System (Open)
-                                    </Typography>
-                                </Box>
+                            {slEnabled && Number(slPrice) >= Number(price) && (
+                                <Typography variant="caption" color="error" sx={{ ml: '100px', lineHeight: 1.2 }}>
+                                    Stop Loss must be below the Entry Price.
+                                </Typography>
                             )}
                         </Box>
 
@@ -590,8 +742,8 @@ const OrderPanel = ({ open, onClose, script, currentPrice = 0, tradingMode, toke
                         </>
                     )}
                     <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <Typography variant="caption" color="text.secondary">Commission</Typography>
-                        <Typography variant="caption" fontWeight={600}>--</Typography>
+                        <Typography variant="caption" color="text.secondary">Total Capital</Typography>
+                        <Typography variant="caption" fontWeight={600}>₹{capital?.toFixed() || 100000}</Typography>
                     </Box>
                 </Box>
 
@@ -599,16 +751,24 @@ const OrderPanel = ({ open, onClose, script, currentPrice = 0, tradingMode, toke
                     variant="contained"
                     fullWidth
                     onClick={handlePlaceOrder}
+                    disabled={Number(quantity) <= 0 || (slEnabled && Number(slPrice) >= Number(price))}
                     sx={{
                         bgcolor: themeColor,
                         '&:hover': { bgcolor: '#333' },
-                        py: 1,
+                        color: '#fff',
+                        fontWeight: 600,
+                        py: 1.2,
                         textTransform: 'none',
-                        fontSize: '0.9rem',
-                        boxShadow: 'none'
+                        fontSize: '1rem',
+                        '&.Mui-disabled': {
+                            bgcolor: '#e0e0e0',
+                            color: '#9e9e9e'
+                        }
                     }}
                 >
-                    {side === 'BUY' ? 'Buy' : 'Sell'} {script?.symbol}
+                    {Number(quantity) <= 0 ? 'Invalid Quantity' : 
+                     (slEnabled && Number(slPrice) >= Number(price)) ? 'Invalid Stop Loss' : 
+                     `${side === 'BUY' ? 'Buy' : 'Sell'} ${script?.symbol || ''}`}
                 </Button>
             </Box>
 
