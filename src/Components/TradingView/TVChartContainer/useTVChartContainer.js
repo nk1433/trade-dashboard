@@ -248,6 +248,13 @@ export const useTVChartContainer = () => {
                 charts_storage_api_version: "1.1",
                 client_id: "trade-dashboard",
                 user_id: userId,
+                studies_overrides: {
+                    "volume.show ma": true,
+                    "volume.volume ma.color": "#2196F3",
+                    "volume.volume ma.linewidth": 2,
+                    "volume.volume ma.visible": true,
+                    "volume.volume ma.display": 15,
+                },
                 custom_headers: {
                     Authorization: `Bearer ${localStorage.getItem('token')}`,
                 },
