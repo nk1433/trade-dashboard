@@ -91,12 +91,12 @@ const App = () => {
   // Fetch Initial Metrics if Market is Closed or Metrics Empty
   useEffect(() => {
     // Ensuring stats are loaded before creating metrics
-    if (upstoxToken && Object.keys(stats).length > 0 && (marketStatus === 'CLOSED' || Object.keys(orderMetrics).length === 0)) {
-      if (Object.keys(orderMetrics).length === 0) {
+    if (upstoxToken && stats && Object.keys(stats).length > 0 && (marketStatus === 'CLOSED' || !orderMetrics || Object.keys(orderMetrics).length === 0)) {
+      if (!orderMetrics || Object.keys(orderMetrics).length === 0) {
         dispatch(fetchAndCalculateInitialMetrics(universe));
       }
     }
-  }, [dispatch, upstoxToken, marketStatus, stats]); // Run when stats update
+  }, [dispatch, upstoxToken, marketStatus, stats, orderMetrics]); // Run when stats update
 
   // Global LTP Update Logic for Paper Holdings
   useEffect(() => {

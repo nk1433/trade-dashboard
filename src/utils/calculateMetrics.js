@@ -137,6 +137,7 @@ export const calculateAllocationIntent = (
   return {
     sharesToBuy,
     maxShareToBuy,
+    sharesAllowedByInvestment,
     allocationSuggestions,
     maxAllocationWithRisk: maxAllocationWithRisk,
     maxAllocationPercentage: Math.round(maxAllocationPercentage),

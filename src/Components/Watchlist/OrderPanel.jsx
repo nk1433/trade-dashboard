@@ -19,13 +19,23 @@ import {
     Select,
     MenuItem,
     FormControl,
-    InputLabel
+    InputLabel,
+    Tooltip
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import { useDispatch, useSelector } from 'react-redux';
 import { executePaperOrder } from '../../Store/paperTradeSlice';
 import { commonInputProps } from '../../utils/themeStyles';
 import { calculateAllocationIntent } from '../../utils/calculateMetrics';
+import { fetchHistoricalData } from '../TradingView/datafeed/services/upstoxApiService';
+
+const formatShortAmount = (value) => {
+    if (!value || isNaN(value)) return '0';
+    const num = Number(value);
+    if (num >= 10000000) return (num / 10000000).toFixed(2).replace(/\.?0+$/, '') + 'Cr';
+    if (num >= 1000) return (num / 100000).toFixed(2).replace(/\.?0+$/, '') + 'L'; // e.g. 150000 -> 1.5L, 50000 -> 0.5L
+    return num.toFixed(2).replace(/\.00$/, '');
+};
 
 const OrderPanel = ({ open, onClose, script, currentPrice = 0, tradingMode, token, initialSide = 'BUY' }) => {
     const dispatch = useDispatch();
@@ -43,6 +53,7 @@ const OrderPanel = ({ open, onClose, script, currentPrice = 0, tradingMode, toke
     const [tpEnabled, setTpEnabled] = useState(false);
     const [tpPrice, setTpPrice] = useState(0);
     const [maxAlloc, setMaxAlloc] = useState(15);
+    const [forceMaxAlloc, setForceMaxAlloc] = useState(false);
 
     // Calculated Values
     const [rewardAmount, setRewardAmount] = useState(0);
@@ -68,6 +79,39 @@ const OrderPanel = ({ open, onClose, script, currentPrice = 0, tradingMode, toke
         allocPercent: 0,
     });
 
+    const [lastCandle, setLastCandle] = useState(null);
+
+    // Fetch the latest daily OHLC when the panel opens
+    useEffect(() => {
+        if (open && script?.instrumentKey) {
+            const toDate = new Date().toISOString().split('T')[0];
+            const fromDate = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]; // past week
+
+            fetchHistoricalData(script.instrumentKey, 'days', '1', fromDate, toDate)
+                .then(res => {
+                    if (res.data?.data?.candles?.length > 0) {
+                        const c = res.data.data.candles[0];
+                        setLastCandle({
+                            open: c[1],
+                            high: c[2],
+                            low: c[3],
+                            close: c[4]
+                        });
+                    }
+                })
+                .catch(err => console.error("Failed to fetch OHLC", err));
+        } else {
+            setLastCandle(null);
+        }
+    }, [open, script?.instrumentKey]);
+
+    useEffect(() => {
+        if (lastCandle && (!price || price === 0)) {
+            setPrice(lastCandle.close);
+            setTriggerPrice(lastCandle.close);
+        }
+    }, [lastCandle, price]);
+
     // Initial Load when Panel Opens
     useEffect(() => {
         if (open && script) {
@@ -80,7 +124,7 @@ const OrderPanel = ({ open, onClose, script, currentPrice = 0, tradingMode, toke
             setQuantity(script.sharesToBuy || script.maxShareToBuy || 1);
 
             setSlEnabled(true);
-            setSlPrice(script.sl || 0);
+            setTactic('open_price'); // Set the default tactic to Open Price SL
 
             // Set side from initialSide if provided (re-sync on open)
             setSide(initialSide);
@@ -89,7 +133,7 @@ const OrderPanel = ({ open, onClose, script, currentPrice = 0, tradingMode, toke
             const initialRisk = script.lossInMoney || (capital * 0.0025); // Default to script risk or 0.25% of capital
             setCalcMetrics(prev => ({ ...prev, riskAmount: initialRisk }));
         }
-    }, [open, initialSide]); // Run only when 'open' changes to true (or script changes initially)
+    }, [open, initialSide, script, settings, currentPrice, capital]); // Run when panel opens
 
     // Live Quantity Updates (Sync with System Metrics)
     useEffect(() => {
@@ -136,16 +180,18 @@ const OrderPanel = ({ open, onClose, script, currentPrice = 0, tradingMode, toke
     // Pre-calculate projections for UI
     const tacticProjections = useMemo(() => {
         const entry = Number(price) || 0;
-        const openPrice = Number(script?.currentDayOpen || script?.open || (entry * 0.99));
+        const openPrice = Number(lastCandle?.open || script?.currentDayOpen || script?.open || (entry * 0.99));
         const effectiveCapital = capital || 100000;
         const riskPct = settings?.riskOfPortfolio || 0.25;
 
         // 2% Open
         const sl2Pct = side === 'BUY' ? openPrice * 0.98 : openPrice * 1.02;
         const intent2Pct = calculateAllocationIntent(maxAlloc, effectiveCapital, entry, sl2Pct, riskPct);
+        const qty2Pct = forceMaxAlloc ? intent2Pct.sharesAllowedByInvestment : intent2Pct.sharesToBuy;
 
         // Open Price
         const intentOpen = calculateAllocationIntent(maxAlloc, effectiveCapital, entry, openPrice, riskPct);
+        const qtyOpen = forceMaxAlloc ? intentOpen.sharesAllowedByInvestment : intentOpen.sharesToBuy;
 
         // Fixed Qty (uses current input quantity)
         const currentQty = Number(quantity) || 1;
@@ -154,16 +200,16 @@ const OrderPanel = ({ open, onClose, script, currentPrice = 0, tradingMode, toke
         const slFixedQty = side === 'BUY' ? entry - riskPerShare : entry + riskPerShare;
 
         return {
-            '2pct_open': { sl: sl2Pct.toFixed(2), qty: intent2Pct.sharesToBuy },
-            'open_price': { sl: openPrice.toFixed(2), qty: intentOpen.sharesToBuy },
+            '2pct_open': { sl: sl2Pct.toFixed(2), qty: qty2Pct },
+            'open_price': { sl: openPrice.toFixed(2), qty: qtyOpen },
             'fixed_qty_risk': { sl: slFixedQty.toFixed(2), qty: currentQty }
         };
-    }, [price, side, script, capital, settings, quantity, maxAlloc]);
+    }, [price, side, script, capital, settings, quantity, maxAlloc, lastCandle, forceMaxAlloc]);
 
     // Apply Tactic Logic
     const applyTactic = (selectedTactic, currentQty, currentPriceVal) => {
         const entry = Number(currentPriceVal) || 0;
-        const openPrice = Number(script?.currentDayOpen || script?.open || (entry * 0.99)); // Fallback if open price missing
+        const openPrice = Number(lastCandle?.open || script?.currentDayOpen || script?.open || (entry * 0.99)); // Fallback if open price missing
         const effectiveCapital = capital || 100000;
         const riskPct = settings?.riskOfPortfolio || 0.25;
 
@@ -176,8 +222,8 @@ const OrderPanel = ({ open, onClose, script, currentPrice = 0, tradingMode, toke
             setSlPrice(newSl.toFixed(2));
 
             const intent = calculateAllocationIntent(maxAlloc, effectiveCapital, entry, newSl, riskPct);
-            if (intent.sharesToBuy > 0) {
-                newQty = intent.sharesToBuy;
+            if (intent.sharesToBuy > 0 || forceMaxAlloc) {
+                newQty = forceMaxAlloc ? intent.sharesAllowedByInvestment : intent.sharesToBuy;
             } else {
                 newQty = 0; // Explicitly clear if invalid
             }
@@ -188,8 +234,8 @@ const OrderPanel = ({ open, onClose, script, currentPrice = 0, tradingMode, toke
             setSlPrice(newSl.toFixed(2));
 
             const intent = calculateAllocationIntent(maxAlloc, effectiveCapital, entry, newSl, riskPct);
-            if (intent.sharesToBuy > 0) {
-                newQty = intent.sharesToBuy;
+            if (intent.sharesToBuy > 0 || forceMaxAlloc) {
+                newQty = forceMaxAlloc ? intent.sharesAllowedByInvestment : intent.sharesToBuy;
             } else {
                 newQty = 0; // Explicitly clear if invalid
             }
@@ -232,8 +278,8 @@ const OrderPanel = ({ open, onClose, script, currentPrice = 0, tradingMode, toke
             riskPct
         );
 
-        if (intent.sharesToBuy > 0) {
-            setQuantity(intent.sharesToBuy);
+        if (intent.sharesToBuy > 0 || forceMaxAlloc) {
+            setQuantity(forceMaxAlloc ? intent.sharesAllowedByInvestment : intent.sharesToBuy);
         }
     };
 
@@ -273,8 +319,18 @@ const OrderPanel = ({ open, onClose, script, currentPrice = 0, tradingMode, toke
             applyTactic('fixed_qty_risk', quantity, price);
         } else if (tactic === '2pct_open' || tactic === 'open_price') {
             applyTactic(tactic, quantity, price);
+        } else if (tactic === 'custom' && slPrice) {
+            const entry = Number(price) || 0;
+            const sl = Number(slPrice);
+            const effectiveCapital = capital || 100000;
+            const riskPct = settings?.riskOfPortfolio || 0.25;
+
+            const intent = calculateAllocationIntent(maxAlloc, effectiveCapital, entry, sl, riskPct);
+            if (intent.sharesToBuy > 0 || forceMaxAlloc) {
+                setQuantity(forceMaxAlloc ? intent.sharesAllowedByInvestment : intent.sharesToBuy);
+            }
         }
-    }, [side, price, tactic, maxAlloc]);
+    }, [side, price, tactic, maxAlloc, lastCandle, forceMaxAlloc, slPrice]);
 
     // Replaces the direct setSlPrice in render
 
@@ -416,8 +472,13 @@ const OrderPanel = ({ open, onClose, script, currentPrice = 0, tradingMode, toke
                 <Box>
                     <Typography variant="subtitle1" sx={{ fontWeight: 700, lineHeight: 1.2 }}>{script?.scriptName || 'SYMBOL'}</Typography>
                     <Typography variant="caption" color="text.secondary">
-                        {script?.symbol} • <span style={{ color: themeColor, fontWeight: 600 }}>{Number(currentPrice || script?.ltp || 0).toFixed(2)}</span>
+                        {script?.symbol} • <span style={{ color: themeColor, fontWeight: 600 }}>{Number(currentPrice || script?.ltp || lastCandle?.close || 0).toFixed(2)}</span>
                     </Typography>
+                    {lastCandle && (
+                        <Typography variant="caption" sx={{ display: 'block', mt: 0.5, color: '#787b86', fontWeight: 500 }}>
+                            O: {lastCandle.open} H: {lastCandle.high} L: {lastCandle.low} C: {lastCandle.close}
+                        </Typography>
+                    )}
                 </Box>
                 <IconButton onClick={onClose} size="small">
                     <CloseIcon fontSize="small" />
@@ -503,7 +564,12 @@ const OrderPanel = ({ open, onClose, script, currentPrice = 0, tradingMode, toke
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
                         <Typography variant="caption" sx={{ fontWeight: 600, color: '#787b86' }}>ENTRY TACTIC</Typography>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <Typography variant="caption" sx={{ color: '#787b86' }}>Max Alloc %</Typography>
+                            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+                                <Typography variant="caption" sx={{ color: '#787b86', lineHeight: 1.2 }}>Max Alloc %</Typography>
+                                <Typography sx={{ color: '#b2b5be', fontSize: '0.65rem', lineHeight: 1 }}>
+                                    (₹{formatShortAmount((maxAlloc / 100) * (capital || 100000))})
+                                </Typography>
+                            </Box>
                             <TextField
                                 type="number"
                                 value={maxAlloc}
@@ -515,6 +581,14 @@ const OrderPanel = ({ open, onClose, script, currentPrice = 0, tradingMode, toke
                                     sx: { '& input': { py: 0, px: 1, textAlign: 'center' } }
                                 }}
                             />
+                            <Tooltip title="Ignore risk limit and force maximum allocation">
+                                <Checkbox 
+                                    size="small" 
+                                    checked={forceMaxAlloc} 
+                                    onChange={(e) => setForceMaxAlloc(e.target.checked)} 
+                                    sx={{ p: 0, '& .MuiSvgIcon-root': { fontSize: 18 } }} 
+                                />
+                            </Tooltip>
                         </Box>
                     </Box>
                     <ToggleButtonGroup
@@ -610,7 +684,7 @@ const OrderPanel = ({ open, onClose, script, currentPrice = 0, tradingMode, toke
                             </Box>
                         )}
                         <Typography variant="body2" sx={{ fontWeight: 600, minWidth: '80px', textAlign: 'right' }}>
-                            ₹{((Number(quantity) || 0) * (orderType === 'MARKET' ? (currentPrice || script?.ltp || 0) : (Number(price) || 0))).toFixed(2)}
+                            ₹{((Number(quantity) || 0) * (orderType === 'MARKET' ? (currentPrice || script?.ltp || lastCandle?.close || 0) : (Number(price) || 0))).toFixed(2)}
                         </Typography>
                     </Box>
 
@@ -719,7 +793,7 @@ const OrderPanel = ({ open, onClose, script, currentPrice = 0, tradingMode, toke
                     </Box>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                         <Typography variant="caption" color="text.secondary">Allocation</Typography>
-                        <Typography variant="caption" fontWeight={600}>₹{calcMetrics.allocation}</Typography>
+                        <Typography variant="caption" fontWeight={600}>₹{formatShortAmount(calcMetrics.allocation)}</Typography>
                     </Box>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                         <Typography variant="caption" color="text.secondary">Alloc %</Typography>
@@ -743,7 +817,7 @@ const OrderPanel = ({ open, onClose, script, currentPrice = 0, tradingMode, toke
                     )}
                     <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                         <Typography variant="caption" color="text.secondary">Total Capital</Typography>
-                        <Typography variant="caption" fontWeight={600}>₹{capital?.toFixed() || 100000}</Typography>
+                        <Typography variant="caption" fontWeight={600}>₹{formatShortAmount(capital || 100000)}</Typography>
                     </Box>
                 </Box>
 
@@ -766,9 +840,9 @@ const OrderPanel = ({ open, onClose, script, currentPrice = 0, tradingMode, toke
                         }
                     }}
                 >
-                    {Number(quantity) <= 0 ? 'Invalid Quantity' : 
-                     (slEnabled && Number(slPrice) >= Number(price)) ? 'Invalid Stop Loss' : 
-                     `${side === 'BUY' ? 'Buy' : 'Sell'} ${script?.symbol || ''}`}
+                    {Number(quantity) <= 0 ? 'Invalid Quantity' :
+                        (slEnabled && Number(slPrice) >= Number(price)) ? 'Invalid Stop Loss' :
+                            `${side === 'BUY' ? 'Buy' : 'Sell'} ${script?.symbol || ''}`}
                 </Button>
             </Box>
 
