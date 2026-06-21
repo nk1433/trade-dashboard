@@ -9,10 +9,13 @@ import { BACKEND_URL } from '../../utils/config';
 import { commonInputProps, commonSelectSx, commonInputLabelSx } from '../../utils/themeStyles';
 import FlagMenu from '../Watchlist/FlagMenu';
 import { useWatchlistFilter } from '../../hooks/useWatchlistFilter';
+import ScansTVChart from './ScansTVChart';
 
 const Scans = () => {
     const [selectedDate, setSelectedDate] = useState(moment().format('YYYY-MM-DD'));
     const [scanType, setScanType] = useState('all');
+    const [viewType, setViewType] = useState('table');
+    const [timeframe, setTimeframe] = useState(15);
     const [scans, setScans] = useState([]);
     const [scanCount, setScanCount] = useState(0);
     const [loading, setLoading] = useState(false);
@@ -333,6 +336,36 @@ const Scans = () => {
                     </Box>
 
                     <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+                        <FormControl size="small" sx={{ minWidth: 120, bgcolor: 'var(--bg-primary)' }}>
+                            <InputLabel sx={commonInputLabelSx}>View</InputLabel>
+                            <Select
+                                value={viewType}
+                                label="View"
+                                onChange={(e) => setViewType(e.target.value)}
+                                sx={commonSelectSx}
+                            >
+                                <MenuItem value="table">Table</MenuItem>
+                                <MenuItem value="chart">Chart</MenuItem>
+                            </Select>
+                        </FormControl>
+
+                        {viewType === 'chart' && (
+                            <FormControl size="small" sx={{ minWidth: 120, bgcolor: 'var(--bg-primary)' }}>
+                                <InputLabel sx={commonInputLabelSx}>Timeframe</InputLabel>
+                                <Select
+                                    value={timeframe}
+                                    label="Timeframe"
+                                    onChange={(e) => setTimeframe(e.target.value)}
+                                    sx={commonSelectSx}
+                                >
+                                    <MenuItem value={5}>5 Mins</MenuItem>
+                                    <MenuItem value={15}>15 Mins</MenuItem>
+                                    <MenuItem value={30}>30 Mins</MenuItem>
+                                    <MenuItem value={60}>60 Mins</MenuItem>
+                                </Select>
+                            </FormControl>
+                        )}
+
                         <TextField
                             label="Date"
                             type="date"
@@ -388,39 +421,43 @@ const Scans = () => {
                     </Box>
                 </Box>
 
-                {/* Table Area */}
+                {/* Content Area */}
                 <Paper elevation={0} sx={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, bgcolor: 'var(--bg-primary)', borderRadius: 2, overflow: 'hidden', border: '1px solid var(--border-color)', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
-                    <DataGrid
-                        rows={scans}
-                        columns={columns}
-                        loading={loading}
-                        pageSizeOptions={[10, 25, 50, 100]}
-                        initialState={{
-                            pagination: { paginationModel: { pageSize: 25 } },
-                        }}
-                        density="standard"
-                        sx={{
-                            flex: 1,
-                            border: 'none',
-                            fontSize: '0.85rem',
-                            '& .MuiDataGrid-cell': {
-                                borderColor: 'var(--border-color)',
-                                py: 1,
-                            },
-                            '& .MuiDataGrid-columnHeaders': {
-                                backgroundColor: 'var(--bg-secondary)',
-                                borderBottom: '1px solid var(--border-color)',
-                                fontWeight: 600,
-                                textTransform: 'uppercase',
-                                fontSize: '0.75rem',
-                                letterSpacing: '0.05em',
-                                color: 'var(--text-secondary)'
-                            },
-                            '& .MuiDataGrid-row:hover': {
-                                backgroundColor: 'rgba(0,0,0,0.02)',
-                            }
-                        }}
-                    />
+                    {viewType === 'table' ? (
+                        <DataGrid
+                            rows={scans}
+                            columns={columns}
+                            loading={loading}
+                            pageSizeOptions={[10, 25, 50, 100]}
+                            initialState={{
+                                pagination: { paginationModel: { pageSize: 25 } },
+                            }}
+                            density="standard"
+                            sx={{
+                                flex: 1,
+                                border: 'none',
+                                fontSize: '0.85rem',
+                                '& .MuiDataGrid-cell': {
+                                    borderColor: 'var(--border-color)',
+                                    py: 1,
+                                },
+                                '& .MuiDataGrid-columnHeaders': {
+                                    backgroundColor: 'var(--bg-secondary)',
+                                    borderBottom: '1px solid var(--border-color)',
+                                    fontWeight: 600,
+                                    textTransform: 'uppercase',
+                                    fontSize: '0.75rem',
+                                    letterSpacing: '0.05em',
+                                    color: 'var(--text-secondary)'
+                                },
+                                '& .MuiDataGrid-row:hover': {
+                                    backgroundColor: 'rgba(0,0,0,0.02)',
+                                }
+                            }}
+                        />
+                    ) : (
+                        <ScansTVChart scans={scans} timeframe={timeframe} />
+                    )}
                 </Paper>
             </Box>
 
