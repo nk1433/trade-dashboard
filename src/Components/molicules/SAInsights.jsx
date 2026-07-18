@@ -45,11 +45,44 @@ const ViewSectionContainer = ({ title, children }) => (
   </Box>
 );
 
+const INSIGHT_FIELDS = [
+  {
+    group: '1. Situation', fields: [
+      { key: 'whatHappening', label: 'What is happening in the market?' },
+      { key: 'whyHappening', label: 'Why is it happening?' },
+      { key: 'whatNext', label: 'What will happen next?' },
+    ]
+  },
+  {
+    group: '2. Risk', fields: [
+      { key: 'bias', label: 'What is my market bias today?' },
+      { key: 'exploitPlan', label: 'Is there a plan to exploit it?' },
+      { key: 'alternativePlan', label: 'Is there an alternative plan?' },
+    ]
+  },
+  {
+    group: '3. Process', fields: [
+      { key: 'tradingObjectives', label: 'What does it mean in terms of my trading objectives?' },
+      { key: 'whatCanIDo', label: 'What can I do about it?' },
+    ]
+  },
+  {
+    group: '4. Setup\'s', fields: [
+      { key: 'winningCharacteristics', label: 'Winning characteristics' },
+      { key: 'setupWorked', label: 'Setup which worked' },
+      { key: 'setupDidntWork', label: 'Setup which didn\'t work' },
+      { key: 'notes', label: 'Additional Notes' },
+    ]
+  }
+];
+
 const SAInsights = () => {
   const [insights, setInsights] = useState([]);
   const [formData, setFormData] = useState(initialFormState);
   const [isEditing, setIsEditing] = useState(false);
   const [expandedRowId, setExpandedRowId] = useState(null);
+  const [activeField, setActiveField] = useState('whatHappening');
+  const [isPreviewMode, setIsPreviewMode] = useState(false);
 
   const todayDate = new Date().toISOString().split('T')[0];
   const [currentDate, setCurrentDate] = useState(todayDate);
@@ -125,6 +158,8 @@ const SAInsights = () => {
     });
     setCurrentDate(insight.date);
     setIsEditing(true);
+    setActiveField('whatHappening');
+    setIsPreviewMode(false);
     // scroll to top
     window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
   };
@@ -133,6 +168,8 @@ const SAInsights = () => {
     setFormData(initialFormState);
     setCurrentDate(todayDate);
     setIsEditing(true);
+    setActiveField('whatHappening');
+    setIsPreviewMode(false);
   };
 
   const toggleRow = (date) => {
@@ -159,8 +196,8 @@ const SAInsights = () => {
         </Box>
 
         {isEditing && (
-          <Box sx={{ mb: 5 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+          <Box sx={{ mb: 5, p: 3, border: '1px solid #e0e0e0', borderRadius: 2, bgcolor: '#fafafa' }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
               <TextField
                 label="Date"
                 type="date"
@@ -168,78 +205,127 @@ const SAInsights = () => {
                 onChange={(e) => setCurrentDate(e.target.value)}
                 InputLabelProps={{ shrink: true }}
                 variant="outlined"
+                size="small"
                 sx={{ width: 200 }}
               />
+              <Box sx={{ display: 'flex', gap: 1 }}>
+                <Button
+                  variant={!isPreviewMode ? 'contained' : 'outlined'}
+                  onClick={() => setIsPreviewMode(false)}
+                  sx={{ bgcolor: !isPreviewMode ? '#333' : 'transparent', color: !isPreviewMode ? '#fff' : '#333', borderColor: '#333', '&:hover': { bgcolor: !isPreviewMode ? '#000' : 'rgba(0,0,0,0.05)' } }}
+                >
+                  Edit
+                </Button>
+                <Button
+                  variant={isPreviewMode ? 'contained' : 'outlined'}
+                  onClick={() => setIsPreviewMode(true)}
+                  sx={{ mr: 2, bgcolor: isPreviewMode ? '#333' : 'transparent', color: isPreviewMode ? '#fff' : '#333', borderColor: '#333', '&:hover': { bgcolor: isPreviewMode ? '#000' : 'rgba(0,0,0,0.05)' } }}
+                >
+                  Review
+                </Button>
+
+                <Button
+                  variant="outlined"
+                  onClick={() => setIsEditing(false)}
+                  sx={{ color: '#333', borderColor: '#333', '&:hover': { borderColor: '#000', bgcolor: 'rgba(0,0,0,0.05)' } }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant="contained"
+                  onClick={handleSubmit}
+                  sx={{ bgcolor: '#333', color: '#fff', '&:hover': { bgcolor: '#000' }, px: 3 }}
+                >
+                  Save Insight
+                </Button>
+              </Box>
             </Box>
 
-            {/* 1. Situation */}
-            <SectionContainer title="1. Situation">
-              <Grid item xs={12} md={4}>
-                <TextField fullWidth label="What is happening in the market?" name="whatHappening" value={formData.whatHappening} onChange={handleInputChange} multiline rows={3} variant="outlined" />
-              </Grid>
-              <Grid item xs={12} md={4}>
-                <TextField fullWidth label="Why is it happening?" name="whyHappening" value={formData.whyHappening} onChange={handleInputChange} multiline rows={3} variant="outlined" />
-              </Grid>
-              <Grid item xs={12} md={4}>
-                <TextField fullWidth label="What will happen next?" name="whatNext" value={formData.whatNext} onChange={handleInputChange} multiline rows={3} variant="outlined" />
-              </Grid>
-            </SectionContainer>
+            {!isPreviewMode ? (
+              <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 4 }}>
+                {/* Left Sidebar: Field Selection Menu */}
+                <Box sx={{ width: { xs: '100%', md: '300px' }, flexShrink: 0, borderRight: { md: '1px solid #e0e0e0' }, pr: { md: 2 } }}>
+                  <Typography variant="subtitle2" sx={{ mb: 2, color: '#666' }}>Select a topic to focus on:</Typography>
+                  {INSIGHT_FIELDS.map((group) => (
+                    <Box key={group.group} sx={{ mb: 3 }}>
+                      <Typography variant="caption" sx={{ fontWeight: 'bold', color: '#999', textTransform: 'uppercase', letterSpacing: 1 }}>{group.group}</Typography>
+                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, mt: 1 }}>
+                        {group.fields.map(field => {
+                          const hasContent = !!formData[field.key];
+                          return (
+                            <Button
+                              key={field.key}
+                              variant={activeField === field.key ? 'contained' : (hasContent ? 'outlined' : 'text')}
+                              onClick={() => setActiveField(field.key)}
+                              sx={{
+                                justifyContent: 'flex-start',
+                                textAlign: 'left',
+                                textTransform: 'none',
+                                color: activeField === field.key ? '#fff' : '#333',
+                                bgcolor: activeField === field.key ? '#333' : 'transparent',
+                                borderColor: hasContent && activeField !== field.key ? '#ccc' : 'transparent',
+                                '&:hover': { bgcolor: activeField === field.key ? '#000' : '#eee' }
+                              }}
+                            >
+                              {field.label} {hasContent && activeField !== field.key && ' ✓'}
+                            </Button>
+                          );
+                        })}
+                      </Box>
+                    </Box>
+                  ))}
+                </Box>
 
-            {/* 2. Risk */}
-            <SectionContainer title="2. Risk">
-              <Grid item xs={12} md={4}>
-                <TextField fullWidth label="What is my market bias today?" name="bias" value={formData.bias} onChange={handleInputChange} multiline rows={3} variant="outlined" />
-              </Grid>
-              <Grid item xs={12} md={4}>
-                <TextField fullWidth label="Is there a plan to exploit it?" name="exploitPlan" value={formData.exploitPlan} onChange={handleInputChange} multiline rows={3} variant="outlined" />
-              </Grid>
-              <Grid item xs={12} md={4}>
-                <TextField fullWidth label="Is there an alternative plan?" name="alternativePlan" value={formData.alternativePlan} onChange={handleInputChange} multiline rows={3} variant="outlined" />
-              </Grid>
-            </SectionContainer>
+                {/* Right Area: The Big Box */}
+                <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                  {(() => {
+                    const activeFieldObj = INSIGHT_FIELDS.flatMap(g => g.fields).find(f => f.key === activeField);
+                    if (!activeFieldObj) return null;
+                    return (
+                      <Box sx={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column' }}>
+                        <Typography variant="h6" sx={{ mb: 2, color: '#333' }}>{activeFieldObj.label}</Typography>
+                        <TextField
+                          fullWidth
+                          autoFocus
+                          multiline
+                          minRows={18}
+                          variant="outlined"
+                          placeholder="Type your insights here..."
+                          name={activeField}
+                          value={formData[activeField]}
+                          onChange={handleInputChange}
+                          sx={{ bgcolor: '#fff', width: '100%' }}
+                        />
+                      </Box>
+                    );
+                  })()}
+                </Box>
+              </Box>
+            ) : (
+              /* Preview Mode */
+              <Box sx={{ p: 3, bgcolor: '#fff', borderRadius: 1, border: '1px solid #e0e0e0' }}>
+                <Typography variant="h6" sx={{ mb: 3, borderBottom: '1px solid #eee', pb: 1 }}>Review Insights for {currentDate}</Typography>
+                {INSIGHT_FIELDS.map((group) => {
+                  const hasAnyContent = group.fields.some(f => !!formData[f.key]);
+                  if (!hasAnyContent) return null;
 
-            {/* 3. Process */}
-            <SectionContainer title="3. Process">
-              <Grid item xs={12} md={6}>
-                <TextField fullWidth label="What does it mean in terms of my trading objectives?" name="tradingObjectives" value={formData.tradingObjectives} onChange={handleInputChange} multiline rows={3} variant="outlined" />
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <TextField fullWidth label="What can I do about it?" name="whatCanIDo" value={formData.whatCanIDo} onChange={handleInputChange} multiline rows={3} variant="outlined" />
-              </Grid>
-            </SectionContainer>
+                  return (
+                    <ViewSectionContainer key={group.group} title={group.group}>
+                      {group.fields.map(field => {
+                        if (!formData[field.key]) return null;
+                        return (
+                          <Grid item xs={12} sm={12} md={6} key={field.key}>
+                            <Typography variant="caption" sx={{ fontWeight: 600, color: '#666' }}>{field.label}</Typography>
+                            <Typography variant="body2" sx={{ mb: 1.5, whiteSpace: 'pre-wrap', color: '#333', bgcolor: '#f9f9f9', p: 1.5, borderRadius: 1, border: '1px solid #eee' }}>{formData[field.key]}</Typography>
+                          </Grid>
+                        );
+                      })}
+                    </ViewSectionContainer>
+                  );
+                })}
+              </Box>
+            )}
 
-            {/* 4. Setups */}
-            <SectionContainer title="4. Setup's">
-              <Grid item xs={12} md={4}>
-                <TextField fullWidth label="Winning characteristics" name="winningCharacteristics" value={formData.winningCharacteristics} onChange={handleInputChange} multiline rows={3} variant="outlined" />
-              </Grid>
-              <Grid item xs={12} md={4}>
-                <TextField fullWidth label="Setup which worked" name="setupWorked" value={formData.setupWorked} onChange={handleInputChange} multiline rows={3} variant="outlined" />
-              </Grid>
-              <Grid item xs={12} md={4}>
-                <TextField fullWidth label="Setup which didn't work" name="setupDidntWork" value={formData.setupDidntWork} onChange={handleInputChange} multiline rows={3} variant="outlined" />
-              </Grid>
-              <Grid item xs={12}>
-                <TextField fullWidth label="Additional Notes" name="notes" value={formData.notes} onChange={handleInputChange} multiline rows={2} variant="outlined" />
-              </Grid>
-            </SectionContainer>
-
-            <Box sx={{ mt: 3, display: 'flex', gap: 2 }}>
-              <Button
-                variant="contained"
-                onClick={handleSubmit}
-                sx={{ bgcolor: '#333', color: '#fff', '&:hover': { bgcolor: '#000' } }}
-              >
-                Save Insight
-              </Button>
-              <Button
-                variant="outlined"
-                onClick={() => setIsEditing(false)}
-                sx={{ color: '#333', borderColor: '#333', '&:hover': { borderColor: '#000' } }}
-              >
-                Cancel
-              </Button>
-            </Box>
           </Box>
         )}
 
