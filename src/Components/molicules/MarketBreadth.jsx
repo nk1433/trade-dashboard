@@ -42,36 +42,24 @@ const getUpDown4Color = (params, type) => {
 const getStrongCloseColor = (params, type) => {
   let style = { width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' };
   
-  if (type === 'down') {
-    if (params.row.strongCloseDownCount >= 50) {
-      return { ...style, backgroundColor: '#8b0000', color: '#fff' }; // Dark Red
-    }
-    if (params.row.strongCloseDownCount < 10) {
-      return { ...style, backgroundColor: '#006400', color: '#fff' }; // Dark Green
-    }
-  }
+  const poolSize = type === 'up' ? (params.row.up4Percent || 0) : (params.row.down4Percent || 0);
+  const ratio = type === 'up' ? (params.row.strongCloseUpRatio || 0) : (params.row.strongCloseDownRatio || 0);
+
+  const isMeaningfulSample = poolSize >= 15;
 
   if (type === 'up') {
-    if (params.row.strongCloseUpCount >= 50) {
-      return { ...style, backgroundColor: '#006400', color: '#fff' }; // Dark Green
-    }
-    if (params.row.strongCloseUpCount < 10) {
-      return { ...style, backgroundColor: '#8b0000', color: '#fff' }; // Dark Red
-    }
+    if (ratio >= 0.75 && isMeaningfulSample) return { ...style, backgroundColor: '#006400', color: '#fff' }; // Dark Green
+    if (ratio <= 0.30 && isMeaningfulSample) return { ...style, backgroundColor: '#8b0000', color: '#fff' }; // Dark Red
+    if (ratio >= 0.60) return { ...style, backgroundColor: '#c6efce', color: '#004d00' }; // Light Green
+    if (ratio <= 0.40) return { ...style, backgroundColor: '#ffc7ce', color: '#800000' }; // Light Red
+  } else {
+    // Down days naturally close weaker, so the baseline ratio is higher (typically 65-75%)
+    if (ratio >= 0.80 && isMeaningfulSample) return { ...style, backgroundColor: '#8b0000', color: '#fff' }; // Dark Red
+    if (ratio <= 0.40 && isMeaningfulSample) return { ...style, backgroundColor: '#006400', color: '#fff' }; // Dark Green
+    if (ratio >= 0.75) return { ...style, backgroundColor: '#ffc7ce', color: '#800000' }; // Light Red
+    if (ratio <= 0.55) return { ...style, backgroundColor: '#c6efce', color: '#004d00' }; // Light Green
   }
 
-  const ratio = type === 'up' ? params.row.strongCloseUpRatio : params.row.strongCloseDownRatio;
-
-  if (ratio >= 0.6) {
-    return type === 'up'
-      ? { ...style, backgroundColor: '#c6efce', color: '#004d00' } // Light Green
-      : { ...style, backgroundColor: '#ffc7ce', color: '#800000' }; // Light Red for Down
-  }
-  if (ratio <= 0.4) {
-    return type === 'up'
-      ? { ...style, backgroundColor: '#ffc7ce', color: '#800000' } // Light Red
-      : { ...style, backgroundColor: '#c6efce', color: '#004d00' }; // Light Green for Down
-  }
   return style;
 };
 
@@ -707,6 +695,7 @@ const MarketBreadthTable = () => {
             <li>Yes. Abnormal strength tends to resolve in consolidation or pullback.</li>
             <li>Excessively positive breadth is not immediately bearish. Unlikely excessively bearish breadth, which gives very good signal on bullish side , excessive positive has no good signalling record.</li>
             <li>Extremely bearish breadth = bullish and start of a bounce or bottom. Short term extremely bullish breadth = pullback. For tops there are no reliable indicators as it is gradual process. I look for extremes in breadth on any time frames to reduce or add risks. Rest of the time breadth is not much useful.</li>
+            <li>Strong closes are inherently asymmetrical. Down days (panic selling) naturally close near their lows much more frequently (~70% baseline) than up days close near their highs (~55% baseline). True downside extremes require a &gt; 80% strong close down ratio.</li>
           </Box>
         </Paper>
 
