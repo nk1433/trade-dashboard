@@ -131,7 +131,7 @@ const Scans = () => {
             width: 50,
             renderCell: (params) => {
                 const symbol = params.row.tradingSymbol; // Use tradingSymbol for flag mapping
-                const currentFlag = flaggedStocks[symbol] || null;
+                const currentFlags = flaggedStocks[symbol] || [];
 
                 const handleFlagChange = (color) => {
                     toggleFlag(symbol, color);
@@ -140,7 +140,7 @@ const Scans = () => {
                 return (
                     <Box onClick={(e) => e.stopPropagation()}>
                         <FlagMenu
-                            currentFlag={currentFlag}
+                            currentFlags={currentFlags}
                             onFlagChange={handleFlagChange}
                         />
                     </Box>

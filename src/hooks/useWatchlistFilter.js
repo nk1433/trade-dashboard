@@ -7,12 +7,15 @@ import { BACKEND_URL } from '../utils/config';
 // Simple helper to get flag counts
 const getFlagCounts = (flaggedStocks) => {
   const counts = { red: 0, blue: 0, green: 0, orange: 0, purple: 0 };
-  Object.values(flaggedStocks).forEach(color => {
-    if (counts[color] !== undefined) {
-      counts[color]++;
-    } else {
-      counts[color] = (counts[color] || 0) + 1;
-    }
+  Object.values(flaggedStocks).forEach(flags => {
+    const flagsArray = Array.isArray(flags) ? flags : [flags];
+    flagsArray.forEach(color => {
+      if (counts[color] !== undefined) {
+        counts[color]++;
+      } else {
+        counts[color] = 1;
+      }
+    });
   });
   return counts;
 };
@@ -186,10 +189,19 @@ export const useWatchlistFilter = () => {
       if (symbol) {
         setFlaggedStocks(prev => {
           const next = { ...prev };
-          if (color === null || prev[symbol] === color) {
+          const currentFlags = Array.isArray(prev[symbol]) ? prev[symbol] : (prev[symbol] ? [prev[symbol]] : []);
+          
+          if (color === null) {
             delete next[symbol];
+            return next;
+          }
+
+          if (currentFlags.includes(color)) {
+            const newFlags = currentFlags.filter(f => f !== color);
+            if (newFlags.length === 0) delete next[symbol];
+            else next[symbol] = newFlags;
           } else {
-            next[symbol] = color;
+            next[symbol] = [...currentFlags, color];
           }
           return next;
         });
@@ -208,10 +220,19 @@ export const useWatchlistFilter = () => {
   const toggleFlag = useCallback((symbol, color) => {
     setFlaggedStocks(prev => {
       const next = { ...prev };
-      if (color === null || prev[symbol] === color) {
-        delete next[symbol]; // Remove flag
+      const currentFlags = Array.isArray(prev[symbol]) ? prev[symbol] : (prev[symbol] ? [prev[symbol]] : []);
+      
+      if (color === null) {
+        delete next[symbol];
+        return next;
+      }
+
+      if (currentFlags.includes(color)) {
+        const newFlags = currentFlags.filter(f => f !== color);
+        if (newFlags.length === 0) delete next[symbol];
+        else next[symbol] = newFlags;
       } else {
-        next[symbol] = color; // Set/Update flag
+        next[symbol] = [...currentFlags, color];
       }
       return next;
     });
@@ -230,8 +251,11 @@ export const useWatchlistFilter = () => {
     setFlaggedStocks(prev => {
       const next = { ...prev };
       Object.keys(next).forEach((symbol) => {
-        if (next[symbol] === name) {
-          delete next[symbol];
+        const flagsArray = Array.isArray(next[symbol]) ? next[symbol] : [next[symbol]];
+        if (flagsArray.includes(name)) {
+          const newFlags = flagsArray.filter(f => f !== name);
+          if (newFlags.length === 0) delete next[symbol];
+          else next[symbol] = newFlags;
         }
       });
       return next;
@@ -249,7 +273,8 @@ export const useWatchlistFilter = () => {
   const getFlaggedList = useCallback((color) => {
     const list = {};
     Object.entries(flaggedStocks).forEach(([symbol, flagColor]) => {
-      if (flagColor === color) {
+      const flagsArray = Array.isArray(flagColor) ? flagColor : [flagColor];
+      if (flagsArray.includes(color)) {
         const script = universeMap[symbol];
         const instrumentKey = script ? script.instrument_key : symbol;
         
@@ -330,8 +355,11 @@ export const useWatchlistFilter = () => {
     setFlaggedStocks(prev => {
       const next = { ...prev };
       Object.keys(next).forEach((symbol) => {
-        if (next[symbol] === color) {
-          delete next[symbol];
+        const flagsArray = Array.isArray(next[symbol]) ? next[symbol] : [next[symbol]];
+        if (flagsArray.includes(color)) {
+          const newFlags = flagsArray.filter(f => f !== color);
+          if (newFlags.length === 0) delete next[symbol];
+          else next[symbol] = newFlags;
         }
       });
       return next;

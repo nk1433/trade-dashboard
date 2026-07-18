@@ -2,13 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { IconButton, Popover, Box, Tooltip, Typography, Divider, MenuItem } from '@mui/material';
 import FlagIcon from '@mui/icons-material/Flag';
 import FlagOutlinedIcon from '@mui/icons-material/FlagOutlined';
+import BookmarksIcon from '@mui/icons-material/Bookmarks';
 import ClearIcon from '@mui/icons-material/Clear';
 import CheckIcon from '@mui/icons-material/Check';
 
 import { useFlagMenu } from './useFlagMenu';
 import { styles, FLAG_COLORS } from './styles';
 
-const FlagMenu = ({ currentFlag, onFlagChange }) => {
+const FlagMenu = ({ currentFlags, onFlagChange }) => {
     const {
         anchorEl,
         open,
@@ -32,17 +33,27 @@ const FlagMenu = ({ currentFlag, onFlagChange }) => {
         return () => window.removeEventListener('CUSTOM_LISTS_UPDATED_EVENT', handleCustomListsUpdated);
     }, []);
 
+    // Normalize to array
+    const flagsArray = Array.isArray(currentFlags) ? currentFlags : (currentFlags ? [currentFlags] : []);
+
     // Determine icon color
-    const iconColor = currentFlag && FLAG_COLORS[currentFlag] ? FLAG_COLORS[currentFlag] : (currentFlag ? 'text.secondary' : 'action');
-    const IconComponent = currentFlag ? FlagIcon : FlagOutlinedIcon;
+    const firstStandardColor = flagsArray.find(f => FLAG_COLORS[f]);
+    const iconColor = firstStandardColor ? FLAG_COLORS[firstStandardColor] : (flagsArray.length > 0 ? 'text.secondary' : 'action');
+    
+    let IconComponent = FlagOutlinedIcon;
+    if (flagsArray.length > 1) {
+        IconComponent = BookmarksIcon;
+    } else if (flagsArray.length === 1) {
+        IconComponent = FlagIcon;
+    }
 
     return (
         <>
-            <Tooltip title={currentFlag ? `Flagged: ${currentFlag}` : "Flag this symbol"}>
+            <Tooltip title={flagsArray.length > 0 ? `Flagged: ${flagsArray.join(', ')}` : "Flag this symbol"}>
                 <IconButton
                     size="small"
                     onClick={handleOpen}
-                    sx={{ ...styles.iconButton, color: currentFlag ? iconColor : 'action.active' }}
+                    sx={{ ...styles.iconButton, color: flagsArray.length > 0 ? iconColor : 'action.active' }}
                 >
                     <IconComponent fontSize="small" />
                 </IconButton>
@@ -72,13 +83,13 @@ const FlagMenu = ({ currentFlag, onFlagChange }) => {
                                             e.stopPropagation();
                                             handleSelectFlag(name);
                                         }}
-                                        sx={styles.colorCircle(color, currentFlag === name)}
+                                        sx={styles.colorCircle(color, flagsArray.includes(name))}
                                     />
                                 </Tooltip>
                             ))}
                         </Box>
-                        {currentFlag && (
-                            <Tooltip title="Remove Flag">
+                        {flagsArray.length > 0 && (
+                            <Tooltip title="Remove All Flags">
                                 <IconButton
                                     size="small"
                                     onClick={(e) => {
@@ -118,7 +129,7 @@ const FlagMenu = ({ currentFlag, onFlagChange }) => {
                                     }}
                                 >
                                     {listName}
-                                    {currentFlag === listName && <CheckIcon fontSize="small" sx={{ ml: 1, color: 'primary.main' }} />}
+                                    {flagsArray.includes(listName) && <CheckIcon fontSize="small" sx={{ ml: 1, color: 'primary.main' }} />}
                                 </MenuItem>
                             ))}
                         </>

@@ -86,7 +86,7 @@ const IndustryRow = ({ industry, data, isExpanded, onToggle, flaggedStocks, onFl
                                         >
                                             <TableCell align="center" onClick={(e) => e.stopPropagation()}>
                                                 <FlagMenu
-                                                    currentFlag={flaggedStocks[stock.symbol]}
+                                                    currentFlags={flaggedStocks[stock.symbol] || []}
                                                     onFlagChange={(color) => onFlagChange(stock.symbol, color)}
                                                 />
                                             </TableCell>

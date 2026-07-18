@@ -146,7 +146,7 @@ export default function TopVolumeShockers() {
                             >
                                 <TableCell align="center" onClick={(e) => e.stopPropagation()}>
                                     <FlagMenu
-                                        currentFlag={flaggedStocks[stock.symbol]}
+                                        currentFlags={flaggedStocks[stock.symbol] || []}
                                         onFlagChange={(color) => handleFlagChange(stock.symbol, color)}
                                     />
                                 </TableCell>

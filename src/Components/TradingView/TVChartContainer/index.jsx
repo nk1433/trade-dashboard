@@ -220,7 +220,7 @@ const TVChartContainer = () => {
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
                                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                                     <FlagMenu
-                                        currentFlag={flaggedStocks[activeScript.symbol] || flaggedStocks[activeScript.instrumentKey] || null}
+                                        currentFlags={flaggedStocks[activeScript.symbol] || flaggedStocks[activeScript.instrumentKey] || []}
                                         onFlagChange={(flag) => toggleFlag(activeScript.symbol, flag)}
                                     />
                                     <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>{activeScript.symbol}</Typography>
