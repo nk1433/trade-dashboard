@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Box, IconButton, Tooltip, Snackbar, Alert, Typography, Popover } from '@mui/material';
-import { DataGrid, GridLogicOperator } from '@mui/x-data-grid';
+import { DataGrid, GridLogicOperator, useGridApiRef } from '@mui/x-data-grid';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import { useDispatch, useSelector } from 'react-redux';
@@ -58,6 +58,53 @@ const WatchList = ({
   const [infoAnchorEl, setInfoAnchorEl] = useState(null);
   const [hoveredSymbol, setHoveredSymbol] = useState(null);
 
+  const apiRef = useGridApiRef();
+
+  // Keyboard navigation: Space to move to next row
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      // Ignore if user is typing in an input
+      if (['INPUT', 'TEXTAREA'].includes(e.target.tagName) || e.target.isContentEditable) return;
+
+      if (e.code === 'Space') {
+        e.preventDefault(); // Prevent page scroll
+        if (!selectedRowId || !onRowClick) return;
+
+        try {
+          const sortedRowIds = apiRef.current.getSortedRowIds();
+          const currentIndex = sortedRowIds.indexOf(selectedRowId);
+          
+          if (currentIndex !== -1) {
+            let targetIndex = -1;
+            
+            if (e.shiftKey) {
+              // Go backwards
+              if (currentIndex > 0) targetIndex = currentIndex - 1;
+            } else {
+              // Go forwards
+              if (currentIndex < sortedRowIds.length - 1) targetIndex = currentIndex + 1;
+            }
+            
+            if (targetIndex !== -1) {
+              const targetRowId = sortedRowIds[targetIndex];
+              const targetRow = apiRef.current.getRow(targetRowId);
+              if (targetRow) {
+                onRowClick(targetRow);
+                // Scroll to keep the newly selected row in view
+                apiRef.current.scrollToIndexes({ rowIndex: targetIndex });
+              }
+            }
+          }
+        } catch (err) {
+          console.warn("Could not navigate to next/prev row", err);
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedRowId, onRowClick, apiRef]);
+
   const dispatch = useDispatch();
   const tradingMode = useSelector((state) => state.settings?.tradingMode || 'PAPER');
   const token = useSelector((state) => state.auth?.token);
@@ -92,7 +139,7 @@ const WatchList = ({
         width: 40, // Reduced from 50
         renderCell: (params) => {
           const symbol = params.row.symbol;
-          const currentFlag = flaggedStocks[symbol] || null;
+          const currentFlags = flaggedStocks[symbol] || [];
 
           /* 
              Handle Flag Change:
@@ -108,7 +155,7 @@ const WatchList = ({
           return (
             <Box onClick={(e) => e.stopPropagation()}>
               <FlagMenu
-                currentFlag={currentFlag}
+                currentFlags={currentFlags}
                 onFlagChange={handleFlagChange}
               />
             </Box>
@@ -460,6 +507,7 @@ const WatchList = ({
   return (
     <div className="geist-card" style={{ padding: 0, overflow: 'hidden', height: '100%', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
       <DataGrid
+        apiRef={apiRef}
         filterModel={filterModel}
         onFilterModelChange={setFilterModel}
         initialState={{
