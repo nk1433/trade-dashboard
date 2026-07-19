@@ -262,6 +262,7 @@ export const computeMetrics = async (context) => {
     relativeVolumePercentage: ((currentVolume / parseFloat(avgVolume)) * 100).toFixed(2),
     gapPercentage: gapPercentage.toFixed(2),
     strongStart: lowPrice >= threshold,
+    strictStrongStart: lowPrice >= currentDayOpen,
     ltp: ltp,
     sl: currentDayOpen,
     barClosingStrength: Math.round(barClosingStrength),
