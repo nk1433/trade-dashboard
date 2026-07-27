@@ -351,6 +351,16 @@ const columns = [
     align: 'center',
     headerAlign: 'center',
   },
+  {
+    field: 'bullishReversalCount',
+    headerName: 'Bullish Reversal',
+    width: 120,
+    align: 'center',
+    headerAlign: 'center',
+    renderCell: (params) => (
+      <div style={getCellStyle(params.value, 1, 'up')}>{params.value}</div>
+    )
+  },
 ];
 
 const chartViewColumns = [
@@ -570,6 +580,7 @@ const MarketBreadthTable = () => {
                   { field: 'strongCloseDownRatio' },
                   { field: 'up25PctQuarter' },
                   { field: 'down25PctQuarter' },
+                  { field: 'bullishReversalCount' },
                 ],
               },
               {
