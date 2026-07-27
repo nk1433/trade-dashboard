@@ -294,18 +294,30 @@ export const useWatchlistFilter = () => {
     return list;
   }, [flaggedStocks, orderMetrics, universeMap]);
 
+  const getLiveList = useCallback((sourceList) => {
+    const list = {};
+    if (!sourceList) return list;
+    Object.keys(sourceList).forEach(instrumentKey => {
+      if (orderMetrics && orderMetrics[instrumentKey]) {
+        list[instrumentKey] = orderMetrics[instrumentKey];
+      } else {
+        list[instrumentKey] = sourceList[instrumentKey];
+      }
+    });
+    return list;
+  }, [orderMetrics]);
 
   const scriptsToShow = useMemo(() => {
     switch (selectedIndex) {
-      case 'bullishMB': return bullishBurst || {};
-      case 'bearishMB': return bearishBurst || {};
-      case 'bullishSLTB': return bullishSLTB || {};
-      case 'bearishSLTB': return bearishSLTB || {};
-      case 'bullishAnts': return bullishAnts || {};
-      case 'dollar': return dollar || {};
-      case 'bearishDollar': return bearishDollar || {};
-      case 'newHighs': return newHighs || {};
-      case 'bullishReversal': return bullishReversal || {};
+      case 'bullishMB': return getLiveList(bullishBurst);
+      case 'bearishMB': return getLiveList(bearishBurst);
+      case 'bullishSLTB': return getLiveList(bullishSLTB);
+      case 'bearishSLTB': return getLiveList(bearishSLTB);
+      case 'bullishAnts': return getLiveList(bullishAnts);
+      case 'dollar': return getLiveList(dollar);
+      case 'bearishDollar': return getLiveList(bearishDollar);
+      case 'newHighs': return getLiveList(newHighs);
+      case 'bullishReversal': return getLiveList(bullishReversal);
       case 'holdings': return holdingsMap || {};
       case 'redList': return getFlaggedList('red');
       case 'blueList': return getFlaggedList('blue');
@@ -322,7 +334,7 @@ export const useWatchlistFilter = () => {
   }, [
     selectedIndex, customLists,
     bullishBurst, bearishBurst, bullishSLTB, bearishSLTB, bullishAnts, dollar, bearishDollar, newHighs, bullishReversal,
-    holdingsMap, orderMetrics, getFlaggedList
+    holdingsMap, orderMetrics, getFlaggedList, getLiveList
   ]);
 
   const flagCounts = useMemo(() => getFlagCounts(flaggedStocks), [flaggedStocks]);
