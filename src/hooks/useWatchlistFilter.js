@@ -30,7 +30,8 @@ export const useWatchlistFilter = () => {
     bullishAnts,
     dollar,
     bearishDollar,
-    newHighs
+    newHighs,
+    bullishReversal
   } = useSelector((state) => state.orders);
 
   const { holdings } = useSelector(state => state.paperTrade);
@@ -304,6 +305,7 @@ export const useWatchlistFilter = () => {
       case 'dollar': return dollar || {};
       case 'bearishDollar': return bearishDollar || {};
       case 'newHighs': return newHighs || {};
+      case 'bullishReversal': return bullishReversal || {};
       case 'holdings': return holdingsMap || {};
       case 'redList': return getFlaggedList('red');
       case 'blueList': return getFlaggedList('blue');
@@ -319,7 +321,7 @@ export const useWatchlistFilter = () => {
     }
   }, [
     selectedIndex, customLists,
-    bullishBurst, bearishBurst, bullishSLTB, bearishSLTB, bullishAnts, dollar, bearishDollar,
+    bullishBurst, bearishBurst, bullishSLTB, bearishSLTB, bullishAnts, dollar, bearishDollar, newHighs, bullishReversal,
     holdingsMap, orderMetrics, getFlaggedList
   ]);
 
@@ -336,6 +338,7 @@ export const useWatchlistFilter = () => {
       dollar: Object.keys(dollar || {}).length,
       bearishDollar: Object.keys(bearishDollar || {}).length,
       newHighs: Object.keys(newHighs || {}).length,
+      bullishReversal: Object.keys(bullishReversal || {}).length,
       holdings: holdings.length,
       redList: flagCounts.red || 0,
       blueList: flagCounts.blue || 0,
@@ -349,7 +352,7 @@ export const useWatchlistFilter = () => {
     });
     
     return defaultCounts;
-  }, [orderMetrics, bullishBurst, bearishBurst, bullishSLTB, bearishSLTB, bullishAnts, dollar, bearishDollar, newHighs, holdings, flagCounts, customLists]);
+  }, [orderMetrics, bullishBurst, bearishBurst, bullishSLTB, bearishSLTB, bullishAnts, dollar, bearishDollar, newHighs, bullishReversal, holdings, flagCounts, customLists]);
 
   const clearFlaggedList = useCallback((color) => {
     setFlaggedStocks(prev => {

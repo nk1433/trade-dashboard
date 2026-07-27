@@ -29,11 +29,12 @@ export const LIST_METADATA = {
     bearishAnts: { label: 'Bearish Ants', shortLabel: 'Ants', color: 'red', icon: 'down' },
     dollar: { label: 'Dollar BO', shortLabel: '$', color: 'green', icon: 'up' },
     bearishDollar: { label: 'Dollar BD', shortLabel: '$', color: 'red', icon: 'down' },
-    newHighs: { label: 'New Highs', shortLabel: 'NH', color: 'green', icon: 'up' }
+    newHighs: { label: 'New Highs', shortLabel: 'NH', color: 'green', icon: 'up' },
+    bullishReversal: { label: 'Bullish Reversal', shortLabel: 'Rev Bull', color: 'green', icon: 'up' }
 };
 
 export const FLAG_KEYS = ['redList', 'blueList', 'greenList', 'orangeList', 'purpleList'];
-export const SCAN_KEYS = ['bullishMB', 'bearishMB', 'bullishSLTB', 'bearishSLTB', 'bullishAnts', 'dollar', 'bearishDollar', 'newHighs'];
+export const SCAN_KEYS = ['bullishMB', 'bearishMB', 'bullishSLTB', 'bearishSLTB', 'bullishAnts', 'dollar', 'bearishDollar', 'newHighs', 'bullishReversal'];
 
 const AVAILABLE_COLUMNS = [
     { id: 'flag', label: 'Flag', minWidth: 50 },

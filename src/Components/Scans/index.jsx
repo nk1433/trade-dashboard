@@ -35,7 +35,8 @@ const Scans = () => {
         { value: '4PercentBO', label: '4% Breakout' },
         { value: '4PercentBD', label: '4% Breakdown' },
         { value: 'sltbBO', label: 'SLTB Breakout' },
-        { value: 'sltbBD', label: 'SLTB Breakdown' }
+        { value: 'sltbBD', label: 'SLTB Breakdown' },
+        { value: 'bullishReversal', label: 'Bullish Reversal' }
     ];
 
     const getLastWorkingDay = (dateStr, holidaysData) => {
@@ -206,6 +207,12 @@ const Scans = () => {
                         return (
                             <Box sx={{ color: '#ef5350', display: 'flex', alignItems: 'center', fontWeight: 'bold', gap: 0.5 }}>
                                 <ArrowDownward fontSize="small" /> SLTB
+                            </Box>
+                        );
+                    case 'bullishReversal':
+                        return (
+                            <Box sx={{ color: '#26a69a', display: 'flex', alignItems: 'center', fontWeight: 'bold', gap: 0.5 }}>
+                                <ArrowUpward fontSize="small" /> Rev Bull
                             </Box>
                         );
                     default:
