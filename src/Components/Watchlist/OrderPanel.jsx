@@ -133,14 +133,12 @@ const OrderPanel = ({ open, onClose, script, currentPrice = 0, tradingMode, toke
             const initialRisk = script.lossInMoney || (capital * 0.0025); // Default to script risk or 0.25% of capital
             setCalcMetrics(prev => ({ ...prev, riskAmount: initialRisk }));
         }
-    }, [open, initialSide, script, settings, currentPrice, capital]); // Run when panel opens
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [open, script?.instrumentKey]); // ONLY run when panel opens or script changes
 
     // Live Quantity Updates (Sync with System Metrics)
-    useEffect(() => {
-        if (open && script?.sharesToBuy) {
-            setQuantity(script.sharesToBuy);
-        }
-    }, [script?.sharesToBuy, open]);
+    // Removed because it forcibly overrides custom or fixed quantities on every script update.
+    // Tactic logic (re-applying tactic on price change) already handles dynamic quantity updates.
 
     // Live Price Updates
     useEffect(() => {
@@ -319,17 +317,8 @@ const OrderPanel = ({ open, onClose, script, currentPrice = 0, tradingMode, toke
             applyTactic('fixed_qty_risk', quantity, price);
         } else if (tactic === '2pct_open' || tactic === 'open_price') {
             applyTactic(tactic, quantity, price);
-        } else if (tactic === 'custom' && slPrice) {
-            const entry = Number(price) || 0;
-            const sl = Number(slPrice);
-            const effectiveCapital = capital || 100000;
-            const riskPct = settings?.riskOfPortfolio || 0.25;
-
-            const intent = calculateAllocationIntent(maxAlloc, effectiveCapital, entry, sl, riskPct);
-            if (intent.sharesToBuy > 0 || forceMaxAlloc) {
-                setQuantity(forceMaxAlloc ? intent.sharesAllowedByInvestment : intent.sharesToBuy);
-            }
         }
+        // For 'custom', we do NOT recalculate on every tick to ensure user's manual inputs are preserved.
     }, [side, price, tactic, maxAlloc, lastCandle, forceMaxAlloc, slPrice]);
 
     // Replaces the direct setSlPrice in render
