@@ -707,6 +707,7 @@ const MarketBreadthTable = () => {
             <li>Excessively positive breadth is not immediately bearish. Unlikely excessively bearish breadth, which gives very good signal on bullish side , excessive positive has no good signalling record.</li>
             <li>Extremely bearish breadth = bullish and start of a bounce or bottom. Short term extremely bullish breadth = pullback. For tops there are no reliable indicators as it is gradual process. I look for extremes in breadth on any time frames to reduce or add risks. Rest of the time breadth is not much useful.</li>
             <li>Strong closes are inherently asymmetrical. Down days (panic selling) naturally close near their lows much more frequently (~70% baseline) than up days close near their highs (~55% baseline). True downside extremes require a &gt; 80% strong close down ratio.</li>
+            <li>Model book data collection: where do moves start from, how do they start, what is the first day move magnitude, how long they last, how much they move in that period, what capitalization, which sectors and so on.</li>
           </Box>
         </Paper>
 
