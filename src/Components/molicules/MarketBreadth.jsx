@@ -153,6 +153,16 @@ const columns = [
     }
   },
   {
+    field: 'bullishReversalCount',
+    headerName: 'Bullish Reversal',
+    width: 120,
+    align: 'center',
+    headerAlign: 'center',
+    renderCell: (params) => (
+      <div style={getCellStyle(params.value, 1, 'up')}>{params.value}</div>
+    )
+  },
+  {
     field: 'strongCloseUpCount',
     headerName: 'Strong Close Up Count',
     width: 140,
@@ -350,16 +360,6 @@ const columns = [
     width: 120,
     align: 'center',
     headerAlign: 'center',
-  },
-  {
-    field: 'bullishReversalCount',
-    headerName: 'Bullish Reversal',
-    width: 120,
-    align: 'center',
-    headerAlign: 'center',
-    renderCell: (params) => (
-      <div style={getCellStyle(params.value, 1, 'up')}>{params.value}</div>
-    )
   },
 ];
 
@@ -574,13 +574,13 @@ const MarketBreadthTable = () => {
                   { field: 'down4Percent' },
                   { field: 'ratio5d' },
                   { field: 'ratio10d' },
+                  { field: 'bullishReversalCount' },
                   { field: 'strongCloseUpCount' },
                   { field: 'strongCloseUpRatio' },
                   { field: 'strongCloseDownCount' },
                   { field: 'strongCloseDownRatio' },
                   { field: 'up25PctQuarter' },
                   { field: 'down25PctQuarter' },
-                  { field: 'bullishReversalCount' },
                 ],
               },
               {
