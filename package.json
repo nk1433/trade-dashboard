@@ -11,6 +11,7 @@
     "test": "npx cross-env NODE_OPTIONS=--experimental-vm-modules jest"
   },
   "dependencies": {
+    "@emotion/cache": "^11.14.0",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.0",
     "@laufire/utils": "^3.0.0-1",

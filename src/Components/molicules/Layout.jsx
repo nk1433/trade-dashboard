@@ -1,12 +1,16 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Box, Typography, Button } from '@mui/material';
+import { Box, Typography, Button, IconButton, Tooltip } from '@mui/material';
+import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import NotificationIcon from './NotificationIcon';
+import NewWindow from './NewWindow';
+import MarketHighLowWormChart from './Worm/index';
 
 import './Layout.css';
 
 const Layout = ({ children, routes }) => {
     const location = useLocation();
+    const [isWormPoppedOut, setIsWormPoppedOut] = useState(false);
 
     return (
         <div className="layout-container">
@@ -41,6 +45,15 @@ const Layout = ({ children, routes }) => {
 
                 {/* Right Side Actions */}
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                    <Tooltip title="Pop out Worm Chart">
+                        <IconButton 
+                            onClick={() => setIsWormPoppedOut(true)}
+                            size="small"
+                            sx={{ color: 'black' }}
+                        >
+                            <OpenInNewIcon fontSize="small" />
+                        </IconButton>
+                    </Tooltip>
                     <Button
                         onClick={() => {
                             localStorage.removeItem('token');
@@ -70,6 +83,12 @@ const Layout = ({ children, routes }) => {
             <main className="layout-main">
                 {children}
             </main>
+
+            {isWormPoppedOut && (
+                <NewWindow title="Worm Chart" onClose={() => setIsWormPoppedOut(false)}>
+                    <MarketHighLowWormChart />
+                </NewWindow>
+            )}
         </div>
     );
 };
