@@ -164,10 +164,22 @@ export const useTVChartContainer = () => {
                     const inr = sector_market_cap_inr?.formatted || '';
                     const usd = sector_market_cap_usd?.formatted || '';
 
+                    let capCategory = '';
+                    if (inr && inr.includes('Cr')) {
+                        const valInCr = parseFloat(inr.replace(/,/g, '').replace('Cr', '').trim());
+                        if (!isNaN(valInCr)) {
+                            if (valInCr >= 100000) capCategory = 'Largecap';
+                            else if (valInCr >= 30000) capCategory = 'Midcap';
+                            else if (valInCr >= 5000) capCategory = 'Smallcap';
+                            else capCategory = 'Microcap';
+                        }
+                    }
+
                     headerButton.innerHTML = `
                         <div style="display: flex; gap: 15px; font-size: 13px; padding: 0 10px; align-items: center; height: 100%;">
                             ${sector ? `<span style="color: #2196F3; font-weight: bold;">${sector}</span>` : ''}
                             ${inr ? `<span style="color: #4CAF50; font-weight: 500;">₹ ${inr}</span>` : ''}
+                            ${capCategory ? `<span style="color: #9C27B0; font-weight: bold; background-color: #f3e5f5; padding: 2px 6px; border-radius: 4px; font-size: 11px;">${capCategory}</span>` : ''}
                             ${usd ? `<span style="color: #FF9800; font-weight: 500;">${usd}</span>` : ''}
                         </div>
                     `;
