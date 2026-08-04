@@ -134,6 +134,11 @@ export const useTVChartContainer = () => {
         fetchNews();
     }, [selectedRowId, universeMap]);
 
+    const scriptsRef = useRef(scriptsToShow);
+    useEffect(() => {
+        scriptsRef.current = scriptsToShow;
+    }, [scriptsToShow]);
+
     useEffect(() => {
         if (!selectedRowId || !headerButton) return;
 
@@ -176,11 +181,22 @@ export const useTVChartContainer = () => {
                         }
                     }
 
+                    const currentScript = scriptsRef.current ? Object.values(scriptsRef.current).find(s => (s.instrumentKey || s.symbol) === selectedRowId) : null;
+                    const openPrice = currentScript?.currentDayOpen || 0;
+                    const closePrice = currentScript?.ltp || 0;
+                    const sl = openPrice;
+                    const hstop = openPrice > 0 ? (openPrice + closePrice) / 2 : 0;
+
+                    const slHtml = sl > 0 ? `<span style="color: #F44336; font-weight: bold; border: 1px solid #F44336; padding: 2px 6px; border-radius: 4px; font-size: 11px;">SL: ₹${sl.toFixed(2)}</span>` : '';
+                    const hstopHtml = hstop > 0 ? `<span style="color: #FF9800; font-weight: bold; border: 1px solid #FF9800; padding: 2px 6px; border-radius: 4px; font-size: 11px;">H-Stop: ₹${hstop.toFixed(2)}</span>` : '';
+
                     headerButton.innerHTML = `
                         <div style="display: flex; gap: 15px; font-size: 13px; padding: 0 10px; align-items: center; height: 100%;">
                             ${sector ? `<span style="color: #2196F3; font-weight: bold;">${sector}</span>` : ''}
                             ${inr ? `<span style="color: #4CAF50; font-weight: 500;">₹ ${inr}</span>` : ''}
                             ${capCategory ? `<span style="color: #9C27B0; font-weight: bold; background-color: #f3e5f5; padding: 2px 6px; border-radius: 4px; font-size: 11px;">${capCategory}</span>` : ''}
+                            ${slHtml}
+                            ${hstopHtml}
                             ${usd ? `<span style="color: #FF9800; font-weight: 500;">${usd}</span>` : ''}
                         </div>
                     `;
