@@ -23,11 +23,13 @@ import {
     Tooltip
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
+import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import { useDispatch, useSelector } from 'react-redux';
 import { executePaperOrder } from '../../Store/paperTradeSlice';
 import { commonInputProps } from '../../utils/themeStyles';
 import { calculateAllocationIntent } from '../../utils/calculateMetrics';
 import { fetchHistoricalData } from '../TradingView/datafeed/services/upstoxApiService';
+import NewWindow from '../molicules/NewWindow';
 
 const formatShortAmount = (value) => {
     if (!value || isNaN(value)) return '0';
@@ -46,6 +48,12 @@ const OrderPanel = ({ open, onClose, script, currentPrice = 0, tradingMode, toke
     const [price, setPrice] = useState(currentPrice);
     const [triggerPrice, setTriggerPrice] = useState(currentPrice);
     const [tactic, setTactic] = useState('custom'); // 'custom', '2pct_open', 'open_price', 'fixed_qty_risk'
+    const [isPoppedOut, setIsPoppedOut] = useState(false);
+
+    // Reset popout state when panel is fully closed
+    useEffect(() => {
+        if (!open) setIsPoppedOut(false);
+    }, [open]);
 
     // Risk Management
     const [slEnabled, setSlEnabled] = useState(false);
@@ -378,7 +386,12 @@ const OrderPanel = ({ open, onClose, script, currentPrice = 0, tradingMode, toke
                 price: orderType === 'MARKET' ? (currentPrice || script?.ltp) : Number(price),
                 type: side,
                 timestamp: Date.now(),
-                sl: slEnabled ? slPrice : 0,
+                sl: slEnabled ? Number(slPrice) : 0,
+                slPrice: slEnabled ? Number(slPrice) : 0,
+                riskAmount: Number(calcMetrics.riskAmount),
+                riskPercentage: Number(calcMetrics.riskPercentage),
+                slStrategy: tactic,
+                slPercentage: slEnabled && price > 0 ? (Math.abs(price - slPrice) / price * 100) : 0,
                 risk: script?.lossInMoney || 0 // Use System Risk for consistency
             }));
 
@@ -447,15 +460,8 @@ const OrderPanel = ({ open, onClose, script, currentPrice = 0, tradingMode, toke
     const themeColor = '#000000'; // Monochrome Black
 
 
-    return (
-        <Drawer
-            anchor="right"
-            open={open}
-            onClose={onClose}
-            PaperProps={{
-                sx: { width: 500, bgcolor: '#fff', color: '#131722' }
-            }}
-        >
+    const panelContent = (
+        <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', width: isPoppedOut ? '100%' : 500, bgcolor: '#fff', color: '#131722' }}>
             {/* Header */}
             <Box sx={{ p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e0e3eb' }}>
                 <Box>
@@ -469,9 +475,18 @@ const OrderPanel = ({ open, onClose, script, currentPrice = 0, tradingMode, toke
                         </Typography>
                     )}
                 </Box>
-                <IconButton onClick={onClose} size="small">
-                    <CloseIcon fontSize="small" />
-                </IconButton>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    {!isPoppedOut && (
+                        <Tooltip title="Pop out Trade Panel">
+                            <IconButton onClick={() => setIsPoppedOut(true)} size="small">
+                                <OpenInNewIcon fontSize="small" />
+                            </IconButton>
+                        </Tooltip>
+                    )}
+                    <IconButton onClick={() => { isPoppedOut ? setIsPoppedOut(false) : onClose(); }} size="small">
+                        <CloseIcon fontSize="small" />
+                    </IconButton>
+                </Box>
             </Box>
 
             <Box sx={{ p: 2, overflowY: 'auto', flex: 1 }}>
@@ -845,7 +860,26 @@ const OrderPanel = ({ open, onClose, script, currentPrice = 0, tradingMode, toke
                     {snackbarMessage}
                 </Alert>
             </Snackbar>
-        </Drawer >
+        </Box>
+    );
+
+    if (isPoppedOut && open) {
+        return (
+            <NewWindow title={`Trade ${script?.symbol || 'Panel'}`} onClose={() => { setIsPoppedOut(false); onClose(); }}>
+                {panelContent}
+            </NewWindow>
+        );
+    }
+
+    return (
+        <Drawer
+            anchor="right"
+            open={open}
+            onClose={onClose}
+            PaperProps={{ sx: { bgcolor: '#fff' } }}
+        >
+            {panelContent}
+        </Drawer>
     );
 };
 
