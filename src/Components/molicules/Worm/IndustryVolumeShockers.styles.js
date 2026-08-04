@@ -38,7 +38,9 @@ export const styles = {
         }
     }),
     tableContainer: {
-        maxHeight: 400
+        maxHeight: 400,
+        maxWidth: 800,
+        mx: 'auto'
     },
     positiveText: {
         color: 'success.main'
