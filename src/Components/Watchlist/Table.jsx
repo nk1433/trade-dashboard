@@ -32,6 +32,7 @@ const columnMapping = {
   'Loss': 'lossInMoney',
   'avgValueVolume21d': 'avgValueVolume21d',
   currentMinuteVolume: 'currentMinuteVolume',
+  'Move Value (Cr)': 'tradedValue',
 };
 
 const initialfilterModel = {
@@ -276,6 +277,15 @@ const WatchList = ({
         width: 150,
         renderCell: (params) => {
           return <span>{formatToIndianUnits(params.value)}</span>;
+        }
+      },
+      {
+        field: "tradedValue",
+        headerName: "Move Value (Cr)",
+        width: 120,
+        renderCell: (params) => {
+          const val = params.value;
+          return <span>{val > 0 ? val.toFixed(2) : '-'}</span>;
         }
       }
     ],

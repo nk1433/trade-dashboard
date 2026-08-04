@@ -50,6 +50,7 @@ const AVAILABLE_COLUMNS = [
     { id: 'maxShareToBuy', label: 'Max Shares', minWidth: 60 },
     { id: 'lossInMoney', label: 'Loss in Money', minWidth: 60 },
     { id: 'avgValueVolume21d', label: 'Avg Value Vol (21D)', minWidth: 80 },
+    { id: 'tradedValue', label: 'Move Value (Cr)', minWidth: 80 },
 ];
 
 export const useTVChartContainer = () => {
@@ -77,7 +78,7 @@ export const useTVChartContainer = () => {
     const breadthData = useSelector(state => state.marketBreadth.data);
 
     // Column Customization State
-    const [visibleColumns, setVisibleColumns] = useState(['flag', 'scriptName', 'barClosingStrength', 'changePercentage', 'priceChange']); // Add 'flag' by default
+    const [visibleColumns, setVisibleColumns] = useState(['flag', 'scriptName', 'barClosingStrength', 'changePercentage', 'priceChange', 'gapPercentage', 'tradedValue']); // Add 'flag' by default
     const [settingsAnchorEl, setSettingsAnchorEl] = useState(null);
     const [anchorEl, setAnchorEl] = useState(null);
     const [newsItems, setNewsItems] = useState([]);

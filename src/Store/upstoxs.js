@@ -120,6 +120,7 @@ export const updateWatchlistWithMetrics = async (liveFeed, scriptMap, portfolio,
             dayVolume: currentVolume,
             trendIntensity,
             isFallback: latestDayFeed.isFallback || false,
+            tradedValue: (currentVolume * currentClose) / 10000000,
         };
 
         if (
