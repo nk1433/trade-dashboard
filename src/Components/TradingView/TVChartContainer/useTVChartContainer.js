@@ -6,6 +6,7 @@ import { useWatchlistFilter } from "../../../hooks/useWatchlistFilter";
 import { fetchMarketBreadth } from '../../../Store/marketBreadth';
 import { createBreadthStudy } from '../studies/breadthStudy';
 import { createMomentumBurstStudy } from '../studies/momentumBurstStudy';
+import { createTurnoverStudy } from '../studies/turnoverStudy';
 import { createTI65Study } from '../studies/ti65Study';
 import { createCustomDataStudy } from '../studies/customDataStudy';
 import { BACKEND_URL } from '../../../utils/config';
@@ -324,7 +325,8 @@ export const useTVChartContainer = () => {
                         }, breadthData),
                         createMomentumBurstStudy(PineJS),
                         createTI65Study(PineJS),
-                        createCustomDataStudy(PineJS)
+                        createCustomDataStudy(PineJS),
+                        createTurnoverStudy(PineJS)
                     ]);
                 }
             };
@@ -343,6 +345,17 @@ export const useTVChartContainer = () => {
 
                     // 2. Add Custom Study to Chart automatically so it shows in the legend
                     // tvWidget.activeChart().createStudy('Custom Data Legend', false, false);
+                    tvWidget.headerReady().then(() => {
+                        try {
+                            const studies = tvWidget.activeChart().getAllStudies();
+                            const hasTurnover = studies.some(s => s.name === "Turnover");
+                            if (!hasTurnover) {
+                                tvWidget.activeChart().createStudy("Turnover", false, false);
+                            }
+                        } catch (e) {
+                            console.error("Failed to add Turnover study automatically", e);
+                        }
+                    });
 
                     // Get the IWatermarkApi instance
                     const watermarkApi = tvWidget.watermark();

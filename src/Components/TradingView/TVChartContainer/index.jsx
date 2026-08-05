@@ -93,6 +93,13 @@ const TVChartContainer = () => {
         return Number(val).toFixed(toFixed);
     };
 
+    const formatTurnover = (val) => {
+        if (!val || isNaN(val)) return '-';
+        if (val >= 10000000) return `₹${(val / 10000000).toFixed(2)}Cr`;
+        if (val >= 100000) return `₹${(val / 100000).toFixed(2)}L`;
+        return `₹${val.toLocaleString()}`;
+    };
+
     const isFlagList = FLAG_KEYS.includes(selectedIndex) || customLists.includes(selectedIndex);
 
     const handleAddScript = () => {
@@ -255,6 +262,11 @@ const TVChartContainer = () => {
                                 </Typography>
                                 <Typography variant="body2" sx={{ color: activeScript.isUpDay ? '#26a69a' : '#ef5350' }}>
                                     {activeScript.changePercentage > 0 ? '+' : ''}{safeFormat(activeScript.changePercentage)}%
+                                </Typography>
+                                <Divider orientation="vertical" flexItem sx={{ mx: 1 }} />
+
+                                <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                    Turnover: <span style={{ fontWeight: 600 }}>{formatTurnover((activeScript.dayVolume || 0) * (activeScript.ltp || 0))}</span>
                                 </Typography>
                                 <Divider orientation="vertical" flexItem sx={{ mx: 1 }} />
 
