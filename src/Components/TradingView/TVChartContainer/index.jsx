@@ -58,6 +58,31 @@ const TVChartContainer = () => {
     const [orderPanelOpen, setOrderPanelOpen] = React.useState(false);
     const [moreAnchorEl, setMoreAnchorEl] = React.useState(null);
 
+    // Resizer state
+    const [sidePanelWidth, setSidePanelWidth] = React.useState(380);
+
+    const handleMouseMove = React.useCallback((e) => {
+        const newWidth = window.innerWidth - e.clientX;
+        if (newWidth > 200 && newWidth < 800) {
+            setSidePanelWidth(newWidth);
+        }
+    }, []);
+
+    const handleMouseUp = React.useCallback(() => {
+        document.removeEventListener("mousemove", handleMouseMove);
+        document.removeEventListener("mouseup", handleMouseUp);
+        document.body.style.cursor = 'default';
+        document.body.style.userSelect = 'auto';
+    }, [handleMouseMove]);
+
+    const handleMouseDown = (e) => {
+        e.preventDefault();
+        document.addEventListener("mousemove", handleMouseMove);
+        document.addEventListener("mouseup", handleMouseUp);
+        document.body.style.cursor = 'col-resize';
+        document.body.style.userSelect = 'none';
+    };
+
     const activeScript = React.useMemo(() => {
         if (!selectedRowId || !scriptsToShow) return null;
         return Object.values(scriptsToShow).find(s => (s.instrumentKey || s.symbol) === selectedRowId);
@@ -282,8 +307,26 @@ const TVChartContainer = () => {
                     <div ref={chartContainerRef} style={{ ...styles.chartContainer, flex: 1 }} />
                 </Box>
 
+                {/* Resizer Handle */}
+                <Box
+                    onMouseDown={handleMouseDown}
+                    sx={{
+                        width: '5px',
+                        cursor: 'col-resize',
+                        backgroundColor: 'var(--border-color)',
+                        zIndex: 10,
+                        transition: 'background-color 0.2s',
+                        '&:hover': {
+                            backgroundColor: '#2196f3'
+                        },
+                        '&:active': {
+                            backgroundColor: '#2196f3'
+                        }
+                    }}
+                />
+
                 {/* Side Panel */}
-                <Box sx={styles.sidePanel}>
+                <Box sx={{ ...styles.sidePanel, width: sidePanelWidth }}>
                     {/* Header with Dropdown */}
                     <Box sx={styles.sidePanelHeader}>
                         <Box
