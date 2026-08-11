@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
-import { Box, TextField, MenuItem, Select, FormControl, InputLabel, Button, Typography, Paper, Chip, Snackbar, Alert, Popover } from '@mui/material';
+import { Box, TextField, MenuItem, Select, FormControl, InputLabel, Button, Typography, Paper, Chip, Snackbar, Alert, Popover, Tooltip } from '@mui/material';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { StaticTimePicker } from '@mui/x-date-pickers/StaticTimePicker';
 import dayjs from 'dayjs';
 import { DataGrid } from '@mui/x-data-grid';
-import { ArrowUpward, ArrowDownward, TrendingUp, ContentCopy } from '@mui/icons-material';
+import { ArrowUpward, ArrowDownward, TrendingUp, ContentCopy, Autorenew } from '@mui/icons-material';
 import axios from 'axios';
 import moment from 'moment';
 import { BACKEND_URL } from '../../utils/config';
@@ -85,8 +85,7 @@ const Scans = () => {
             const token = localStorage.getItem('token');
             const response = await axios.get(`${BACKEND_URL}/api/scans`, {
                 params: {
-                    date: selectedDate,
-                    scanType: scanType === 'all' ? undefined : scanType
+                    date: selectedDate
                 },
                 headers: {
                     Authorization: `Bearer ${token}`
@@ -115,7 +114,7 @@ const Scans = () => {
 
     useEffect(() => {
         fetchScans();
-    }, [selectedDate, scanType, holidays]);
+    }, [selectedDate, holidays]);
 
     const handleOpenTimeFilter = (event) => setAnchorEl(event.currentTarget);
     const handleCloseTimeFilter = () => setAnchorEl(null);
@@ -126,7 +125,7 @@ const Scans = () => {
         setEndTime(null);
     };
 
-    const displayedScans = React.useMemo(() => {
+    const baseFilteredScans = React.useMemo(() => {
         return scans.filter(scan => {
             if (!startTime && !endTime) return true;
             const scanTime = moment(scan.createdAt || scan.currentTs);
@@ -144,6 +143,94 @@ const Scans = () => {
             return match;
         });
     }, [scans, startTime, endTime]);
+
+    const bullishScansSet = new Set(['newHigh', 'dollarBO', '4PercentBO', 'sltbBO', 'bullishReversal']);
+    const bearishScansSet = new Set(['dollarBD', '4PercentBD', 'sltbBD']);
+
+    const getShortLabel = (val) => {
+        switch(val) {
+            case 'newHigh': return 'New High';
+            case 'dollarBO': return '$ BO';
+            case 'dollarBD': return '$ BD';
+            case '4PercentBO': return '4% BO';
+            case '4PercentBD': return '4% BD';
+            case 'sltbBO': return 'SLTB BO';
+            case 'sltbBD': return 'SLTB BD';
+            case 'bullishReversal': return 'Rev Bull';
+            default: return val;
+        }
+    };
+
+    const transitionData = React.useMemo(() => {
+        const symbolMap = {};
+        baseFilteredScans.forEach(scan => {
+            if (!symbolMap[scan.tradingSymbol]) {
+                symbolMap[scan.tradingSymbol] = [];
+            }
+            symbolMap[scan.tradingSymbol].push(scan);
+        });
+
+        const transitions = {};
+        Object.entries(symbolMap).forEach(([symbol, symbolScans]) => {
+            if (symbolScans.length < 2) return;
+            
+            const sorted = [...symbolScans].sort((a, b) => moment(a.createdAt || a.currentTs).valueOf() - moment(b.createdAt || b.currentTs).valueOf());
+            
+            const firstScan = sorted[0];
+            const lastScan = sorted[sorted.length - 1];
+            
+            if (firstScan.scanType !== lastScan.scanType) {
+                 const id = `transition_${firstScan.scanType}_${lastScan.scanType}`;
+                 const details = `${getShortLabel(firstScan.scanType)} → ${getShortLabel(lastScan.scanType)}`;
+                 
+                 // Determine overall polarity shift for color coding
+                 const isBullTurn = bearishScansSet.has(firstScan.scanType) && bullishScansSet.has(lastScan.scanType);
+                 const isBearTurn = bullishScansSet.has(firstScan.scanType) && bearishScansSet.has(lastScan.scanType);
+                 let turnType = 'neutral';
+                 if (isBullTurn) turnType = 'bullTurnaround';
+                 if (isBearTurn) turnType = 'bearTurnaround';
+
+                 transitions[symbol] = { id, details, type: turnType, first: firstScan.scanType, last: lastScan.scanType };
+            }
+        });
+        return transitions;
+    }, [baseFilteredScans]);
+
+    const availableTransitions = React.useMemo(() => {
+        const counts = {};
+        const detailsMap = {};
+        
+        Object.values(transitionData).forEach(t => {
+            counts[t.id] = (counts[t.id] || 0) + 1;
+            detailsMap[t.id] = t.details;
+        });
+        
+        return Object.entries(counts)
+            .map(([id, count]) => ({ id, count, details: detailsMap[id] }))
+            .sort((a, b) => b.count - a.count);
+    }, [transitionData]);
+
+    const transitionRows = React.useMemo(() => {
+        return availableTransitions.map(t => {
+            const symbols = Object.keys(transitionData).filter(sym => transitionData[sym].id === t.id);
+            return {
+                id: t.id,
+                details: t.details,
+                count: t.count,
+                symbols: symbols
+            };
+        });
+    }, [availableTransitions, transitionData]);
+
+    const displayedScans = React.useMemo(() => {
+        let filtered = baseFilteredScans;
+        if (scanType.startsWith('transition_')) {
+            filtered = baseFilteredScans.filter(scan => transitionData[scan.tradingSymbol]?.id === scanType);
+        } else if (scanType !== 'all') {
+            filtered = baseFilteredScans.filter(scan => scan.scanType === scanType);
+        }
+        return filtered;
+    }, [baseFilteredScans, scanType, transitionData]);
 
     const handleCopySymbols = () => {
         if (displayedScans.length === 0) return;
@@ -187,12 +274,31 @@ const Scans = () => {
             field: 'tradingSymbol',
             headerName: 'Symbol',
             flex: 1,
-            minWidth: 150,
-            renderCell: (params) => (
-                <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                    {params.value}
-                </Typography>
-            )
+            minWidth: 220,
+            renderCell: (params) => {
+                const turnData = transitionData[params.value];
+                return (
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, height: '100%' }}>
+                        <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                            {params.value}
+                        </Typography>
+                        {turnData && (
+                            <Chip 
+                                size="small"
+                                label={turnData.details}
+                                sx={{ 
+                                    height: 20, 
+                                    fontSize: '0.65rem', 
+                                    fontWeight: 700,
+                                    bgcolor: turnData.type === 'bullTurnaround' ? 'rgba(38, 166, 154, 0.1)' : turnData.type === 'bearTurnaround' ? 'rgba(239, 83, 80, 0.1)' : 'rgba(158, 158, 158, 0.1)',
+                                    color: turnData.type === 'bullTurnaround' ? '#26a69a' : turnData.type === 'bearTurnaround' ? '#ef5350' : '#757575',
+                                    border: `1px solid ${turnData.type === 'bullTurnaround' ? 'rgba(38, 166, 154, 0.3)' : turnData.type === 'bearTurnaround' ? 'rgba(239, 83, 80, 0.3)' : 'rgba(158, 158, 158, 0.3)'}`
+                                }}
+                            />
+                        )}
+                    </Box>
+                );
+            }
         },
         {
             field: 'scanType',
@@ -302,7 +408,47 @@ const Scans = () => {
         },
     ];
 
-    const scanTypeCounts = displayedScans.reduce((acc, scan) => {
+    const transitionColumns = [
+        { field: 'details', headerName: 'Transition Path', flex: 1, minWidth: 200 },
+        { field: 'count', headerName: 'Count', width: 100 },
+        { 
+            field: 'symbols', 
+            headerName: 'Symbols', 
+            flex: 2,
+            minWidth: 300,
+            renderCell: (params) => (
+                <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', py: 1 }}>
+                    {params.value.map(sym => (
+                        <Chip 
+                            key={sym} 
+                            label={sym} 
+                            size="small" 
+                            clickable
+                            onClick={() => { setScanType(params.row.id); setViewType('table'); }} 
+                            sx={{ fontWeight: 500 }}
+                        />
+                    ))}
+                </Box>
+            )
+        },
+        {
+            field: 'action',
+            headerName: '',
+            width: 120,
+            renderCell: (params) => (
+                <Button 
+                    size="small" 
+                    variant="outlined" 
+                    onClick={() => { setScanType(params.row.id); setViewType('table'); }}
+                    sx={{ textTransform: 'none', borderRadius: 1.5 }}
+                >
+                    View Scans
+                </Button>
+            )
+        }
+    ];
+
+    const scanTypeCounts = baseFilteredScans.reduce((acc, scan) => {
         acc[scan.scanType] = (acc[scan.scanType] || 0) + 1;
         return acc;
     }, {});
@@ -369,7 +515,7 @@ const Scans = () => {
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
                         <Typography variant="h5" sx={{ fontWeight: 700, letterSpacing: '-0.02em', mr: 1 }}>Market Scans</Typography>
                         
-                        {renderFilterButton('all', 'All', displayedScans.length)}
+                        {renderFilterButton('all', 'All', baseFilteredScans.length)}
                         
                         {Object.entries(scanTypeCounts).map(([type, count]) => (
                             renderFilterButton(type, getScanLabel(type), count)
@@ -377,6 +523,32 @@ const Scans = () => {
                     </Box>
 
                     <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+                        <FormControl size="small" sx={{ minWidth: 160, bgcolor: 'var(--bg-primary)' }}>
+                            <InputLabel sx={commonInputLabelSx}>Transitions</InputLabel>
+                            <Select
+                                value={scanType.startsWith('transition_') ? scanType : ''}
+                                label="Transitions"
+                                onChange={(e) => {
+                                    const val = e.target.value;
+                                    if (val) {
+                                        setScanType(val);
+                                        if (viewType === 'transitions') setViewType('table');
+                                    } else {
+                                        setScanType('all');
+                                    }
+                                }}
+                                sx={commonSelectSx}
+                                displayEmpty
+                            >
+                                <MenuItem value="">None</MenuItem>
+                                {availableTransitions.map(t => (
+                                    <MenuItem key={t.id} value={t.id}>
+                                        {t.details} ({t.count})
+                                    </MenuItem>
+                                ))}
+                            </Select>
+                        </FormControl>
+
                         <FormControl size="small" sx={{ minWidth: 120, bgcolor: 'var(--bg-primary)' }}>
                             <InputLabel sx={commonInputLabelSx}>View</InputLabel>
                             <Select
@@ -387,6 +559,7 @@ const Scans = () => {
                             >
                                 <MenuItem value="table">Table</MenuItem>
                                 <MenuItem value="chart">Chart</MenuItem>
+                                <MenuItem value="transitions">Transitions</MenuItem>
                             </Select>
                         </FormControl>
 
@@ -505,8 +678,62 @@ const Scans = () => {
                     </Box>
                 </Box>
 
-                {/* Content Area */}
-                <Paper elevation={0} sx={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, bgcolor: 'var(--bg-primary)', borderRadius: 2, overflow: 'hidden', border: '1px solid var(--border-color)', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+                {/* Main Body */}
+                <Box sx={{ flex: 1, display: 'flex', gap: 2, minHeight: 0, width: '100%' }}>
+                    {/* Transitions Sidebar Summary */}
+                    {availableTransitions.length > 0 && (
+                        <Paper elevation={0} sx={{ width: 280, display: 'flex', flexDirection: 'column', bgcolor: 'var(--bg-primary)', borderRadius: 2, overflow: 'hidden', border: '1px solid var(--border-color)', boxShadow: '0 1px 3px rgba(0,0,0,0.04)', flexShrink: 0 }}>
+                            <Box sx={{ p: 1.5, borderBottom: '1px solid var(--border-color)', bgcolor: 'var(--bg-secondary)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'var(--text-secondary)' }}>TRANSITIONS TODAY</Typography>
+                                <Chip size="small" label={availableTransitions.reduce((sum, t) => sum + t.count, 0)} sx={{ height: 20, fontSize: '0.7rem', fontWeight: 600 }} />
+                            </Box>
+                            <Box sx={{ flex: 1, overflowY: 'auto' }}>
+                                <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+                                    {availableTransitions.map(t => {
+                                        const isActive = scanType === t.id;
+                                        return (
+                                            <Box 
+                                                key={t.id}
+                                                onClick={() => {
+                                                    setScanType(isActive ? 'all' : t.id);
+                                                    if (viewType === 'transitions') setViewType('table');
+                                                }}
+                                                sx={{ 
+                                                    display: 'flex', 
+                                                    justifyContent: 'space-between', 
+                                                    alignItems: 'center', 
+                                                    p: '12px 16px', 
+                                                    cursor: 'pointer',
+                                                    borderBottom: '1px solid var(--border-color)',
+                                                    bgcolor: isActive ? 'rgba(25, 118, 210, 0.08)' : 'transparent',
+                                                    '&:hover': { bgcolor: isActive ? 'rgba(25, 118, 210, 0.12)' : 'rgba(0,0,0,0.02)' },
+                                                    transition: 'all 0.15s ease'
+                                                }}
+                                            >
+                                                <Typography variant="body2" sx={{ fontSize: '0.8rem', fontWeight: isActive ? 600 : 500, color: isActive ? 'primary.main' : 'var(--text-primary)' }}>
+                                                    {t.details}
+                                                </Typography>
+                                                <Chip 
+                                                    size="small" 
+                                                    label={t.count} 
+                                                    sx={{ 
+                                                        height: 20, 
+                                                        fontSize: '0.75rem', 
+                                                        fontWeight: 600,
+                                                        bgcolor: isActive ? 'primary.main' : 'var(--bg-secondary)',
+                                                        color: isActive ? 'white' : 'inherit'
+                                                    }} 
+                                                />
+                                            </Box>
+                                        );
+                                    })}
+                                </Box>
+                            </Box>
+                        </Paper>
+                    )}
+
+                    {/* Content Area */}
+                    <Paper elevation={0} sx={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, bgcolor: 'var(--bg-primary)', borderRadius: 2, overflow: 'hidden', border: '1px solid var(--border-color)', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
                     {viewType === 'table' ? (
                         <DataGrid
                             rows={displayedScans}
@@ -539,10 +766,40 @@ const Scans = () => {
                                 }
                             }}
                         />
-                    ) : (
+                    ) : viewType === 'chart' ? (
                         <ScansTVChart scans={displayedScans} timeframe={timeframe} />
+                    ) : (
+                        <DataGrid
+                            rows={transitionRows}
+                            columns={transitionColumns}
+                            loading={loading}
+                            pageSizeOptions={[10, 25, 50]}
+                            initialState={{
+                                pagination: { paginationModel: { pageSize: 25 } },
+                            }}
+                            getRowHeight={() => 'auto'}
+                            sx={{
+                                flex: 1,
+                                border: 'none',
+                                fontSize: '0.85rem',
+                                '& .MuiDataGrid-cell': {
+                                    borderColor: 'var(--border-color)',
+                                    py: 1,
+                                },
+                                '& .MuiDataGrid-columnHeaders': {
+                                    backgroundColor: 'var(--bg-secondary)',
+                                    borderBottom: '1px solid var(--border-color)',
+                                    fontWeight: 600,
+                                    textTransform: 'uppercase',
+                                    fontSize: '0.75rem',
+                                    letterSpacing: '0.05em',
+                                    color: 'var(--text-secondary)'
+                                }
+                            }}
+                        />
                     )}
                 </Paper>
+                </Box>
             </Box>
 
             <Snackbar
