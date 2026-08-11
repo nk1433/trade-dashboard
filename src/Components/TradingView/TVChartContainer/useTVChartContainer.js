@@ -291,11 +291,22 @@ export const useTVChartContainer = () => {
                 },
                 symbol_search_complete: (symbol, searchResultItem) => {
                     return new Promise((resolve) => {
-                        const allScripts = universe;
-                        const foundScript = allScripts.find(s => s.tradingsymbol === symbol || s.instrument_key === symbol);
+                        // searchResultItem.ticker is the instrument_key from our live Upstox search.
+                        // searchResultItem.full_name is "instrument_key|trading_symbol".
+                        // Use these directly if available, otherwise fall back to local universe lookup.
+                        if (searchResultItem && searchResultItem.ticker && searchResultItem.ticker.includes('|')) {
+                            // instrument_key is already in ticker (e.g. NSE_EQ|INE002A01018)
+                            // Construct composite for the chart: instrumentKey|tradingSymbol
+                            const instrumentKey = searchResultItem.ticker;
+                            const tradingSymbol = searchResultItem.full_name?.split('|').pop() || symbol;
+                            resolve({ symbol: `${instrumentKey}|${tradingSymbol}`, name: searchResultItem.description || tradingSymbol });
+                            return;
+                        }
 
+                        // Fallback: search in local universe
+                        const foundScript = universe.find(s => s.tradingsymbol === symbol || s.instrument_key === symbol);
                         if (foundScript) {
-                            resolve({ symbol: foundScript.instrument_key, name: foundScript.name });
+                            resolve({ symbol: `${foundScript.instrument_key}|${foundScript.tradingsymbol}`, name: foundScript.name });
                         } else {
                             resolve({ symbol: symbol, name: symbol });
                         }
