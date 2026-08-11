@@ -234,10 +234,11 @@ const Scans = () => {
 
     const handleCopySymbols = () => {
         if (displayedScans.length === 0) return;
-        const symbols = displayedScans.map(scan => scan.tradingSymbol).join(',');
+        const uniqueSymbols = [...new Set(displayedScans.map(scan => scan.tradingSymbol))];
+        const symbols = uniqueSymbols.join(',');
         navigator?.clipboard?.writeText(symbols)
             .then(() => {
-                setSnackbarMessage(`Copied ${displayedScans.length} symbols to clipboard!`);
+                setSnackbarMessage(`Copied ${uniqueSymbols.length} symbols to clipboard!`);
                 setSnackbarOpen(true);
             })
             .catch(err => {
