@@ -53,7 +53,6 @@ export const searchSymbols = (
     _searchTimer = setTimeout(async () => {
         try {
             const token = import.meta.env.VITE_UPSTOXS_ANALYTICS_TOKEN;
-            console.log('analytics token', token)
             const params = new URLSearchParams({
                 query: userInput.trim(),
                 page_number: 1,
