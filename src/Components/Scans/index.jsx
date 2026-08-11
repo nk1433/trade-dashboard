@@ -1,6 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
-import { Box, TextField, MenuItem, Select, FormControl, InputLabel, Button, Typography, Paper, Chip, Snackbar, Alert } from '@mui/material';
+import { Box, TextField, MenuItem, Select, FormControl, InputLabel, Button, Typography, Paper, Chip, Snackbar, Alert, Popover } from '@mui/material';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import { StaticTimePicker } from '@mui/x-date-pickers/StaticTimePicker';
+import dayjs from 'dayjs';
 import { DataGrid } from '@mui/x-data-grid';
 import { ArrowUpward, ArrowDownward, TrendingUp, ContentCopy } from '@mui/icons-material';
 import axios from 'axios';
@@ -13,6 +17,9 @@ import ScansTVChart from './ScansTVChart';
 
 const Scans = () => {
     const [selectedDate, setSelectedDate] = useState(moment().format('YYYY-MM-DD'));
+    const [anchorEl, setAnchorEl] = useState(null);
+    const [startTime, setStartTime] = useState(null);
+    const [endTime, setEndTime] = useState(null);
     const [scanType, setScanType] = useState('all');
     const [viewType, setViewType] = useState('table');
     const [timeframe, setTimeframe] = useState(15);
@@ -110,12 +117,40 @@ const Scans = () => {
         fetchScans();
     }, [selectedDate, scanType, holidays]);
 
+    const handleOpenTimeFilter = (event) => setAnchorEl(event.currentTarget);
+    const handleCloseTimeFilter = () => setAnchorEl(null);
+    const openTimeFilter = Boolean(anchorEl);
+    
+    const handleClearTimeFilter = () => {
+        setStartTime(null);
+        setEndTime(null);
+    };
+
+    const displayedScans = React.useMemo(() => {
+        return scans.filter(scan => {
+            if (!startTime && !endTime) return true;
+            const scanTime = moment(scan.createdAt || scan.currentTs);
+            const scanTotalMins = scanTime.hours() * 60 + scanTime.minutes();
+            
+            let match = true;
+            if (startTime) {
+                const sTotal = startTime.hour() * 60 + startTime.minute();
+                if (scanTotalMins < sTotal) match = false;
+            }
+            if (endTime) {
+                const eTotal = endTime.hour() * 60 + endTime.minute();
+                if (scanTotalMins > eTotal) match = false;
+            }
+            return match;
+        });
+    }, [scans, startTime, endTime]);
+
     const handleCopySymbols = () => {
-        if (scans.length === 0) return;
-        const symbols = scans.map(scan => scan.tradingSymbol).join(',');
+        if (displayedScans.length === 0) return;
+        const symbols = displayedScans.map(scan => scan.tradingSymbol).join(',');
         navigator?.clipboard?.writeText(symbols)
             .then(() => {
-                setSnackbarMessage(`Copied ${scans.length} symbols to clipboard!`);
+                setSnackbarMessage(`Copied ${displayedScans.length} symbols to clipboard!`);
                 setSnackbarOpen(true);
             })
             .catch(err => {
@@ -148,7 +183,6 @@ const Scans = () => {
                 );
             }
         },
-        { field: 'symbol', headerName: 'Instrument Key', flex: 1, minWidth: 150 },
         {
             field: 'tradingSymbol',
             headerName: 'Symbol',
@@ -268,7 +302,7 @@ const Scans = () => {
         },
     ];
 
-    const scanTypeCounts = scans.reduce((acc, scan) => {
+    const scanTypeCounts = displayedScans.reduce((acc, scan) => {
         acc[scan.scanType] = (acc[scan.scanType] || 0) + 1;
         return acc;
     }, {});
@@ -335,7 +369,7 @@ const Scans = () => {
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
                         <Typography variant="h5" sx={{ fontWeight: 700, letterSpacing: '-0.02em', mr: 1 }}>Market Scans</Typography>
                         
-                        {renderFilterButton('all', 'All', scanCount)}
+                        {renderFilterButton('all', 'All', displayedScans.length)}
                         
                         {Object.entries(scanTypeCounts).map(([type, count]) => (
                             renderFilterButton(type, getScanLabel(type), count)
@@ -384,12 +418,55 @@ const Scans = () => {
                             sx={{ width: 180, bgcolor: 'var(--bg-primary)', ...commonInputProps }}
                         />
 
+                        <Button
+                            variant="outlined"
+                            onClick={handleOpenTimeFilter}
+                            sx={{ height: 40, borderColor: 'var(--border-color)', color: 'text.primary', '&:hover': { borderColor: 'primary.main' }, textTransform: 'none' }}
+                        >
+                            {startTime || endTime ? 
+                                `Time: ${startTime ? startTime.format('HH:mm') : 'Start'} - ${endTime ? endTime.format('HH:mm') : 'End'}` 
+                                : 'Filter Time'
+                            }
+                        </Button>
 
+                        <Popover
+                            open={openTimeFilter}
+                            anchorEl={anchorEl}
+                            onClose={handleCloseTimeFilter}
+                            anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+                        >
+                            <LocalizationProvider dateAdapter={AdapterDayjs}>
+                                <Box sx={{ display: 'flex', gap: 2, p: 2, bgcolor: 'var(--bg-primary)' }}>
+                                    <Box>
+                                        <Typography variant="subtitle2" sx={{ textAlign: 'center', mb: 1, fontWeight: 'bold' }}>From</Typography>
+                                        <StaticTimePicker 
+                                            displayStaticWrapperAs="desktop"
+                                            value={startTime}
+                                            onChange={(newValue) => setStartTime(newValue)}
+                                            slotProps={{ actionBar: { actions: [] } }}
+                                        />
+                                    </Box>
+                                    <Box>
+                                        <Typography variant="subtitle2" sx={{ textAlign: 'center', mb: 1, fontWeight: 'bold' }}>To</Typography>
+                                        <StaticTimePicker 
+                                            displayStaticWrapperAs="desktop"
+                                            value={endTime}
+                                            onChange={(newValue) => setEndTime(newValue)}
+                                            slotProps={{ actionBar: { actions: [] } }}
+                                        />
+                                    </Box>
+                                </Box>
+                                <Box sx={{ p: 2, pt: 0, display: 'flex', justifyContent: 'flex-end', gap: 2, bgcolor: 'var(--bg-primary)' }}>
+                                    <Button onClick={handleClearTimeFilter} color="inherit">Clear</Button>
+                                    <Button variant="contained" onClick={handleCloseTimeFilter} sx={{ bgcolor: 'black', color: 'white', '&:hover': { bgcolor: '#333' }, textTransform: 'none' }}>Apply</Button>
+                                </Box>
+                            </LocalizationProvider>
+                        </Popover>
 
                         <Button
                             variant="outlined"
                             onClick={handleCopySymbols}
-                            disabled={loading || scans.length === 0}
+                            disabled={loading || displayedScans.length === 0}
                             startIcon={<ContentCopy />}
                             sx={{
                                 height: 40,
@@ -432,7 +509,7 @@ const Scans = () => {
                 <Paper elevation={0} sx={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, bgcolor: 'var(--bg-primary)', borderRadius: 2, overflow: 'hidden', border: '1px solid var(--border-color)', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
                     {viewType === 'table' ? (
                         <DataGrid
-                            rows={scans}
+                            rows={displayedScans}
                             columns={columns}
                             loading={loading}
                             pageSizeOptions={[10, 25, 50, 100]}
@@ -463,7 +540,7 @@ const Scans = () => {
                             }}
                         />
                     ) : (
-                        <ScansTVChart scans={scans} timeframe={timeframe} />
+                        <ScansTVChart scans={displayedScans} timeframe={timeframe} />
                     )}
                 </Paper>
             </Box>
