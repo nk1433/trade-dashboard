@@ -23,6 +23,14 @@ const formatNumber = (num) => {
     return num.toLocaleString();
 };
 
+// Format value in Crores
+const formatCrore = (val) => {
+    if (!val || val === 0) return '—';
+    if (val >= 10000000) return `₹${(val / 10000000).toFixed(2)} Cr`;
+    if (val >= 100000) return `₹${(val / 100000).toFixed(2)} L`;
+    return `₹${val.toFixed(0)}`;
+};
+
 export default function TopVolumeShockers() {
     const [flaggedStocks, setFlaggedStocks] = useState({});
     const theme = useTheme();
@@ -81,18 +89,18 @@ export default function TopVolumeShockers() {
         const data = universe.map(script => {
             const metric = orderMetrics[script.instrument_key] || {};
             const stat = stats[script.instrument_key] || {};
-            
+
             const currentVolume = metric.dayVolume || 0;
+            const ltp = metric.ltp || 0;
             const avgVolume1w = stat.avgVolume1w || 0;
+            // tradedValue = volume × price (in raw rupees), display in Crores
+            const tradedValue = currentVolume > 0 && ltp > 0 ? currentVolume * ltp : 0;
 
             let volChangePct = 0;
             if (avgVolume1w > 0) {
-                // Real calculation when average is available
                 volChangePct = ((currentVolume - avgVolume1w) / avgVolume1w) * 100;
             } else if (currentVolume > 0) {
-                // If we have volume but no average, it's a "New Shocker"
-                // We set it to 100 to sort them, but they will be prioritized by volume
-                volChangePct = 100; 
+                volChangePct = 100;
             }
 
             return {
@@ -103,20 +111,18 @@ export default function TopVolumeShockers() {
                 industry: script.industry,
                 currentVolume,
                 avgVolume1w,
-                volChangePct
+                volChangePct,
+                ltp,
+                tradedValue,
             };
         });
 
-        // Filter out stocks with 0 volume change or 0 current volume
         const filtered = data.filter(s => s.currentVolume > 0 && s.volChangePct > 0);
 
-        // Sort by highest % volume change, then by raw volume as a tie-breaker
         return filtered.sort((a, b) => {
-            if (b.volChangePct !== a.volChangePct) {
-                return b.volChangePct - a.volChangePct;
-            }
-            return b.currentVolume - a.currentVolume;
-        }).slice(0, 15); // Top 15
+            if (b.volChangePct !== a.volChangePct) return b.volChangePct - a.volChangePct;
+            return b.tradedValue - a.tradedValue; // high-value shockers break ties
+        }).slice(0, 15);
     }, [orderMetrics, stats]);
 
     return (
@@ -134,6 +140,7 @@ export default function TopVolumeShockers() {
                             <TableCell align="center" width={50}>Flag</TableCell>
                             <TableCell>Company</TableCell>
                             <TableCell align="right">Vol weekly change (1D)</TableCell>
+                            <TableCell align="right">Traded Value</TableCell>
                         </TableRow>
                     </TableHead>
                     <TableBody>
@@ -166,14 +173,30 @@ export default function TopVolumeShockers() {
                                         {stock.volChangePct > 0 ? '+' : ''}{stock.volChangePct.toLocaleString(undefined, { maximumFractionDigits: 2 })}%
                                     </Typography>
                                     <Typography variant="caption" color="text.secondary" display="block">
-                                        {formatNumber(stock.currentVolume)}
+                                        {formatNumber(stock.currentVolume)} shares
+                                    </Typography>
+                                </TableCell>
+                                <TableCell align="right">
+                                    <Typography
+                                        variant="body2"
+                                        fontWeight={800}
+                                        sx={{
+                                            color: '#1a1a1a',
+                                            fontSize: '0.85rem',
+                                            letterSpacing: '-0.3px',
+                                        }}
+                                    >
+                                        {formatCrore(stock.tradedValue)}
+                                    </Typography>
+                                    <Typography variant="caption" color="text.secondary" display="block">
+                                        ₹{stock.ltp?.toLocaleString('en-IN', { maximumFractionDigits: 2 })} × {formatNumber(stock.currentVolume)}
                                     </Typography>
                                 </TableCell>
                             </TableRow>
                         ))}
                         {sortedStocks.length === 0 && (
                             <TableRow>
-                                <TableCell colSpan={3} align="center">
+                                <TableCell colSpan={4} align="center">
                                     <Typography variant="caption" color="text.secondary">No Volume Surge Data Available</Typography>
                                 </TableCell>
                             </TableRow>
