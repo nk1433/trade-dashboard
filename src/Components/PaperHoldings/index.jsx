@@ -19,6 +19,10 @@ const PaperHoldings = () => {
     const [selectedScript, setSelectedScript] = useState(null);
     const [orderSide, setOrderSide] = useState('BUY');
 
+    // LTP updates are handled globally in App.jsx:
+    //  • Market CLOSED/UNKNOWN → fetches fresh LTP from Upstox market-quote/ltp API
+    //  • Market OPEN → live WS tickers flow through orderMetrics → updatePaperHoldingsLTP
+
     const totalInvested = holdings.reduce((acc, curr) => acc + curr.invested, 0);
     const totalCurrentValue = holdings.reduce((acc, curr) => acc + curr.currentValue, 0);
     const totalInvestedPercentage = (totalInvested / (capital + totalInvested)) * 100;

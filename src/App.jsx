@@ -98,15 +98,18 @@ const App = () => {
     }
   }, [dispatch, upstoxToken, marketStatus, stats, orderMetrics]); // Run when stats update
 
-  // Global LTP Update Logic for Paper Holdings
+  // Global LTP Update Logic for Paper Holdings (from live WebSocket / orderMetrics)
+  // Only fires for non-fallback metrics — i.e. real live WS prices when market is OPEN.
+  // isFallback=true metrics come from stale stats and must NOT overwrite the fresh LTP below.
   useEffect(() => {
     if (orderMetrics && holdings.length > 0) {
       const ltpMap = {};
       let hasUpdate = false;
 
-      // Create a map of Symbol -> LTP from orderMetrics
       Object.values(orderMetrics).forEach(metric => {
-        if (metric.symbol && metric.ltp) {
+        // Skip isFallback metrics (built from stale stats = yesterday's close).
+        // These must not overwrite the fresh LTP fetched directly from Upstox below.
+        if (metric.symbol && metric.ltp && !metric.isFallback) {
           ltpMap[metric.symbol] = metric.ltp;
           hasUpdate = true;
         }
@@ -119,52 +122,81 @@ const App = () => {
         holdings.forEach(holding => {
           const currentLTP = ltpMap[holding.symbol];
           if (currentLTP && holding.sl && holding.sl > 0) {
-            // if (currentLTP <= holding.sl) {
-            //   // Trigger Auto Exit
-            //   console.log(`Checking SL for ${holding.symbol}: LTP ${currentLTP} <= SL ${holding.sl}. Exiting...`);
-
-            //   // Dispatch executePaperOrder
-            //   // We dispatch directly here. Ideally, we should have a flag to prevent multiple triggers for the same holding
-            //   // but executePaperOrder (SELL) likely reduces quantity or removes holding, so subsequent checks won't find it or quantity will be 0.
-            //   // Assuming executePaperOrder handles sufficient quantity checks.
-            //   import('./Store/paperTradeSlice').then(({ executePaperOrder }) => {
-            //     dispatch(executePaperOrder({
-            //       symbol: holding.symbol,
-            //       quantity: holding.quantity, // Exit full quantity
-            //       price: currentLTP,
-            //       type: 'SELL',
-            //       timestamp: Date.now(),
-            //       reason: 'SL_HIT'
-            //     }));
-            //   });
-            // }
+            // if (currentLTP <= holding.sl) { /* auto-exit logic */ }
           }
         });
       }
     }
-  }, [orderMetrics, dispatch]); // Intentionally omitting holdings to avoid loops, but strictly speaking holdings should be in dependency or we use a ref.
-  // Actually, if we don't include holdings, we might be checking against stale SLs.
-  // But if we include holdings, this effect runs every time holdings change (e.g. pnl update), potentially loop.
-  // orderMetrics changes frequent.
-  // Since updatePaperHoldingsLTP updates holdings in store, it triggers selector update.
-  // To avoid loop:
-  // We rely on orderMetrics driving the cycle.
-  // We should read the *latest* holdings.
-  // The 'holdings' from scope is from useSelector.
-  // If we don't add it to deps, we read stale closure 'holdings'.
-  // BUT: App component re-renders on selector change, so 'holdings' variable is fresh.
-  // The useEffect normally would depend on it.
-  // If we add 'holdings' to deps, and we dispatch updatePaperHoldingsLTP, it updates holdings -> re-render -> useEffect -> dispatch... Loop?
-  // updatePaperHoldingsLTP updates LTP/PnL but does it create new object reference for the array? Yes likely.
-  // Optimization: Use a Ref for holdings to read inside effect without triggering it, OR ensure updatePaperHoldingsLTP is only dispatched if values actually changed significantly.
-  // For now, let's keep it as is but be careful.
-  // The existing code omitted holdings.
-  // Let's rely on `holdings` from the closure - wait, if useEffect doesn't have holdings in deps, it uses the holdings from the *first render* or when orderMetrics/dispatch changed?
-  // No, if orderMetrics changes (every second), the effect runs. access to `holdings` will be...
-  // wait. `holdings` is const from useSelector.
-  // If we don't list it in deps, the callback closes over the `holdings` from the render where `orderMetrics` *last changed*.
-  // Since `orderMetrics` changes constantly, we essentially get fresh `holdings` frequently enough.
-  // So the closure is fresh enough.
+  }, [orderMetrics, dispatch]); // Intentionally omitting holdings to avoid render loops
+
+  // ─── Closed-Market Holdings LTP Fetch ────────────────────────────────────────
+  // When market is CLOSED/UNKNOWN the WebSocket sends no tickers.
+  // Fetch the latest LTP directly from the Upstox market-quote/ltp API using the
+  // long-lived analytics token so BOTH the home-page sidebar AND /holdings page
+  // always show the correct closing price and P&L.
+  useEffect(() => {
+    const analyticsToken = import.meta.env.VITE_UPSTOXS_ANALYTICS_TOKEN;
+    const isMarketOpen = marketStatus === 'OPEN';
+
+    if (isMarketOpen || !analyticsToken || holdings.length === 0) return;
+
+    // Build instrument_key list for held symbols
+    const instrumentKeys = holdings
+      .map(h => {
+        const entry = universe.find(s => s.tradingsymbol === h.symbol);
+        return entry?.instrument_key;
+      })
+      .filter(Boolean);
+
+    if (instrumentKeys.length === 0) {
+      console.warn('[App Holdings LTP] No instrument keys found for holdings:', holdings.map(h => h.symbol));
+      return;
+    }
+
+    const fetchClosedMarketLTP = async () => {
+      try {
+        const keysParam = instrumentKeys.join(',');
+        const url = `https://api.upstox.com/v2/market-quote/ltp?instrument_key=${encodeURIComponent(keysParam)}`;
+        console.log('[App Holdings LTP] Market not open — fetching fresh LTP:', url);
+
+        const res = await fetch(url, {
+          headers: {
+            Authorization: `Bearer ${analyticsToken}`,
+            Accept: 'application/json',
+          },
+        });
+
+        const json = await res.json();
+        console.log('[App Holdings LTP] API response:', json);
+
+        if (json.status === 'success' && json.data) {
+          const ltpMap = {};
+          Object.entries(json.data).forEach(([key, val]) => {
+            // API returns keys as "NSE_EQ:SYMBOL" (colon+symbol format)
+            const symbol = key.split(':')[1];
+            if (symbol && val.last_price) {
+              ltpMap[symbol] = val.last_price;
+            }
+          });
+
+          console.log('[App Holdings LTP] Dispatching ltpMap:', ltpMap);
+
+          if (Object.keys(ltpMap).length > 0) {
+            dispatch(updatePaperHoldingsLTP(ltpMap));
+            console.log('[App Holdings LTP] ✅ Holdings updated with fresh closing prices');
+          } else {
+            console.warn('[App Holdings LTP] ltpMap empty — no symbols matched API response');
+          }
+        } else {
+          console.error('[App Holdings LTP] API returned non-success:', json);
+        }
+      } catch (err) {
+        console.error('[App Holdings LTP] Fetch failed:', err);
+      }
+    };
+
+    fetchClosedMarketLTP();
+  }, [marketStatus, holdings.length, dispatch]); // Re-runs when market status or holding count changes
 
   // Periodic Market Status Check (every minute)
   useEffect(() => {
