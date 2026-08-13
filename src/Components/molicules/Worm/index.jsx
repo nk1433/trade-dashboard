@@ -183,17 +183,16 @@ export default function MarketHighLowWormChart() {
 
     return (
         <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
-            <Grid container spacing={4} justifyContent="center">
+            <Grid container spacing={4} justifyContent="center" alignItems="center">
                 <Grid item xs={12} lg={6}>
                     {/* Minimal Header Section */}
                     <Box sx={{ mb: 4, textAlign: 'center', minHeight: 180, display: 'flex', flexDirection: 'column', justifyContent: 'flex-start' }}>
-                        <Typography variant="overline" sx={{ letterSpacing: 2, color: '#9e9e9e', fontWeight: 600 }}>
+                        <Typography variant="overline" sx={{ letterSpacing: 2, color: '#9e9e9e', fontWeight: 600, display: 'block', mb: 2 }}>
                             UNIVERSE • MARKET BREADTH
                         </Typography>
 
                         {/* Comparison Block */}
                         <Box sx={{
-                            mt: 2,
                             display: 'flex',
                             justifyContent: 'center',
                             alignItems: 'center',
@@ -246,7 +245,7 @@ export default function MarketHighLowWormChart() {
                                 <Typography variant="h4" sx={{ fontWeight: 800, lineHeight: 1 }}>
                                     {formatTurnover(latestUp)}
                                 </Typography>
-                                <Typography variant="caption" sx={{ fontWeight: 600, color: '#4caf50' }}>BUYING</Typography>
+                                <Typography variant="caption" sx={{ fontWeight: 600, color: '#000' }}>BUYING</Typography>
                             </Box>
 
                             <Typography variant="h6" sx={{ color: '#e0e0e0', fontWeight: 300, alignSelf: 'center' }}>
@@ -257,12 +256,12 @@ export default function MarketHighLowWormChart() {
                                 <Typography variant="h4" sx={{ fontWeight: 800, lineHeight: 1 }}>
                                     {formatTurnover(latestDown)}
                                 </Typography>
-                                <Typography variant="caption" sx={{ fontWeight: 600, color: '#ef5350' }}>SELLING</Typography>
+                                <Typography variant="caption" sx={{ fontWeight: 600, color: '#9e9e9e' }}>SELLING</Typography>
                             </Box>
                         </Box>
 
                         {/* Ratio Bar */}
-                        <Box sx={{ width: '100%', maxWidth: 400, mx: 'auto', mt: 2, mb: 4 }}>
+                        <Box sx={{ width: '100%', maxWidth: 400, mx: 'auto', mt: 2, mb: 2 }}>
                             <Box sx={{ height: 6, width: '100%', bgcolor: '#e0e0e0', borderRadius: 3, overflow: 'hidden', display: 'flex' }}>
                                 <Box sx={{ width: `${(latestUp + latestDown) > 0 ? (latestUp / (latestUp + latestDown)) * 100 : 50}%`, bgcolor: '#000000', transition: 'width 0.5s ease' }} />
                             </Box>
@@ -275,7 +274,7 @@ export default function MarketHighLowWormChart() {
                                 {renderPill('UP', 'Up')}
                                 {renderPill('DOWN', 'Down')}
                             </Box>
-                            <Typography variant="h6" sx={{ fontWeight: 800, color: currentColor, transition: 'color 0.3s' }}>
+                            <Typography variant="h6" sx={{ fontWeight: 800, color: '#000', transition: 'color 0.3s' }}>
                                 {formatTurnover(currentTurnoverValue)}
                             </Typography>
                         </Box>
