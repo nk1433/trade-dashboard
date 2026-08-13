@@ -12,6 +12,7 @@ import {
 import universe from '../../../index/universe.json';
 import IndustryVolumeShockers from './IndustryVolumeShockers';
 import TopVolumeShockers from './TopVolumeShockers';
+import SectorPriceMove from './SectorPriceMove';
 
 export default function MarketHighLowWormChart() {
     const [seriesData, setSeriesData] = useState([]);
@@ -454,9 +455,31 @@ export default function MarketHighLowWormChart() {
                     >
                         <Typography variant="button" sx={{ fontWeight: 700, fontSize: '0.75rem' }}>INDUSTRY</Typography>
                     </Box>
+                    <Box
+                        onClick={() => setShockerTab('SECTOR')}
+                        sx={{
+                            px: 4,
+                            py: 1,
+                            borderRadius: 10,
+                            cursor: 'pointer',
+                            bgcolor: shockerTab === 'SECTOR' ? '#000' : 'transparent',
+                            color: shockerTab === 'SECTOR' ? '#fff' : '#9e9e9e',
+                            border: '1px solid',
+                            borderColor: shockerTab === 'SECTOR' ? '#000' : '#e0e0e0',
+                            transition: 'all 0.2s',
+                            '&:hover': {
+                                borderColor: '#000',
+                                color: shockerTab === 'SECTOR' ? '#fff' : '#000'
+                            }
+                        }}
+                    >
+                        <Typography variant="button" sx={{ fontWeight: 700, fontSize: '0.75rem' }}>SECTOR MOVES</Typography>
+                    </Box>
                 </Box>
 
-                {shockerTab === 'TOP' ? <TopVolumeShockers /> : <IndustryVolumeShockers />}
+                {shockerTab === 'TOP' && <TopVolumeShockers />}
+                {shockerTab === 'INDUSTRY' && <IndustryVolumeShockers />}
+                {shockerTab === 'SECTOR' && <SectorPriceMove />}
             </Box>
 
         </Container >
