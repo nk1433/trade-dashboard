@@ -1,16 +1,19 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Box, Typography, Button, IconButton, Tooltip } from '@mui/material';
+import { Box, Typography, Button, IconButton, Tooltip, Drawer } from '@mui/material';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
+import CloseIcon from '@mui/icons-material/Close';
 import NotificationIcon from './NotificationIcon';
 import NewWindow from './NewWindow';
 import MarketHighLowWormChart from './Worm/index';
+import MarketBreadthTable from './MarketBreadth.jsx';
 
 import './Layout.css';
 
 const Layout = ({ children, routes }) => {
     const location = useLocation();
     const [isWormPoppedOut, setIsWormPoppedOut] = useState(false);
+    const [isMmOpen, setIsMmOpen] = useState(false);
 
     return (
         <div className="layout-container">
@@ -31,14 +34,35 @@ const Layout = ({ children, routes }) => {
                 <nav className="layout-nav">
                     {routes.filter(route => route.linkText).map((route) => {
                         const isActive = location.pathname === route.path;
+                        const isMM = route.path === '/market-breadth';
+
                         return (
-                            <Link
+                            <Box
                                 key={route.path}
-                                to={route.path}
-                                className={`nav-link ${isActive ? 'active' : 'inactive'}`}
+                                sx={{ display: 'flex', alignItems: 'center', gap: 0.25 }}
                             >
-                                {route.linkText}
-                            </Link>
+                                <Link
+                                    to={route.path}
+                                    className={`nav-link ${isActive ? 'active' : 'inactive'}`}
+                                >
+                                    {route.linkText}
+                                </Link>
+                                {isMM && (
+                                    <Tooltip title="Open MM in popout">
+                                        <IconButton
+                                            size="small"
+                                            onClick={(e) => { e.preventDefault(); setIsMmOpen(true); }}
+                                            sx={{
+                                                p: 0.25,
+                                                color: isMmOpen ? '#000' : '#bdbdbd',
+                                                '&:hover': { color: '#000', bgcolor: 'transparent' },
+                                            }}
+                                        >
+                                            <OpenInNewIcon sx={{ fontSize: '0.8rem' }} />
+                                        </IconButton>
+                                    </Tooltip>
+                                )}
+                            </Box>
                         );
                     })}
                 </nav>
@@ -84,13 +108,54 @@ const Layout = ({ children, routes }) => {
                 {children}
             </main>
 
+            {/* Worm popout (separate browser window) */}
             {isWormPoppedOut && (
                 <NewWindow title="Worm Chart" onClose={() => setIsWormPoppedOut(false)}>
                     <MarketHighLowWormChart />
                 </NewWindow>
             )}
+
+            {/* MM Market Breadth — in-page fullscreen drawer */}
+            <Drawer
+                anchor="bottom"
+                open={isMmOpen}
+                onClose={() => setIsMmOpen(false)}
+                PaperProps={{
+                    sx: {
+                        height: '90vh',
+                        borderRadius: '16px 16px 0 0',
+                        overflow: 'hidden',
+                        display: 'flex',
+                        flexDirection: 'column',
+                    }
+                }}
+            >
+                {/* Drawer header */}
+                <Box sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    px: 3,
+                    py: 1.5,
+                    borderBottom: '1px solid #eee',
+                    flexShrink: 0,
+                }}>
+                    <Typography variant="overline" sx={{ fontWeight: 700, letterSpacing: 2, color: '#9e9e9e' }}>
+                        MARKET BREADTH (MM)
+                    </Typography>
+                    <IconButton size="small" onClick={() => setIsMmOpen(false)} sx={{ color: '#000' }}>
+                        <CloseIcon fontSize="small" />
+                    </IconButton>
+                </Box>
+
+                {/* Scrollable content */}
+                <Box sx={{ flex: 1, overflowY: 'auto' }}>
+                    <MarketBreadthTable />
+                </Box>
+            </Drawer>
         </div>
     );
 };
 
 export default Layout;
+
