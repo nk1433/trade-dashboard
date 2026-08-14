@@ -359,9 +359,12 @@ export const useTVChartContainer = () => {
                     tvWidget.headerReady().then(() => {
                         try {
                             const studies = tvWidget.activeChart().getAllStudies();
-                            const hasTurnover = studies.some(s => s.name === "Turnover");
+                            // TV's getAllStudies() returns name based on the study's `description` field
+                            const hasTurnover = studies.some(s =>
+                                s.name === "Turnover (Cr)" || s.name === "Turnover"
+                            );
                             if (!hasTurnover) {
-                                tvWidget.activeChart().createStudy("Turnover", false, false);
+                                tvWidget.activeChart().createStudy("Turnover (Cr)", false, false);
                             }
                         } catch (e) {
                             console.error("Failed to add Turnover study automatically", e);
