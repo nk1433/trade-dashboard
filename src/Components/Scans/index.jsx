@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
-import { Box, TextField, MenuItem, Select, FormControl, InputLabel, Button, Typography, Paper, Chip, Snackbar, Alert, Popover, Tooltip } from '@mui/material';
+import { Box, TextField, MenuItem, Select, FormControl, InputLabel, Button, Typography, Paper, Chip, Snackbar, Alert, Popover, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { StaticTimePicker } from '@mui/x-date-pickers/StaticTimePicker';
@@ -30,7 +30,40 @@ const Scans = () => {
     const [snackbarMessage, setSnackbarMessage] = useState('');
 
     // Import watchlist filter to manage flags
-    const { flaggedStocks, toggleFlag } = useWatchlistFilter();
+    const { flaggedStocks, toggleFlag, customLists, createCustomList, addSymbolsToWatchlist } = useWatchlistFilter();
+
+    // Dialog state for adding symbols to watchlist
+    const [wlDialogOpen, setWlDialogOpen] = useState(false);
+    const [wlSelectedList, setWlSelectedList] = useState('red');
+    const [wlNewListName, setWlNewListName] = useState('');
+    const [wlSymbolsToAdd, setWlSymbolsToAdd] = useState([]);
+
+    const handleOpenAddWl = (symbols) => {
+        const uniqueSyms = [...new Set(symbols)];
+        setWlSymbolsToAdd(uniqueSyms);
+        setWlNewListName('');
+        setWlSelectedList('red');
+        setWlDialogOpen(true);
+    };
+
+    const handleAddWlSubmit = () => {
+        let targetList = wlSelectedList;
+        if (wlSelectedList === '__NEW__') {
+            const trimmed = wlNewListName.trim();
+            if (!trimmed) {
+                setSnackbarMessage('Please enter a valid watchlist name.');
+                setSnackbarOpen(true);
+                return;
+            }
+            createCustomList(trimmed);
+            targetList = trimmed;
+        }
+
+        addSymbolsToWatchlist(wlSymbolsToAdd, targetList);
+        setSnackbarMessage(`Added ${wlSymbolsToAdd.length} symbols to "${targetList}" watchlist!`);
+        setSnackbarOpen(true);
+        setWlDialogOpen(false);
+    };
 
     const holidays = useSelector((state) => state.marketStatus.holidays);
 
@@ -176,21 +209,28 @@ const Scans = () => {
             
             const sorted = [...symbolScans].sort((a, b) => moment(a.createdAt || a.currentTs).valueOf() - moment(b.createdAt || b.currentTs).valueOf());
             
-            const firstScan = sorted[0];
-            const lastScan = sorted[sorted.length - 1];
-            
-            if (firstScan.scanType !== lastScan.scanType) {
-                 const id = `transition_${firstScan.scanType}_${lastScan.scanType}`;
-                 const details = `${getShortLabel(firstScan.scanType)} → ${getShortLabel(lastScan.scanType)}`;
-                 
-                 // Determine overall polarity shift for color coding
-                 const isBullTurn = bearishScansSet.has(firstScan.scanType) && bullishScansSet.has(lastScan.scanType);
-                 const isBearTurn = bullishScansSet.has(firstScan.scanType) && bearishScansSet.has(lastScan.scanType);
-                 let turnType = 'neutral';
-                 if (isBullTurn) turnType = 'bullTurnaround';
-                 if (isBearTurn) turnType = 'bearTurnaround';
+            // Build chronological sequence of scan types collapsing consecutive duplicates
+            const sequence = [];
+            sorted.forEach(scan => {
+                if (sequence.length === 0 || sequence[sequence.length - 1] !== scan.scanType) {
+                    sequence.push(scan.scanType);
+                }
+            });
 
-                 transitions[symbol] = { id, details, type: turnType, first: firstScan.scanType, last: lastScan.scanType };
+            // If the sequence has at least 2 distinct types, it's a transition!
+            if (sequence.length >= 2) {
+                 const id = `transition_${sequence.join('_')}`;
+                 const details = sequence.map(getShortLabel).join(' → ');
+                 
+                 // The overall direction is determined by the last scan in the sequence
+                 const lastScanType = sequence[sequence.length - 1];
+                 const isBullish = bullishScansSet.has(lastScanType);
+                 const isBearish = bearishScansSet.has(lastScanType);
+                 let direction = 'neutral';
+                 if (isBullish) direction = 'bullish';
+                 else if (isBearish) direction = 'bearish';
+
+                 transitions[symbol] = { id, details, direction, first: sequence[0], last: lastScanType };
             }
         });
         return transitions;
@@ -199,14 +239,16 @@ const Scans = () => {
     const availableTransitions = React.useMemo(() => {
         const counts = {};
         const detailsMap = {};
+        const directionMap = {};
         
         Object.values(transitionData).forEach(t => {
             counts[t.id] = (counts[t.id] || 0) + 1;
             detailsMap[t.id] = t.details;
+            directionMap[t.id] = t.direction;
         });
         
         return Object.entries(counts)
-            .map(([id, count]) => ({ id, count, details: detailsMap[id] }))
+            .map(([id, count]) => ({ id, count, details: detailsMap[id], direction: directionMap[id] }))
             .sort((a, b) => b.count - a.count);
     }, [transitionData]);
 
@@ -217,6 +259,7 @@ const Scans = () => {
                 id: t.id,
                 details: t.details,
                 count: t.count,
+                direction: t.direction,
                 symbols: symbols
             };
         });
@@ -231,6 +274,10 @@ const Scans = () => {
         }
         return filtered;
     }, [baseFilteredScans, scanType, transitionData]);
+
+    const currentDisplayedSymbols = React.useMemo(() => {
+        return [...new Set(displayedScans.map(scan => scan.tradingSymbol))];
+    }, [displayedScans]);
 
     const handleCopySymbols = () => {
         if (displayedScans.length === 0) return;
@@ -291,9 +338,9 @@ const Scans = () => {
                                     height: 20, 
                                     fontSize: '0.65rem', 
                                     fontWeight: 700,
-                                    bgcolor: turnData.type === 'bullTurnaround' ? 'rgba(38, 166, 154, 0.1)' : turnData.type === 'bearTurnaround' ? 'rgba(239, 83, 80, 0.1)' : 'rgba(158, 158, 158, 0.1)',
-                                    color: turnData.type === 'bullTurnaround' ? '#26a69a' : turnData.type === 'bearTurnaround' ? '#ef5350' : '#757575',
-                                    border: `1px solid ${turnData.type === 'bullTurnaround' ? 'rgba(38, 166, 154, 0.3)' : turnData.type === 'bearTurnaround' ? 'rgba(239, 83, 80, 0.3)' : 'rgba(158, 158, 158, 0.3)'}`
+                                    bgcolor: turnData.direction === 'bullish' ? 'rgba(38, 166, 154, 0.1)' : turnData.direction === 'bearish' ? 'rgba(239, 83, 80, 0.1)' : 'rgba(158, 158, 158, 0.1)',
+                                    color: turnData.direction === 'bullish' ? '#26a69a' : turnData.direction === 'bearish' ? '#ef5350' : '#757575',
+                                    border: `1px solid ${turnData.direction === 'bullish' ? 'rgba(38, 166, 154, 0.3)' : turnData.direction === 'bearish' ? 'rgba(239, 83, 80, 0.3)' : 'rgba(158, 158, 158, 0.3)'}`
                                 }}
                             />
                         )}
@@ -410,15 +457,70 @@ const Scans = () => {
     ];
 
     const transitionColumns = [
-        { field: 'details', headerName: 'Transition Path', flex: 1, minWidth: 200 },
-        { field: 'count', headerName: 'Count', width: 100 },
+        {
+            field: 'direction',
+            headerName: 'Trend',
+            width: 120,
+            renderCell: (params) => {
+                const isBull = params.value === 'bullish';
+                const isBear = params.value === 'bearish';
+                return (
+                    <Chip
+                        size="small"
+                        icon={isBull ? <ArrowUpward style={{ color: '#059669', fontSize: '0.9rem' }} /> : isBear ? <ArrowDownward style={{ color: '#dc2626', fontSize: '0.9rem' }} /> : undefined}
+                        label={isBull ? 'Bullish' : isBear ? 'Bearish' : 'Neutral'}
+                        sx={{
+                            bgcolor: isBull ? '#ecfdf5' : isBear ? '#fef2f2' : '#f1f5f9',
+                            color: isBull ? '#047857' : isBear ? '#b91c1c' : '#475569',
+                            borderColor: isBull ? '#a7f3d0' : isBear ? '#fecaca' : '#cbd5e1',
+                            borderWidth: 1,
+                            borderStyle: 'solid',
+                            fontWeight: 700,
+                            fontSize: '0.7rem',
+                            height: 24,
+                            '& .MuiChip-icon': { color: 'inherit !important' }
+                        }}
+                    />
+                );
+            }
+        },
+        {
+            field: 'details',
+            headerName: 'Transition Path',
+            flex: 1.5,
+            minWidth: 280,
+            renderCell: (params) => {
+                const parts = params.value.split(' → ');
+                return (
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, height: '100%' }}>
+                        {parts.map((p, idx) => (
+                            <React.Fragment key={idx}>
+                                {idx > 0 && <span style={{ color: '#94a3b8', margin: '0 2px' }}>→</span>}
+                                <Box component="span" sx={{
+                                    px: 1,
+                                    py: 0.25,
+                                    borderRadius: 1,
+                                    fontSize: '0.75rem',
+                                    fontWeight: 600,
+                                    bgcolor: '#f1f5f9',
+                                    color: '#334155'
+                                }}>
+                                    {p}
+                                </Box>
+                            </React.Fragment>
+                        ))}
+                    </Box>
+                );
+            }
+        },
+        { field: 'count', headerName: 'Count', width: 90 },
         { 
             field: 'symbols', 
             headerName: 'Symbols', 
             flex: 2,
             minWidth: 300,
             renderCell: (params) => (
-                <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', py: 1 }}>
+                <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', py: 1, alignItems: 'center', height: '100%' }}>
                     {params.value.map(sym => (
                         <Chip 
                             key={sym} 
@@ -426,7 +528,7 @@ const Scans = () => {
                             size="small" 
                             clickable
                             onClick={() => { setScanType(params.row.id); setViewType('table'); }} 
-                            sx={{ fontWeight: 500 }}
+                            sx={{ fontWeight: 600, fontSize: '0.75rem', height: 22 }}
                         />
                     ))}
                 </Box>
@@ -435,16 +537,26 @@ const Scans = () => {
         {
             field: 'action',
             headerName: '',
-            width: 120,
+            width: 240,
             renderCell: (params) => (
-                <Button 
-                    size="small" 
-                    variant="outlined" 
-                    onClick={() => { setScanType(params.row.id); setViewType('table'); }}
-                    sx={{ textTransform: 'none', borderRadius: 1.5 }}
-                >
-                    View Scans
-                </Button>
+                <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', height: '100%' }}>
+                    <Button 
+                        size="small" 
+                        variant="outlined" 
+                        onClick={() => { setScanType(params.row.id); setViewType('table'); }}
+                        sx={{ textTransform: 'none', borderRadius: 1.5, fontWeight: 600, color: '#000', borderColor: '#cbd5e1', '&:hover': { bgcolor: '#f8fafc', borderColor: '#000' } }}
+                    >
+                        View Scans
+                    </Button>
+                    <Button 
+                        size="small" 
+                        variant="outlined" 
+                        onClick={() => handleOpenAddWl(params.row.symbols)}
+                        sx={{ textTransform: 'none', borderRadius: 1.5, fontWeight: 600, color: '#000', borderColor: '#cbd5e1', '&:hover': { bgcolor: '#f8fafc', borderColor: '#000' } }}
+                    >
+                        + Add to WL
+                    </Button>
+                </Box>
             )
         }
     ];
@@ -511,22 +623,91 @@ const Scans = () => {
     return (
         <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', p: { xs: 2, md: 3 }, alignItems: 'center', bgcolor: 'var(--bg-secondary)' }}>
             <Box sx={{ width: '100%', maxWidth: 1200, display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
-                {/* Header Controls Area */}
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', mb: 3, flexWrap: 'wrap', gap: 2 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
-                        <Typography variant="h5" sx={{ fontWeight: 700, letterSpacing: '-0.02em', mr: 1 }}>Market Scans</Typography>
-                        
-                        {renderFilterButton('all', 'All', baseFilteredScans.length)}
-                        
-                        {Object.entries(scanTypeCounts).map(([type, count]) => (
-                            renderFilterButton(type, getScanLabel(type), count)
-                        ))}
+                
+                {/* Tier 1: Title and Actions */}
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, width: '100%', flexWrap: 'wrap', gap: 2 }}>
+                    <Typography variant="h5" sx={{ fontWeight: 800, letterSpacing: '-0.02em' }}>
+                        Market Scans
+                    </Typography>
+                    
+                    <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center' }}>
+                        <Button
+                            variant="outlined"
+                            onClick={() => handleOpenAddWl(currentDisplayedSymbols)}
+                            disabled={loading || currentDisplayedSymbols.length === 0}
+                            sx={{
+                                height: 36,
+                                textTransform: 'none',
+                                fontWeight: 600,
+                                borderRadius: 1.5,
+                                borderColor: 'var(--border-color)',
+                                color: 'text.primary',
+                                '&:hover': {
+                                    borderColor: 'primary.main',
+                                    bgcolor: 'rgba(25, 118, 210, 0.04)'
+                                }
+                            }}
+                        >
+                            + Add View to WL
+                        </Button>
+                        <Button
+                            variant="outlined"
+                            onClick={handleCopySymbols}
+                            disabled={loading || displayedScans.length === 0}
+                            startIcon={<ContentCopy />}
+                            sx={{
+                                height: 36,
+                                textTransform: 'none',
+                                fontWeight: 600,
+                                borderRadius: 1.5,
+                                borderColor: 'var(--border-color)',
+                                color: 'text.primary',
+                                '&:hover': {
+                                    borderColor: 'primary.main',
+                                    bgcolor: 'rgba(25, 118, 210, 0.04)'
+                                }
+                            }}
+                        >
+                            Copy
+                        </Button>
+                        <Button
+                            variant="contained"
+                            onClick={fetchScans}
+                            disabled={loading}
+                            sx={{
+                                bgcolor: '#000',
+                                color: '#fff',
+                                height: 36,
+                                px: 3,
+                                textTransform: 'none',
+                                fontWeight: 600,
+                                borderRadius: 1.5,
+                                '&:hover': { bgcolor: '#333' },
+                                boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                            }}
+                        >
+                            Refresh
+                        </Button>
                     </Box>
+                </Box>
 
-                    <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+                {/* Tier 2: Scan Filters Pills */}
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap', mb: 3, width: '100%' }}>
+                    {renderFilterButton('all', 'All', baseFilteredScans.length)}
+                    {Object.entries(scanTypeCounts).map(([type, count]) => (
+                        renderFilterButton(type, getScanLabel(type), count)
+                    ))}
+                </Box>
+
+                {/* Tier 3: Configurations and Secondary Actions */}
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, width: '100%', flexWrap: 'wrap', gap: 2, p: 2, bgcolor: 'var(--bg-primary)', borderRadius: 2, border: '1px solid var(--border-color)' }}>
+                    <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
+                        
+                        {/* Transitions Dropdown with proper notched outline fix */}
                         <FormControl size="small" sx={{ minWidth: 160, bgcolor: 'var(--bg-primary)' }}>
-                            <InputLabel sx={commonInputLabelSx}>Transitions</InputLabel>
+                            <InputLabel id="transitions-select-label" sx={commonInputLabelSx}>Transitions</InputLabel>
                             <Select
+                                labelId="transitions-select-label"
                                 value={scanType.startsWith('transition_') ? scanType : ''}
                                 label="Transitions"
                                 onChange={(e) => {
@@ -539,7 +720,6 @@ const Scans = () => {
                                     }
                                 }}
                                 sx={commonSelectSx}
-                                displayEmpty
                             >
                                 <MenuItem value="">None</MenuItem>
                                 {availableTransitions.map(t => (
@@ -550,9 +730,11 @@ const Scans = () => {
                             </Select>
                         </FormControl>
 
+                        {/* View Dropdown with proper notched outline fix */}
                         <FormControl size="small" sx={{ minWidth: 120, bgcolor: 'var(--bg-primary)' }}>
-                            <InputLabel sx={commonInputLabelSx}>View</InputLabel>
+                            <InputLabel id="view-select-label" sx={commonInputLabelSx}>View</InputLabel>
                             <Select
+                                labelId="view-select-label"
                                 value={viewType}
                                 label="View"
                                 onChange={(e) => setViewType(e.target.value)}
@@ -566,8 +748,9 @@ const Scans = () => {
 
                         {viewType === 'chart' && (
                             <FormControl size="small" sx={{ minWidth: 120, bgcolor: 'var(--bg-primary)' }}>
-                                <InputLabel sx={commonInputLabelSx}>Timeframe</InputLabel>
+                                <InputLabel id="timeframe-select-label" sx={commonInputLabelSx}>Timeframe</InputLabel>
                                 <Select
+                                    labelId="timeframe-select-label"
                                     value={timeframe}
                                     label="Timeframe"
                                     onChange={(e) => setTimeframe(e.target.value)}
@@ -589,13 +772,15 @@ const Scans = () => {
                             InputLabelProps={{ shrink: true }}
                             inputProps={{ max: moment().format('YYYY-MM-DD') }}
                             size="small"
-                            sx={{ width: 180, bgcolor: 'var(--bg-primary)', ...commonInputProps }}
+                            sx={{ width: 160, bgcolor: 'var(--bg-primary)', ...commonInputProps }}
                         />
+                    </Box>
 
+                    <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
                         <Button
                             variant="outlined"
                             onClick={handleOpenTimeFilter}
-                            sx={{ height: 40, borderColor: 'var(--border-color)', color: 'text.primary', '&:hover': { borderColor: 'primary.main' }, textTransform: 'none' }}
+                            sx={{ height: 40, borderColor: 'var(--border-color)', color: 'text.primary', '&:hover': { borderColor: 'primary.main' }, textTransform: 'none', borderRadius: 1.5 }}
                         >
                             {startTime || endTime ? 
                                 `Time: ${startTime ? startTime.format('HH:mm') : 'Start'} - ${endTime ? endTime.format('HH:mm') : 'End'}` 
@@ -636,46 +821,6 @@ const Scans = () => {
                                 </Box>
                             </LocalizationProvider>
                         </Popover>
-
-                        <Button
-                            variant="outlined"
-                            onClick={handleCopySymbols}
-                            disabled={loading || displayedScans.length === 0}
-                            startIcon={<ContentCopy />}
-                            sx={{
-                                height: 40,
-                                textTransform: 'none',
-                                fontWeight: 600,
-                                borderRadius: 1.5,
-                                borderColor: 'var(--border-color)',
-                                color: 'text.primary',
-                                '&:hover': {
-                                    borderColor: 'primary.main',
-                                    bgcolor: 'rgba(25, 118, 210, 0.04)'
-                                }
-                            }}
-                        >
-                            Copy
-                        </Button>
-
-                        <Button
-                            variant="contained"
-                            onClick={fetchScans}
-                            disabled={loading}
-                            sx={{
-                                bgcolor: '#000',
-                                color: '#fff',
-                                height: 40,
-                                px: 3,
-                                textTransform: 'none',
-                                fontWeight: 600,
-                                borderRadius: 1.5,
-                                '&:hover': { bgcolor: '#333' },
-                                boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-                            }}
-                        >
-                            Refresh
-                        </Button>
                     </Box>
                 </Box>
 
@@ -802,6 +947,60 @@ const Scans = () => {
                 </Paper>
                 </Box>
             </Box>
+
+            {/* Add to Watchlist Dialog */}
+            <Dialog open={wlDialogOpen} onClose={() => setWlDialogOpen(false)} fullWidth maxWidth="xs">
+                <DialogTitle sx={{ fontWeight: 700 }}>Add Symbols to Watchlist</DialogTitle>
+                <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, pt: 1.5 }}>
+                    <Typography variant="body2" color="text.secondary">
+                        Add <strong>{wlSymbolsToAdd.length}</strong> unique symbol(s) to a watchlist list.
+                    </Typography>
+
+                    <FormControl size="small" fullWidth sx={{ mt: 1 }}>
+                        <InputLabel id="wl-list-select-label">Select Watchlist</InputLabel>
+                        <Select
+                            labelId="wl-list-select-label"
+                            value={wlSelectedList}
+                            label="Select Watchlist"
+                            onChange={(e) => setWlSelectedList(e.target.value)}
+                        >
+                            <MenuItem value="red">Red List</MenuItem>
+                            <MenuItem value="blue">Blue List</MenuItem>
+                            <MenuItem value="green">Green List</MenuItem>
+                            <MenuItem value="orange">Orange List</MenuItem>
+                            <MenuItem value="purple">Purple List</MenuItem>
+                            {customLists.map(list => (
+                                <MenuItem key={list} value={list}>{list}</MenuItem>
+                            ))}
+                            <MenuItem value="__NEW__" sx={{ fontWeight: 600, borderTop: '1px solid #e2e8f0', mt: 1 }}>+ Create New Watchlist</MenuItem>
+                        </Select>
+                    </FormControl>
+
+                    {wlSelectedList === '__NEW__' && (
+                        <TextField
+                            label="New Watchlist Name"
+                            size="small"
+                            fullWidth
+                            value={wlNewListName}
+                            onChange={(e) => setWlNewListName(e.target.value)}
+                            placeholder="e.g. Transitions Today"
+                            autoFocus
+                        />
+                    )}
+                </DialogContent>
+                <DialogActions sx={{ px: 3, pb: 2 }}>
+                    <Button onClick={() => setWlDialogOpen(false)} color="inherit" size="small">Cancel</Button>
+                    <Button
+                        onClick={handleAddWlSubmit}
+                        variant="contained"
+                        size="small"
+                        sx={{ bgcolor: '#000', color: '#fff', '&:hover': { bgcolor: '#222' } }}
+                        disabled={wlSelectedList === '__NEW__' && !wlNewListName.trim()}
+                    >
+                        Add to Watchlist
+                    </Button>
+                </DialogActions>
+            </Dialog>
 
             <Snackbar
                 open={snackbarOpen}

@@ -239,6 +239,19 @@ export const useWatchlistFilter = () => {
     });
   }, []);
 
+  const addSymbolsToWatchlist = useCallback((symbols, listName) => {
+    setFlaggedStocks(prev => {
+      const next = { ...prev };
+      symbols.forEach(symbol => {
+        const currentFlags = Array.isArray(prev[symbol]) ? prev[symbol] : (prev[symbol] ? [prev[symbol]] : []);
+        if (!currentFlags.includes(listName)) {
+          next[symbol] = [...currentFlags, listName];
+        }
+      });
+      return next;
+    });
+  }, []);
+
   const createCustomList = useCallback((name) => {
     if (!name || name.trim() === '') return;
     const trimmed = name.trim();
@@ -392,5 +405,6 @@ export const useWatchlistFilter = () => {
     deleteCustomList,
     toggleFlag,
     clearFlaggedList,
+    addSymbolsToWatchlist,
   };
 };
