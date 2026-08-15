@@ -162,6 +162,9 @@ const Scans = () => {
             } else {
                 try {
                     const compRes = await axios.get(`${BACKEND_URL}/api/scans/compute-five-day-moves`, {
+                        params: {
+                            date: selectedDate
+                        },
                         headers: {
                             Authorization: `Bearer ${token}`
                         }
