@@ -30,6 +30,21 @@ export const syncMarketBreadthData = createAsyncThunk(
   }
 );
 
+// Intraday sync — calls the public 30-min intraday API, no upstream auth needed
+export const syncIntradayMarketBreadthData = createAsyncThunk(
+  'marketBreadth/syncIntradayMarketBreadthData',
+  async (_, { dispatch }) => {
+    const env = import.meta.env.VITE_ENV;
+    const baseUrl = env === 'DEV' ? 'http://localhost:3015' : import.meta.env.VITE_PROD_HOST;
+    const token = localStorage.getItem('token');
+    const response = await axios.post(`${baseUrl}/sync-intraday-market-breadth`, {}, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    dispatch(fetchMarketBreadth()); // Refresh table after intraday sync
+    return response.data;
+  }
+);
+
 const marketBreadthSlice = createSlice({
   name: 'marketBreadth',
   initialState: {

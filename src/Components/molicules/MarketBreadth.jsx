@@ -9,7 +9,7 @@ import CombinedMarketBreadthChart from './CombinedMarketBreadthChart';
 import BreadthTwoPaneChart from './TVLightChart';
 import { commonSelectSx, commonInputLabelSx } from '../../utils/themeStyles';
 import moment from 'moment';
-import { syncMarketBreadthData } from '../../Store/marketBreadth';
+import { syncMarketBreadthData, syncIntradayMarketBreadthData } from '../../Store/marketBreadth';
 import { Button } from '@mui/material';
 import SAInsights from './SAInsights';
 
@@ -396,6 +396,24 @@ const MarketBreadthTable = () => {
   }, [dispatch]);
 
   const [isSyncing, setIsSyncing] = useState(false);
+  const [syncResult, setSyncResult] = useState(null);
+
+  // Daily Sync — uses intraday API to get today's breadth without waiting for cron
+  const handleDailySync = async () => {
+    setIsSyncing(true);
+    setSyncResult(null);
+    try {
+      const result = await dispatch(syncIntradayMarketBreadthData()).unwrap();
+      setSyncResult(result?.stats ?? null);
+    } catch (error) {
+      console.error('Intraday sync failed:', error);
+      setSyncResult({ error: true });
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  // Full/incremental sync via historical API (kept for manual use if needed)
   const handleSync = async (fullSync) => {
     setIsSyncing(true);
     try {
@@ -452,12 +470,22 @@ const MarketBreadthTable = () => {
           <Box sx={{ display: 'flex', gap: 2, color: '#1a1a1a' }}>
             <Button
               color="primary"
-              sx={{ color: '#1a1a1a', border: "1px solid #d6d6d6" }}
-              onClick={() => handleSync(false)}
+              sx={{ color: '#1a1a1a', border: "1px solid #d6d6d6", minWidth: 120 }}
+              onClick={handleDailySync}
               disabled={isSyncing}
             >
               {isSyncing ? 'Syncing...' : 'Daily Sync'}
             </Button>
+            {syncResult && !syncResult.error && (
+              <Typography variant="caption" sx={{ color: '#388e3c', alignSelf: 'center', fontWeight: 600 }}>
+                ↑ {syncResult.up} &nbsp; ↓ {syncResult.down} &nbsp; / {syncResult.total}
+              </Typography>
+            )}
+            {syncResult?.error && (
+              <Typography variant="caption" sx={{ color: '#d32f2f', alignSelf: 'center' }}>
+                Sync failed
+              </Typography>
+            )}
             {/* Time Range Selector */}
             <FormControl size="small" sx={{ minWidth: 120, bgcolor: 'white' }}>
               <InputLabel sx={commonInputLabelSx}>Time Range</InputLabel>
