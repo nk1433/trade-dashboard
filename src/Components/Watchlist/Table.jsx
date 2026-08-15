@@ -1,11 +1,12 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Box, IconButton, Tooltip, Snackbar, Alert, Typography, Popover } from '@mui/material';
+import { Box, IconButton, Tooltip, Snackbar, Alert, Typography, Popover, Button, Chip, Drawer, Tabs, Tab, TextField } from '@mui/material';
 import { DataGrid, GridLogicOperator, useGridApiRef } from '@mui/x-data-grid';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
+import CloseIcon from '@mui/icons-material/Close';
 import { useDispatch, useSelector } from 'react-redux';
 import PropTypes from 'prop-types';
-import { updatePaperHoldingsLTP, executePaperOrder } from '../../Store/paperTradeSlice';
+import { updatePaperHoldingsLTP, executePaperOrder, updatePaperHoldingAsync } from '../../Store/paperTradeSlice';
 import { formatToIndianUnits } from '../../utils';
 import OrderPanel from './OrderPanel';
 import TradingViewFinancialsWidget from '../molicules/TradingViewFinancialsWidget';
@@ -61,6 +62,127 @@ const WatchList = ({
   const [hoveredSymbol, setHoveredSymbol] = useState(null);
 
   const apiRef = useGridApiRef();
+
+  // Manage Position Drawer state
+  const [manageDrawerOpen, setManageDrawerOpen] = useState(false);
+  const [selectedHolding, setSelectedHolding] = useState(null);
+  const [manageTab, setManageTab] = useState(0); // 0: Modify SL, 1: Add (Buy), 2: Sell / Exit
+
+  // Tab 0: SL inputs
+  const [newSlPrice, setNewSlPrice] = useState('');
+
+  // Tab 1: Buy inputs
+  const [buyQty, setBuyQty] = useState(1);
+  const [buyPrice, setBuyPrice] = useState('');
+  const [buyOrderType, setBuyOrderType] = useState('MARKET'); // MARKET / LIMIT
+
+  // Tab 2: Sell inputs
+  const [sellQty, setSellQty] = useState(1);
+  const [sellPrice, setSellPrice] = useState('');
+  const [sellOrderType, setSellOrderType] = useState('MARKET'); // MARKET / LIMIT
+
+  const handleOpenManage = (row) => {
+    setSelectedHolding(row);
+    setNewSlPrice(row.sl || '');
+    
+    setBuyQty(1);
+    setBuyPrice(row.ltp || '');
+    setBuyOrderType('MARKET');
+
+    setSellQty(row.quantity || 1);
+    setSellPrice(row.ltp || '');
+    setSellOrderType('MARKET');
+
+    setManageTab(0); // Start on Modify SL tab by default
+    setManageDrawerOpen(true);
+  };
+
+  const handleCloseManage = () => {
+    setManageDrawerOpen(false);
+    setSelectedHolding(null);
+  };
+
+  const handleManageSlSubmit = async () => {
+    try {
+      const action = await dispatch(updatePaperHoldingAsync({
+        symbol: selectedHolding.symbol,
+        sl: Number(newSlPrice)
+      }));
+      if (updatePaperHoldingAsync.fulfilled.match(action)) {
+        setSnackbarMessage(`Stop Loss updated to ₹${Number(newSlPrice).toFixed(2)} for ${selectedHolding.symbol}`);
+        setSnackbarOpen(true);
+        handleCloseManage();
+      } else {
+        setSnackbarMessage(`Failed to update Stop Loss: ${action.payload || "Unknown error"}`);
+        setSnackbarOpen(true);
+      }
+    } catch (err) {
+      setSnackbarMessage(`Error: ${err.message}`);
+      setSnackbarOpen(true);
+    }
+  };
+
+  const handleManageBuySubmit = async () => {
+    try {
+      const finalPrice = buyOrderType === 'MARKET' ? (selectedHolding.ltp || 0) : Number(buyPrice);
+      const action = await dispatch(executePaperOrder({
+        symbol: selectedHolding.symbol,
+        quantity: Number(buyQty),
+        price: finalPrice,
+        type: 'BUY',
+        timestamp: Date.now(),
+        sl: selectedHolding.sl || 0,
+        slPrice: selectedHolding.sl || 0,
+        riskAmount: 0,
+        riskPercentage: 0,
+        slStrategy: 'custom',
+        slPercentage: 0,
+        risk: 0
+      }));
+      if (executePaperOrder.fulfilled.match(action)) {
+        setSnackbarMessage(`Bought ${buyQty} shares of ${selectedHolding.symbol}`);
+        setSnackbarOpen(true);
+        handleCloseManage();
+      } else {
+        setSnackbarMessage(`Buy order failed: ${action.payload || "Unknown error"}`);
+        setSnackbarOpen(true);
+      }
+    } catch (err) {
+      setSnackbarMessage(`Error: ${err.message}`);
+      setSnackbarOpen(true);
+    }
+  };
+
+  const handleManageSellSubmit = async () => {
+    try {
+      const finalPrice = sellOrderType === 'MARKET' ? (selectedHolding.ltp || 0) : Number(sellPrice);
+      const action = await dispatch(executePaperOrder({
+        symbol: selectedHolding.symbol,
+        quantity: Number(sellQty),
+        price: finalPrice,
+        type: 'SELL',
+        timestamp: Date.now(),
+        sl: selectedHolding.sl || 0,
+        slPrice: selectedHolding.sl || 0,
+        riskAmount: 0,
+        riskPercentage: 0,
+        slStrategy: 'custom',
+        slPercentage: 0,
+        risk: 0
+      }));
+      if (executePaperOrder.fulfilled.match(action)) {
+        setSnackbarMessage(`Sold ${sellQty} shares of ${selectedHolding.symbol}`);
+        setSnackbarOpen(true);
+        handleCloseManage();
+      } else {
+        setSnackbarMessage(`Sell order failed: ${action.payload || "Unknown error"}`);
+        setSnackbarOpen(true);
+      }
+    } catch (err) {
+      setSnackbarMessage(`Error: ${err.message}`);
+      setSnackbarOpen(true);
+    }
+  };
 
   // Keyboard navigation: Space to move to next row
   useEffect(() => {
@@ -389,36 +511,33 @@ const WatchList = ({
         }
       },
       {
-        field: "placeOrder", // Reusing placeOrder for consistency, or custom actions
+        field: "placeOrder",
         headerName: "Actions",
-        width: 160,
-        renderCell: (params) => {
-          const handleExit = (e) => {
-            e.stopPropagation();
-            if (window.confirm(`Are you sure you want to exit ${params.row.symbol}?`)) {
-              dispatch(executePaperOrder({
-                symbol: params.row.symbol,
-                quantity: params.row.quantity,
-                price: params.row.ltp,
-                type: 'SELL',
-                timestamp: Date.now()
-              }));
-            }
-          };
-
-          const handleBuy = (e) => {
-            e.stopPropagation();
-            setSelectedScript(params.row);
-            setOrderPanelOpen(true);
-          };
-
-          return (
-            <Box sx={{ display: 'flex', gap: 1 }}>
-              <button type="button" onClick={handleBuy}>Buy</button>
-              <button type="button" onClick={handleExit} style={{ color: DOWN_COLOR }}>Exit</button>
-            </Box>
-          );
-        }
+        width: 120,
+        sortable: false,
+        renderCell: (params) => (
+          <Button
+            variant="outlined"
+            size="small"
+            onClick={(e) => { e.stopPropagation(); handleOpenManage(params.row); }}
+            sx={{
+              fontSize: '0.75rem',
+              py: 0.5,
+              px: 1.5,
+              fontWeight: 600,
+              textTransform: 'none',
+              borderRadius: 1.5,
+              color: '#000',
+              borderColor: '#e2e8f0',
+              '&:hover': {
+                bgcolor: '#f8fafc',
+                borderColor: '#cbd5e1'
+              }
+            }}
+          >
+            Manage
+          </Button>
+        )
       }
     ],
     allocationSuggestions: [
@@ -582,6 +701,322 @@ const WatchList = ({
         tradingMode={tradingMode}
         token={token}
       />
+      {/* Manage Position Drawer */}
+      <Drawer
+        anchor="right"
+        open={manageDrawerOpen}
+        onClose={handleCloseManage}
+        PaperProps={{ sx: { width: 420, p: 3, display: 'flex', flexDirection: 'column', gap: 3 } }}
+      >
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Box>
+            <Typography variant="h6" sx={{ fontWeight: 700 }}>
+              Manage Position
+            </Typography>
+            <Typography variant="subtitle2" color="text.secondary">
+              {selectedHolding?.symbol} • Avg: ₹{selectedHolding?.avgPrice?.toFixed(2)}
+            </Typography>
+          </Box>
+          <IconButton onClick={handleCloseManage} size="small">
+            <CloseIcon fontSize="small" />
+          </IconButton>
+        </Box>
+
+        <Box sx={{ p: 2, bgcolor: '#f8fafc', borderRadius: 2, display: 'flex', flexDirection: 'column', gap: 1 }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+            <Typography variant="body2" color="text.secondary">Current Price (LTP)</Typography>
+            <Typography variant="body2" sx={{ fontWeight: 600 }}>₹{selectedHolding?.ltp?.toFixed(2)}</Typography>
+          </Box>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+            <Typography variant="body2" color="text.secondary">Current Position</Typography>
+            <Typography variant="body2" sx={{ fontWeight: 600 }}>{selectedHolding?.quantity} shares</Typography>
+          </Box>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+            <Typography variant="body2" color="text.secondary">Returns</Typography>
+            <Typography variant="body2" sx={{ fontWeight: 600, color: (selectedHolding?.pnl >= 0) ? '#059669' : '#dc2626' }}>
+              {selectedHolding?.pnl >= 0 ? '+' : ''}₹{formatToIndianUnits(selectedHolding?.pnl || 0)} ({selectedHolding?.pnlPercentage?.toFixed(2)}%)
+            </Typography>
+          </Box>
+        </Box>
+
+        <Tabs
+          value={manageTab}
+          onChange={(e, val) => setManageTab(val)}
+          variant="fullWidth"
+          sx={{
+            borderBottom: '1px solid #e2e8f0',
+            '& .MuiTabs-indicator': { backgroundColor: '#000 !important' },
+            '& .MuiTab-root': {
+              textTransform: 'none',
+              fontWeight: 600,
+              fontSize: '0.85rem',
+              color: '#64748b',
+              '&.Mui-selected': { color: '#000 !important' }
+            }
+          }}
+        >
+          <Tab label="Modify SL" />
+          <Tab label="Buy More" />
+          <Tab label="Sell / Exit" />
+        </Tabs>
+
+        {/* Tab 0: Modify SL */}
+        {manageTab === 0 && (
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, flexGrow: 1 }}>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Typography variant="body2" sx={{ fontWeight: 600 }}>Stop Loss Price</Typography>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  onClick={() => setNewSlPrice(selectedHolding?.avgPrice?.toFixed(2))}
+                  sx={{
+                    py: 0.25,
+                    fontSize: '0.7rem',
+                    textTransform: 'none',
+                    color: '#000',
+                    borderColor: '#000',
+                    '&:hover': { bgcolor: '#f8fafc', borderColor: '#000' }
+                  }}
+                >
+                  Set to BE (₹{selectedHolding?.avgPrice?.toFixed(2)})
+                </Button>
+              </Box>
+              <TextField
+                type="number"
+                fullWidth
+                size="small"
+                value={newSlPrice}
+                onChange={(e) => setNewSlPrice(e.target.value)}
+                placeholder="Enter Stop Loss Price"
+                InputProps={{
+                  startAdornment: <Typography sx={{ mr: 1, color: 'text.secondary' }}>₹</Typography>
+                }}
+              />
+            </Box>
+            <Button
+              variant="contained"
+              fullWidth
+              onClick={handleManageSlSubmit}
+              disabled={!newSlPrice || Number(newSlPrice) <= 0}
+              sx={{
+                mt: 'auto',
+                py: 1.2,
+                fontWeight: 600,
+                textTransform: 'none',
+                bgcolor: '#000 !important',
+                color: '#fff !important',
+                '&:hover': { bgcolor: '#222 !important' },
+                '&.Mui-disabled': { bgcolor: '#f1f5f9 !important', color: '#94a3b8 !important' }
+              }}
+            >
+              Update Stop Loss
+            </Button>
+          </Box>
+        )}
+
+        {/* Tab 1: Buy More */}
+        {manageTab === 1 && (
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, flexGrow: 1 }}>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <Box sx={{ display: 'flex', gap: 2 }}>
+                <Button
+                  fullWidth
+                  variant="contained"
+                  onClick={() => setBuyOrderType('MARKET')}
+                  sx={{
+                    py: 0.75,
+                    textTransform: 'none',
+                    fontWeight: 600,
+                    bgcolor: buyOrderType === 'MARKET' ? '#000 !important' : 'transparent',
+                    color: buyOrderType === 'MARKET' ? '#fff !important' : '#000',
+                    border: '1px solid #000',
+                    '&:hover': { bgcolor: buyOrderType === 'MARKET' ? '#222 !important' : '#f8fafc' }
+                  }}
+                >
+                  Market
+                </Button>
+                <Button
+                  fullWidth
+                  variant="outlined"
+                  onClick={() => setBuyOrderType('LIMIT')}
+                  sx={{
+                    py: 0.75,
+                    textTransform: 'none',
+                    fontWeight: 600,
+                    bgcolor: buyOrderType === 'LIMIT' ? '#000 !important' : 'transparent',
+                    color: buyOrderType === 'LIMIT' ? '#fff !important' : '#000',
+                    border: '1px solid #000',
+                    '&:hover': { bgcolor: buyOrderType === 'LIMIT' ? '#222 !important' : '#f8fafc' }
+                  }}
+                >
+                  Limit
+                </Button>
+              </Box>
+
+              <TextField
+                label="Quantity"
+                type="number"
+                fullWidth
+                size="small"
+                value={buyQty}
+                onChange={(e) => setBuyQty(e.target.value)}
+              />
+
+              {buyOrderType === 'LIMIT' && (
+                <TextField
+                  label="Price"
+                  type="number"
+                  fullWidth
+                  size="small"
+                  value={buyPrice}
+                  onChange={(e) => setBuyPrice(e.target.value)}
+                  InputProps={{
+                    startAdornment: <Typography sx={{ mr: 1, color: 'text.secondary' }}>₹</Typography>
+                  }}
+                />
+              )}
+
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 1, px: 0.5 }}>
+                <Typography variant="body2" color="text.secondary">Estimated Cost</Typography>
+                <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                  ₹{formatToIndianUnits(Number(buyQty) * (buyOrderType === 'MARKET' ? (selectedHolding?.ltp || 0) : Number(buyPrice || 0)))}
+                </Typography>
+              </Box>
+            </Box>
+            <Button
+              variant="contained"
+              fullWidth
+              onClick={handleManageBuySubmit}
+              disabled={Number(buyQty) <= 0 || (buyOrderType === 'LIMIT' && (!buyPrice || Number(buyPrice) <= 0))}
+              sx={{
+                mt: 'auto',
+                py: 1.2,
+                fontWeight: 600,
+                textTransform: 'none',
+                bgcolor: '#000 !important',
+                color: '#fff !important',
+                '&:hover': { bgcolor: '#222 !important' },
+                '&.Mui-disabled': { bgcolor: '#f1f5f9 !important', color: '#94a3b8 !important' }
+              }}
+            >
+              Place Buy Order
+            </Button>
+          </Box>
+        )}
+
+        {/* Tab 2: Sell / Exit */}
+        {manageTab === 2 && (
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, flexGrow: 1 }}>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <Box sx={{ display: 'flex', gap: 2 }}>
+                <Button
+                  fullWidth
+                  variant="contained"
+                  onClick={() => setSellOrderType('MARKET')}
+                  sx={{
+                    py: 0.75,
+                    textTransform: 'none',
+                    fontWeight: 600,
+                    bgcolor: sellOrderType === 'MARKET' ? '#000 !important' : 'transparent',
+                    color: sellOrderType === 'MARKET' ? '#fff !important' : '#000',
+                    border: '1px solid #000',
+                    '&:hover': { bgcolor: sellOrderType === 'MARKET' ? '#222 !important' : '#f8fafc' }
+                  }}
+                >
+                  Market
+                </Button>
+                <Button
+                  fullWidth
+                  variant="outlined"
+                  onClick={() => setSellOrderType('LIMIT')}
+                  sx={{
+                    py: 0.75,
+                    textTransform: 'none',
+                    fontWeight: 600,
+                    bgcolor: sellOrderType === 'LIMIT' ? '#000 !important' : 'transparent',
+                    color: sellOrderType === 'LIMIT' ? '#fff !important' : '#000',
+                    border: '1px solid #000',
+                    '&:hover': { bgcolor: sellOrderType === 'LIMIT' ? '#222 !important' : '#f8fafc' }
+                  }}
+                >
+                  Limit
+                </Button>
+              </Box>
+
+              <Box sx={{ display: 'flex', gap: 1 }}>
+                {[0.25, 0.50, 0.75, 1.00].map((pct) => (
+                  <Button
+                    key={pct}
+                    variant="outlined"
+                    size="small"
+                    onClick={() => setSellQty(Math.floor((selectedHolding?.quantity || 0) * pct) || 1)}
+                    sx={{
+                      py: 0.25,
+                      flex: 1,
+                      fontSize: '0.75rem',
+                      textTransform: 'none',
+                      color: '#000',
+                      borderColor: '#cbd5e1',
+                      '&:hover': { bgcolor: '#f8fafc', borderColor: '#000' }
+                    }}
+                  >
+                    {pct === 1 ? '100%' : `${pct * 100}%`}
+                  </Button>
+                ))}
+              </Box>
+
+              <TextField
+                label="Quantity to Sell"
+                type="number"
+                fullWidth
+                size="small"
+                value={sellQty}
+                onChange={(e) => setSellQty(e.target.value)}
+              />
+
+              {sellOrderType === 'LIMIT' && (
+                <TextField
+                  label="Price"
+                  type="number"
+                  fullWidth
+                  size="small"
+                  value={sellPrice}
+                  onChange={(e) => setSellPrice(e.target.value)}
+                  InputProps={{
+                    startAdornment: <Typography sx={{ mr: 1, color: 'text.secondary' }}>₹</Typography>
+                  }}
+                />
+              )}
+
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 1, px: 0.5 }}>
+                <Typography variant="body2" color="text.secondary">Estimated Credits</Typography>
+                <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                  ₹{formatToIndianUnits(Number(sellQty) * (sellOrderType === 'MARKET' ? (selectedHolding?.ltp || 0) : Number(sellPrice || 0)))}
+                </Typography>
+              </Box>
+            </Box>
+            <Button
+              variant="contained"
+              fullWidth
+              onClick={handleManageSellSubmit}
+              disabled={Number(sellQty) <= 0 || Number(sellQty) > (selectedHolding?.quantity || 0) || (sellOrderType === 'LIMIT' && (!sellPrice || Number(sellPrice) <= 0))}
+              sx={{
+                mt: 'auto',
+                py: 1.2,
+                fontWeight: 600,
+                textTransform: 'none',
+                bgcolor: '#000 !important',
+                color: '#fff !important',
+                '&:hover': { bgcolor: '#222 !important' },
+                '&.Mui-disabled': { bgcolor: '#f1f5f9 !important', color: '#94a3b8 !important' }
+              }}
+            >
+              Place Sell Order
+            </Button>
+          </Box>
+        )}
+      </Drawer>
       <Popover
         id="mouse-over-popover"
         sx={{

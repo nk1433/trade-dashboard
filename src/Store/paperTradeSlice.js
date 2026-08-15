@@ -82,10 +82,60 @@ export const updatePaperHoldingAsync = createAsyncThunk(
     }
 );
 
+// Fetch Sandbox Order Book
+export const fetchSandboxOrdersAsync = createAsyncThunk(
+    'paperTrade/fetchSandboxOrders',
+    async (_, { rejectWithValue }) => {
+        try {
+            const token = localStorage.getItem('token');
+            const response = await axios.get(`${BACKEND_URL}/sandbox/order-book`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            return response.data.data;
+        } catch (error) {
+            return rejectWithValue(error.response?.data?.error || error.message);
+        }
+    }
+);
+
+// Modify Sandbox Order
+export const modifySandboxOrderAsync = createAsyncThunk(
+    'paperTrade/modifySandboxOrder',
+    async (modifyData, { rejectWithValue }) => {
+        try {
+            const token = localStorage.getItem('token');
+            const response = await axios.put(`${BACKEND_URL}/sandbox/modify-order`, modifyData, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            return response.data.data;
+        } catch (error) {
+            return rejectWithValue(error.response?.data?.error || error.message);
+        }
+    }
+);
+
+// Cancel Sandbox Order
+export const cancelSandboxOrderAsync = createAsyncThunk(
+    'paperTrade/cancelSandboxOrder',
+    async (orderId, { rejectWithValue }) => {
+        try {
+            const token = localStorage.getItem('token');
+            const response = await axios.delete(`${BACKEND_URL}/sandbox/cancel-order`, {
+                params: { order_id: orderId },
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            return response.data;
+        } catch (error) {
+            return rejectWithValue(error.response?.data?.error || error.message);
+        }
+    }
+);
+
 const initialState = {
     capital: 1000000, // Default, will be updated from backend
     holdings: [],
     orders: [],
+    sandboxOrders: [],
     loading: false,
     error: null,
 };
@@ -181,6 +231,20 @@ const paperTradeSlice = createSlice({
                         pnlPercentage: ((h.quantity * ltp) - h.invested) / h.invested * 100
                     };
                 });
+            })
+
+            // Fetch Sandbox Orders
+            .addCase(fetchSandboxOrdersAsync.pending, (state) => {
+                state.loading = true;
+                state.error = null;
+            })
+            .addCase(fetchSandboxOrdersAsync.fulfilled, (state, action) => {
+                state.loading = false;
+                state.sandboxOrders = action.payload || [];
+            })
+            .addCase(fetchSandboxOrdersAsync.rejected, (state, action) => {
+                state.loading = false;
+                state.error = action.payload;
             });
     }
 });
