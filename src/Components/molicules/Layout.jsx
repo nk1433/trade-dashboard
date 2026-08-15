@@ -14,13 +14,13 @@ const Layout = ({ children, routes }) => {
     const location = useLocation();
     const [isWormPoppedOut, setIsWormPoppedOut] = useState(false);
     const [isMmOpen, setIsMmOpen] = useState(false);
+    const [isWormOpen, setIsWormOpen] = useState(false);
 
     return (
         <div className="layout-container">
             {/* Top Navbar */}
             <header className="layout-header">
                 {/* Logo */}
-
                 <div className="layout-logo">
                     <Link to="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <span className="logo-circle"></span>
@@ -34,7 +34,8 @@ const Layout = ({ children, routes }) => {
                 <nav className="layout-nav">
                     {routes.filter(route => route.linkText).map((route) => {
                         const isActive = location.pathname === route.path;
-                        const isMM = route.path === '/market-breadth';
+                        const isMM   = route.path === '/market-breadth';
+                        const isWorm = route.path === '/worm';
 
                         return (
                             <Box
@@ -47,6 +48,7 @@ const Layout = ({ children, routes }) => {
                                 >
                                     {route.linkText}
                                 </Link>
+
                                 {isMM && (
                                     <Tooltip title="Open MM in popout">
                                         <IconButton
@@ -62,6 +64,22 @@ const Layout = ({ children, routes }) => {
                                         </IconButton>
                                     </Tooltip>
                                 )}
+
+                                {isWorm && (
+                                    <Tooltip title="Open Worm in popout">
+                                        <IconButton
+                                            size="small"
+                                            onClick={(e) => { e.preventDefault(); setIsWormOpen(true); }}
+                                            sx={{
+                                                p: 0.25,
+                                                color: isWormOpen ? '#000' : '#bdbdbd',
+                                                '&:hover': { color: '#000', bgcolor: 'transparent' },
+                                            }}
+                                        >
+                                            <OpenInNewIcon sx={{ fontSize: '0.8rem' }} />
+                                        </IconButton>
+                                    </Tooltip>
+                                )}
                             </Box>
                         );
                     })}
@@ -69,15 +87,6 @@ const Layout = ({ children, routes }) => {
 
                 {/* Right Side Actions */}
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                    <Tooltip title="Pop out Worm Chart">
-                        <IconButton 
-                            onClick={() => setIsWormPoppedOut(true)}
-                            size="small"
-                            sx={{ color: 'black' }}
-                        >
-                            <OpenInNewIcon fontSize="small" />
-                        </IconButton>
-                    </Tooltip>
                     <Button
                         onClick={() => {
                             localStorage.removeItem('token');
@@ -108,7 +117,7 @@ const Layout = ({ children, routes }) => {
                 {children}
             </main>
 
-            {/* Worm popout (separate browser window) */}
+            {/* Worm separate-window popout (kept for programmatic use if needed) */}
             {isWormPoppedOut && (
                 <NewWindow title="Worm Chart" onClose={() => setIsWormPoppedOut(false)}>
                     <MarketHighLowWormChart />
@@ -130,7 +139,6 @@ const Layout = ({ children, routes }) => {
                     }
                 }}
             >
-                {/* Drawer header */}
                 <Box sx={{
                     display: 'flex',
                     alignItems: 'center',
@@ -147,10 +155,44 @@ const Layout = ({ children, routes }) => {
                         <CloseIcon fontSize="small" />
                     </IconButton>
                 </Box>
-
-                {/* Scrollable content */}
                 <Box sx={{ flex: 1, overflowY: 'auto' }}>
                     <MarketBreadthTable />
+                </Box>
+            </Drawer>
+
+            {/* Worm Chart — in-page fullscreen drawer */}
+            <Drawer
+                anchor="bottom"
+                open={isWormOpen}
+                onClose={() => setIsWormOpen(false)}
+                PaperProps={{
+                    sx: {
+                        height: '90vh',
+                        borderRadius: '16px 16px 0 0',
+                        overflow: 'hidden',
+                        display: 'flex',
+                        flexDirection: 'column',
+                    }
+                }}
+            >
+                <Box sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    px: 3,
+                    py: 1.5,
+                    borderBottom: '1px solid #eee',
+                    flexShrink: 0,
+                }}>
+                    <Typography variant="overline" sx={{ fontWeight: 700, letterSpacing: 2, color: '#9e9e9e' }}>
+                        WORM CHART
+                    </Typography>
+                    <IconButton size="small" onClick={() => setIsWormOpen(false)} sx={{ color: '#000' }}>
+                        <CloseIcon fontSize="small" />
+                    </IconButton>
+                </Box>
+                <Box sx={{ flex: 1, overflowY: 'auto' }}>
+                    <MarketHighLowWormChart />
                 </Box>
             </Drawer>
         </div>
@@ -158,4 +200,3 @@ const Layout = ({ children, routes }) => {
 };
 
 export default Layout;
-
