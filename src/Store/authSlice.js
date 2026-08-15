@@ -51,6 +51,7 @@ const authSlice = createSlice({
                 state.loading = false;
                 state.isAuthenticated = true;
                 state.token = action.payload;
+                localStorage.setItem('upstox_access_token', action.payload);
             })
             .addCase(fetchUpstoxToken.rejected, (state, action) => {
                 state.loading = false;

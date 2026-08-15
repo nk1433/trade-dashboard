@@ -76,7 +76,11 @@ const Scans = () => {
         { value: '4PercentBD', label: '4% Breakdown' },
         { value: 'sltbBO', label: 'SLTB Breakout' },
         { value: 'sltbBD', label: 'SLTB Breakdown' },
-        { value: 'bullishReversal', label: 'Bullish Reversal' }
+        { value: 'bullishReversal', label: 'Bullish Reversal' },
+        { value: 'up8Pct5d', label: '5d 8% Up' },
+        { value: 'down8Pct5d', label: '5d 8% Down' },
+        { value: 'up20Pct5d', label: '5d 20% Up' },
+        { value: 'down20Pct5d', label: '5d 20% Down' }
     ];
 
     const getLastWorkingDay = (dateStr, holidaysData) => {
@@ -104,7 +108,7 @@ const Scans = () => {
         return currentDate.format('YYYY-MM-DD');
     };
 
-    const fetchScans = async () => {
+    const fetchScans = async (forceRefresh = false) => {
         const validDate = getLastWorkingDay(selectedDate, holidays);
         
         if (validDate !== selectedDate) {
@@ -114,8 +118,10 @@ const Scans = () => {
         }
 
         setLoading(true);
+        let dbRows = [];
+        const token = localStorage.getItem('token');
+        
         try {
-            const token = localStorage.getItem('token');
             const response = await axios.get(`${BACKEND_URL}/api/scans`, {
                 params: {
                     date: selectedDate
@@ -126,23 +132,86 @@ const Scans = () => {
             });
 
             if (response.data && response.data.data) {
-                const rows = response.data.data.map((item, index) => ({
+                dbRows = response.data.data.map((item, index) => ({
                     id: item._id || index,
                     ...item
                 }));
-                setScans(rows);
-                setScanCount(response.data.meta?.count || 0);
-            } else {
-                setScans([]);
-                setScanCount(0);
             }
+            
+            setScans(dbRows);
+            setScanCount(dbRows.length);
         } catch (error) {
-            console.error("Error fetching scans:", error);
+            console.error("Error fetching database scans:", error);
             setScans([]);
             setScanCount(0);
         } finally {
             setLoading(false);
         }
+
+        // Asynchronously fetch 5-day moves in the background (non-blocking)
+        const fetchBackground5dMoves = async () => {
+            let computedScans = [];
+            const storageKey = `fiveDayMoves_${selectedDate}`;
+            if (forceRefresh) {
+                localStorage.removeItem(storageKey);
+            }
+            const cachedData = localStorage.getItem(storageKey);
+            
+            if (cachedData) {
+                computedScans = JSON.parse(cachedData);
+            } else {
+                try {
+                    const compRes = await axios.get(`${BACKEND_URL}/api/scans/compute-five-day-moves`, {
+                        headers: {
+                            Authorization: `Bearer ${token}`
+                        }
+                    });
+                    if (compRes.data && compRes.data.data) {
+                        const moves = compRes.data.data;
+                        const virtualScans = [];
+                        const addVirtual = (list, type) => {
+                            list.forEach(item => {
+                                virtualScans.push({
+                                    symbol: item.symbol,
+                                    scanType: type,
+                                    date: selectedDate,
+                                    tradingSymbol: item.tradingSymbol,
+                                    createdAt: `${selectedDate}T09:00:00.000Z`,
+                                    extraData: {
+                                        currentPrice: item.price,
+                                        pctChange: item.pctChange
+                                    }
+                                });
+                            });
+                        };
+                        addVirtual(moves.up8Pct5d || [], 'up8Pct5d');
+                        addVirtual(moves.down8Pct5d || [], 'down8Pct5d');
+                        addVirtual(moves.up20Pct5d || [], 'up20Pct5d');
+                        addVirtual(moves.down20Pct5d || [], 'down20Pct5d');
+                        
+                        computedScans = virtualScans;
+                        localStorage.setItem(storageKey, JSON.stringify(virtualScans));
+                    }
+                } catch (compErr) {
+                    console.error("Failed to compute 5-day moves in background:", compErr);
+                }
+            }
+
+            if (computedScans.length > 0) {
+                setScans(prevScans => {
+                    const cleanedPrev = prevScans.filter(s => !s.id.toString().startsWith('computed_'));
+                    const mappedVirtual = computedScans.map((item, index) => ({
+                        id: `computed_${item.scanType}_${item.tradingSymbol}_${index}`,
+                        ...item
+                    }));
+                    const combined = [...cleanedPrev, ...mappedVirtual];
+                    setScanCount(combined.length);
+                    return combined;
+                });
+            }
+        };
+
+        fetchBackground5dMoves();
     };
 
     useEffect(() => {
@@ -159,7 +228,10 @@ const Scans = () => {
     };
 
     const baseFilteredScans = React.useMemo(() => {
+        const dailyScanTypes = new Set(['up8Pct5d', 'down8Pct5d', 'up20Pct5d', 'down20Pct5d']);
         return scans.filter(scan => {
+            if (dailyScanTypes.has(scan.scanType)) return true;
+            
             if (!startTime && !endTime) return true;
             const scanTime = moment(scan.createdAt || scan.currentTs);
             const scanTotalMins = scanTime.hours() * 60 + scanTime.minutes();
@@ -177,8 +249,8 @@ const Scans = () => {
         });
     }, [scans, startTime, endTime]);
 
-    const bullishScansSet = new Set(['newHigh', 'dollarBO', '4PercentBO', 'sltbBO', 'bullishReversal']);
-    const bearishScansSet = new Set(['dollarBD', '4PercentBD', 'sltbBD']);
+    const bullishScansSet = new Set(['newHigh', 'dollarBO', '4PercentBO', 'sltbBO', 'bullishReversal', 'bullishAnts', 'up8Pct5d', 'up20Pct5d']);
+    const bearishScansSet = new Set(['dollarBD', '4PercentBD', 'sltbBD', 'down8Pct5d', 'down20Pct5d']);
 
     const getShortLabel = (val) => {
         switch(val) {
@@ -190,6 +262,11 @@ const Scans = () => {
             case 'sltbBO': return 'SLTB BO';
             case 'sltbBD': return 'SLTB BD';
             case 'bullishReversal': return 'Rev Bull';
+            case 'bullishAnts': return 'Ants';
+            case 'up8Pct5d': return '5d 8% Up';
+            case 'down8Pct5d': return '5d 8% Dn';
+            case 'up20Pct5d': return '5d 20% Up';
+            case 'down20Pct5d': return '5d 20% Dn';
             default: return val;
         }
     };
@@ -401,6 +478,36 @@ const Scans = () => {
                         return (
                             <Box sx={{ color: '#26a69a', display: 'flex', alignItems: 'center', fontWeight: 'bold', gap: 0.5 }}>
                                 <ArrowUpward fontSize="small" /> Rev Bull
+                            </Box>
+                        );
+                    case 'bullishAnts':
+                        return (
+                            <Box sx={{ color: '#1976d2', display: 'flex', alignItems: 'center', fontWeight: 'bold', gap: 0.5 }}>
+                                <TrendingUp fontSize="small" /> Ants
+                            </Box>
+                        );
+                    case 'up8Pct5d':
+                        return (
+                            <Box sx={{ color: '#26a69a', display: 'flex', alignItems: 'center', fontWeight: 'bold', gap: 0.5 }}>
+                                <ArrowUpward fontSize="small" /> 5d 8%
+                            </Box>
+                        );
+                    case 'down8Pct5d':
+                        return (
+                            <Box sx={{ color: '#ef5350', display: 'flex', alignItems: 'center', fontWeight: 'bold', gap: 0.5 }}>
+                                <ArrowDownward fontSize="small" /> 5d 8%
+                            </Box>
+                        );
+                    case 'up20Pct5d':
+                        return (
+                            <Box sx={{ color: '#26a69a', display: 'flex', alignItems: 'center', fontWeight: 'bold', gap: 0.5 }}>
+                                <ArrowUpward fontSize="small" /> 5d 20%
+                            </Box>
+                        );
+                    case 'down20Pct5d':
+                        return (
+                            <Box sx={{ color: '#ef5350', display: 'flex', alignItems: 'center', fontWeight: 'bold', gap: 0.5 }}>
+                                <ArrowDownward fontSize="small" /> 5d 20%
                             </Box>
                         );
                     default:
@@ -672,7 +779,7 @@ const Scans = () => {
                         </Button>
                         <Button
                             variant="contained"
-                            onClick={fetchScans}
+                            onClick={() => fetchScans(true)}
                             disabled={loading}
                             sx={{
                                 bgcolor: '#000',

@@ -11,7 +11,7 @@ export const fetchHistoricalData = async (instrumentKey, category, value, fromDa
     return axios.get(url, {
         headers: {
             'Accept': 'application/json',
-            'Authorization': `Bearer ${import.meta.env.VITE_UPSTOXS_ACCESS_KEY}`
+            'Authorization': `Bearer ${localStorage.getItem('upstox_access_token') || import.meta.env.VITE_UPSTOXS_ACCESS_KEY}`
         }
     });
 };
@@ -25,7 +25,7 @@ export const fetchIntradayData = async (instrumentKey, category, value) => {
     return axios.get(url, {
         headers: {
             'Accept': 'application/json',
-            'Authorization': `Bearer ${import.meta.env.VITE_UPSTOXS_ACCESS_KEY}`
+            'Authorization': `Bearer ${localStorage.getItem('upstox_access_token') || import.meta.env.VITE_UPSTOXS_ACCESS_KEY}`
         }
     });
 };
