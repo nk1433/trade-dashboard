@@ -396,6 +396,7 @@ export const fetchAndCalculateInitialMetrics = createAsyncThunk('Orders/fetchAnd
                     if (scan.scanType === 'dollarBO') prePopulated.dollar[ik] = baseMetric;
                     if (scan.scanType === 'dollarBD') prePopulated.bearishDollar[ik] = baseMetric;
                     if (scan.scanType === 'bullishReversal') prePopulated.bullishReversal[ik] = baseMetric;
+                    if (scan.scanType === 'bullishAnts') prePopulated.bullishAnts[ik] = baseMetric;
                 }
             });
             console.log(`Pre-populated historical scans for ${targetDate}:`, prePopulated);
