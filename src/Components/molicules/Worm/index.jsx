@@ -17,7 +17,7 @@ import SectorPriceMove from './SectorPriceMove';
 export default function MarketHighLowWormChart() {
     const [seriesData, setSeriesData] = useState([]);
     const [turnoverMode, setTurnoverMode] = useState('TOTAL'); // 'TOTAL' | 'UP' | 'DOWN'
-    const [shockerTab, setShockerTab] = useState('TOP'); // 'TOP' | 'INDUSTRY'
+    const [shockerTab, setShockerTab] = useState('TOP'); // 'TOP' | 'SECTOR'
     const [showCharts, setShowCharts] = useState(false);
     const theme = useTheme();
 
@@ -434,26 +434,7 @@ export default function MarketHighLowWormChart() {
                     >
                         <Typography variant="button" sx={{ fontWeight: 700, fontSize: '0.75rem' }}>TOP VOLUME</Typography>
                     </Box>
-                    <Box
-                        onClick={() => setShockerTab('INDUSTRY')}
-                        sx={{
-                            px: 4,
-                            py: 1,
-                            borderRadius: 10,
-                            cursor: 'pointer',
-                            bgcolor: shockerTab === 'INDUSTRY' ? '#000' : 'transparent',
-                            color: shockerTab === 'INDUSTRY' ? '#fff' : '#9e9e9e',
-                            border: '1px solid',
-                            borderColor: shockerTab === 'INDUSTRY' ? '#000' : '#e0e0e0',
-                            transition: 'all 0.2s',
-                            '&:hover': {
-                                borderColor: '#000',
-                                color: shockerTab === 'INDUSTRY' ? '#fff' : '#000'
-                            }
-                        }}
-                    >
-                        <Typography variant="button" sx={{ fontWeight: 700, fontSize: '0.75rem' }}>INDUSTRY</Typography>
-                    </Box>
+
                     <Box
                         onClick={() => setShockerTab('SECTOR')}
                         sx={{
@@ -477,7 +458,7 @@ export default function MarketHighLowWormChart() {
                 </Box>
 
                 {shockerTab === 'TOP' && <TopVolumeShockers />}
-                {shockerTab === 'INDUSTRY' && <IndustryVolumeShockers />}
+
                 {shockerTab === 'SECTOR' && <SectorPriceMove />}
             </Box>
 

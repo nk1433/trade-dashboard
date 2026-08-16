@@ -5,19 +5,36 @@ import {
     Typography,
     Paper,
     Collapse,
-    IconButton,
     Table,
     TableBody,
     TableCell,
     TableContainer,
     TableHead,
     TableRow,
-    LinearProgress,
+    IconButton,
 } from '@mui/material';
+
+// Icons
+import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
+import LocalHospitalIcon from '@mui/icons-material/LocalHospital';
+import DirectionsCarIcon from '@mui/icons-material/DirectionsCar';
+import RouterIcon from '@mui/icons-material/Router';
+import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
+import BoltIcon from '@mui/icons-material/Bolt';
+import DomainIcon from '@mui/icons-material/Domain';
+import ConstructionIcon from '@mui/icons-material/Construction';
+import TheatersIcon from '@mui/icons-material/Theaters';
+import HardwareIcon from '@mui/icons-material/Hardware';
+import BusinessIcon from '@mui/icons-material/Business';
+import ElectricalServicesIcon from '@mui/icons-material/ElectricalServices';
+import LocalShippingIcon from '@mui/icons-material/LocalShipping';
+import DeleteSweepIcon from '@mui/icons-material/DeleteSweep';
+import ScienceIcon from '@mui/icons-material/Science';
+import PrecisionManufacturingIcon from '@mui/icons-material/PrecisionManufacturing';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
+
 import universe from '../../../index/universe.json';
-import { styles } from './IndustryVolumeShockers.styles';
 import FlagMenu from '../../Watchlist/FlagMenu';
 
 const fmt2 = (n) => (n > 0 ? '+' : '') + n.toFixed(2) + '%';
@@ -30,90 +47,91 @@ const fmtCrore = (val) => {
     return `₹${val.toFixed(0)}`;
 };
 
-// ─── Sector Row (collapsible) ────────────────────────────────────────────────
+const getSectorIcon = (sectorName) => {
+    if (!sectorName) return <BusinessIcon sx={{ color: '#757575', fontSize: '1.2rem' }} />;
+    const name = sectorName.toLowerCase();
+    if (name.includes('bank') || name.includes('finance') || name.includes('nbfc')) return <AccountBalanceIcon sx={{ color: '#757575', fontSize: '1.2rem' }} />;
+    if (name.includes('pharma') || name.includes('health') || name.includes('hospital')) return <LocalHospitalIcon sx={{ color: '#757575', fontSize: '1.2rem' }} />;
+    if (name.includes('auto')) return <DirectionsCarIcon sx={{ color: '#757575', fontSize: '1.2rem' }} />;
+    if (name.includes('telecom')) return <RouterIcon sx={{ color: '#757575', fontSize: '1.2rem' }} />;
+    if (name.includes('fmcg') || name.includes('consumer')) return <ShoppingCartIcon sx={{ color: '#757575', fontSize: '1.2rem' }} />;
+    if (name.includes('power') || name.includes('energy')) return <BoltIcon sx={{ color: '#757575', fontSize: '1.2rem' }} />;
+    if (name.includes('realty') || name.includes('real estate')) return <DomainIcon sx={{ color: '#757575', fontSize: '1.2rem' }} />;
+    if (name.includes('infra') || name.includes('construction') || name.includes('cement')) return <ConstructionIcon sx={{ color: '#757575', fontSize: '1.2rem' }} />;
+    if (name.includes('media') || name.includes('entertainment')) return <TheatersIcon sx={{ color: '#757575', fontSize: '1.2rem' }} />;
+    if (name.includes('metal')) return <HardwareIcon sx={{ color: '#757575', fontSize: '1.2rem' }} />;
+    if (name.includes('electrical')) return <ElectricalServicesIcon sx={{ color: '#757575', fontSize: '1.2rem' }} />;
+    if (name.includes('distributor') || name.includes('logistics')) return <LocalShippingIcon sx={{ color: '#757575', fontSize: '1.2rem' }} />;
+    if (name.includes('waste')) return <DeleteSweepIcon sx={{ color: '#757575', fontSize: '1.2rem' }} />;
+    if (name.includes('plastic') || name.includes('polymer') || name.includes('chemical') || name.includes('fertilizer')) return <ScienceIcon sx={{ color: '#757575', fontSize: '1.2rem' }} />;
+    if (name.includes('capital goods') || name.includes('manufacturing')) return <PrecisionManufacturingIcon sx={{ color: '#757575', fontSize: '1.2rem' }} />;
+    return <BusinessIcon sx={{ color: '#757575', fontSize: '1.2rem' }} />;
+};
+
 const SectorRow = ({ sector, data, isExpanded, onToggle, flaggedStocks, onFlagChange, onStockClick }) => {
-    const { avgPriceChange, stocks, topMover, advancers, decliners } = data;
+    const { avgPriceChange, stocks, advancers, decliners } = data;
     const isPositive = avgPriceChange >= 0;
     const total = advancers + decliners;
     const advRatio = total > 0 ? (advancers / total) * 100 : 50;
 
     return (
-        <>
-            {/* Sector summary row */}
-            <TableRow
-                sx={{ '& > *': { borderBottom: 'unset' }, cursor: 'pointer' }}
+        <React.Fragment>
+            <TableRow 
+                hover
                 onClick={onToggle}
+                sx={{ 
+                    cursor: 'pointer',
+                    '& > td': { borderBottom: '1px solid #f9fafb', py: 2 },
+                }}
             >
-                <TableCell style={{ width: 40, paddingRight: 0 }}>
-                    <IconButton size="small">
-                        {isExpanded ? <KeyboardArrowUpIcon fontSize="small" /> : <KeyboardArrowDownIcon fontSize="small" />}
-                    </IconButton>
-                </TableCell>
-
-                {/* Sector name + adv/dec bar */}
-                <TableCell component="th" scope="row" sx={{ minWidth: 160 }}>
-                    <Typography variant="subtitle2" fontWeight={700} noWrap>
-                        {sector}
-                    </Typography>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.3 }}>
-                        <Typography variant="caption" sx={{ color: '#000', fontWeight: 600 }}>
-                            {advancers}▲
-                        </Typography>
-                        <Typography variant="caption" color="text.disabled">·</Typography>
-                        <Typography variant="caption" sx={{ color: '#9e9e9e', fontWeight: 600 }}>
-                            {decliners}▼
-                        </Typography>
-                        <Typography variant="caption" color="text.disabled">·</Typography>
-                        <Typography variant="caption" color="text.secondary">
-                            {stocks.length} stocks
+                <TableCell>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                        <Box sx={{ 
+                            width: 36, 
+                            height: 36, 
+                            borderRadius: 1.5, 
+                            bgcolor: '#f3f4f6', 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            justifyContent: 'center' 
+                        }}>
+                            {getSectorIcon(sector)}
+                        </Box>
+                        <Typography variant="body2" sx={{ fontWeight: 600, color: '#374151' }}>
+                            {sector}
                         </Typography>
                     </Box>
-                    {/* Adv/Dec ratio bar */}
-                    <Box sx={{ mt: 0.5, height: 3, width: '100%', maxWidth: 120, bgcolor: '#e0e0e0', borderRadius: 2, overflow: 'hidden' }}>
-                        <Box sx={{ width: `${advRatio}%`, height: '100%', bgcolor: '#000', transition: 'width 0.4s' }} />
+                </TableCell>
+                <TableCell>
+                    <Box sx={{ width: '100%', maxWidth: 220, mx: 'auto' }}>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
+                            <Typography variant="caption" sx={{ color: '#6b7280', fontWeight: 600, fontSize: '0.75rem' }}>{advancers}</Typography>
+                            <Typography variant="caption" sx={{ color: '#6b7280', fontWeight: 600, fontSize: '0.75rem' }}>{decliners}</Typography>
+                        </Box>
+                        <Box sx={{ display: 'flex', height: 5, borderRadius: 2, overflow: 'hidden' }}>
+                            <Box sx={{ width: `${advRatio}%`, bgcolor: '#10b981', borderRight: '1px solid #fff' }} />
+                            <Box sx={{ width: `${100 - advRatio}%`, bgcolor: '#ef4444', borderLeft: '1px solid #fff' }} />
+                        </Box>
                     </Box>
                 </TableCell>
-
-                {/* Avg price change */}
-                <TableCell align="right" sx={{ minWidth: 100 }}>
-                    <Typography
-                        variant="body2"
-                        fontWeight={800}
-                        sx={{ color: isPositive ? '#000' : '#9e9e9e', fontSize: '0.95rem' }}
+                <TableCell align="right">
+                    <Typography 
+                        variant="body2" 
+                        sx={{ 
+                            fontWeight: 700, 
+                            color: isPositive ? '#10b981' : '#ef4444' 
+                        }}
                     >
                         {fmt2(avgPriceChange)}
                     </Typography>
-                    <Typography variant="caption" color="text.secondary">avg move</Typography>
-                </TableCell>
-
-                {/* Top mover in sector */}
-                <TableCell align="right" sx={{ minWidth: 100 }}>
-                    {topMover ? (
-                        <>
-                            <Typography variant="caption" fontWeight={700}>
-                                {topMover.symbol}
-                            </Typography>
-                            <Typography
-                                variant="caption"
-                                display="block"
-                                sx={{ color: topMover.priceChangePct >= 0 ? '#000' : '#9e9e9e', fontWeight: 700 }}
-                            >
-                                {fmt2(topMover.priceChangePct)}
-                            </Typography>
-                        </>
-                    ) : (
-                        <Typography variant="caption" color="text.disabled">—</Typography>
-                    )}
                 </TableCell>
             </TableRow>
-
-            {/* Expanded stocks list */}
             <TableRow>
-                <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={4}>
+                <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={3}>
                     <Collapse in={isExpanded} timeout="auto" unmountOnExit>
-                        <Box sx={{ mx: 1, my: 1 }}>
+                        <Box sx={{ mx: 4, my: 2, p: 2, bgcolor: '#f9fafb', borderRadius: 2 }}>
                             <Typography variant="caption" fontWeight={600} color="text.secondary" gutterBottom component="div">
-                                ALL STOCKS · sorted by price move
+                                STOCKS IN {sector.toUpperCase()}
                             </Typography>
                             <Table size="small">
                                 <TableHead>
@@ -130,8 +148,8 @@ const SectorRow = ({ sector, data, isExpanded, onToggle, flaggedStocks, onFlagCh
                                         <TableRow
                                             key={stock.symbol}
                                             hover
-                                            sx={{ cursor: 'pointer' }}
-                                            onClick={() => onStockClick(stock)}
+                                            sx={{ cursor: 'pointer', '& > td': { borderBottom: '1px solid #f3f4f6' } }}
+                                            onClick={(e) => { e.stopPropagation(); onStockClick(stock); }}
                                         >
                                             <TableCell align="center" onClick={(e) => e.stopPropagation()}>
                                                 <FlagMenu
@@ -141,7 +159,7 @@ const SectorRow = ({ sector, data, isExpanded, onToggle, flaggedStocks, onFlagCh
                                             </TableCell>
                                             <TableCell>
                                                 <Typography variant="caption" fontWeight={700}>{stock.symbol}</Typography>
-                                                <Typography variant="caption" color="text.secondary" display="block" noWrap sx={{ maxWidth: 140 }}>
+                                                <Typography variant="caption" color="text.secondary" display="block" noWrap sx={{ maxWidth: 160 }}>
                                                     {stock.name}
                                                 </Typography>
                                             </TableCell>
@@ -154,12 +172,9 @@ const SectorRow = ({ sector, data, isExpanded, onToggle, flaggedStocks, onFlagCh
                                                 <Typography
                                                     variant="caption"
                                                     fontWeight={700}
-                                                    sx={{ color: stock.priceChangePct >= 0 ? '#000' : '#9e9e9e' }}
+                                                    sx={{ color: stock.priceChangePct >= 0 ? '#10b981' : '#ef4444' }}
                                                 >
                                                     {fmt2(stock.priceChangePct)}
-                                                </Typography>
-                                                <Typography variant="caption" color="text.secondary" display="block">
-                                                    {stock.priceChangePct >= 0 ? '▲' : '▼'} ₹{fmtPrice(Math.abs(stock.ltp - stock.open))}
                                                 </Typography>
                                             </TableCell>
                                             <TableCell align="right">
@@ -175,19 +190,16 @@ const SectorRow = ({ sector, data, isExpanded, onToggle, flaggedStocks, onFlagCh
                     </Collapse>
                 </TableCell>
             </TableRow>
-        </>
+        </React.Fragment>
     );
 };
 
-// ─── Main Component ──────────────────────────────────────────────────────────
 export default function SectorPriceMove() {
     const [expandedSector, setExpandedSector] = useState(null);
-    const [sortMode, setSortMode] = useState('GAINERS'); // 'GAINERS' | 'LOSERS' | 'ABS'
     const [flaggedStocks, setFlaggedStocks] = useState({});
 
     const { orderMetrics } = useSelector((state) => state.orders);
 
-    // Load flags from localStorage
     useEffect(() => {
         try {
             const stored = localStorage.getItem('flaggedStocks');
@@ -219,7 +231,6 @@ export default function SectorPriceMove() {
         }
     };
 
-    // ── Compute sector data ──────────────────────────────────────────────────
     const sectorData = useMemo(() => {
         const sectorMap = {};
 
@@ -255,18 +266,11 @@ export default function SectorPriceMove() {
             sectorMap[sector].count++;
         });
 
-        // Build final array with derived stats
-        return Object.entries(sectorMap).map(([sector, data]) => {
-            // Sort stocks within sector by price change desc
+        const arrayData = Object.entries(sectorMap).map(([sector, data]) => {
             const sortedStocks = [...data.stocks].sort((a, b) => b.priceChangePct - a.priceChangePct);
             const avgPriceChange = data.count > 0 ? data.totalPriceChange / data.count : 0;
             const advancers = data.stocks.filter(s => s.priceChangePct >= 0).length;
             const decliners = data.stocks.filter(s => s.priceChangePct < 0).length;
-
-            // Top mover = stock with the highest abs price change
-            const topMover = [...data.stocks].sort((a, b) =>
-                Math.abs(b.priceChangePct) - Math.abs(a.priceChangePct)
-            )[0];
 
             return {
                 sector,
@@ -274,82 +278,60 @@ export default function SectorPriceMove() {
                 stocks: sortedStocks,
                 advancers,
                 decliners,
-                topMover,
                 stockCount: data.count,
             };
         });
+
+        // Sort descending by avgPriceChange
+        return arrayData.filter(s => s.stockCount > 0).sort((a, b) => b.avgPriceChange - a.avgPriceChange);
     }, [orderMetrics]);
 
-    // ── Sort sectors ─────────────────────────────────────────────────────────
-    const sortedSectors = useMemo(() => {
-        const withData = sectorData.filter(s => s.stockCount > 0);
-        if (sortMode === 'GAINERS') return [...withData].sort((a, b) => b.avgPriceChange - a.avgPriceChange);
-        if (sortMode === 'LOSERS') return [...withData].sort((a, b) => a.avgPriceChange - b.avgPriceChange);
-        // ABS — biggest movers regardless of direction
-        return [...withData].sort((a, b) => Math.abs(b.avgPriceChange) - Math.abs(a.avgPriceChange));
-    }, [sectorData, sortMode]);
-
-    const renderPill = (mode, label) => {
-        const isActive = sortMode === mode;
-        return (
-            <Box
-                onClick={() => { setSortMode(mode); setExpandedSector(null); }}
-                sx={styles.pill(isActive, mode, {})}
-            >
-                <Typography variant="button" sx={{ fontWeight: 700, fontSize: '0.75rem' }}>{label}</Typography>
-            </Box>
-        );
-    };
-
     return (
-        <Paper elevation={0} sx={styles.container}>
-            {/* Header */}
-            <Box sx={styles.header}>
-                <Typography variant="overline" sx={styles.title}>
-                    PRICE MOVE BY SECTOR
-                </Typography>
-                <Box sx={styles.pillContainer}>
-                    {renderPill('GAINERS', 'Top Gainers')}
-                    {renderPill('LOSERS', 'Top Losers')}
-                    {renderPill('ABS', 'Biggest Movers')}
-                </Box>
-            </Box>
+        <Box sx={{ px: { xs: 1, md: 4 }, pb: 4, pt: 2, maxWidth: 1000, mx: 'auto' }}>
+            <Typography variant="h6" sx={{ fontWeight: 700, color: '#374151', mb: 3 }}>
+                Sectors trending today
+            </Typography>
 
-            <TableContainer sx={{ ...styles.tableContainer, maxHeight: 520 }}>
-                <Table stickyHeader size="small" aria-label="sector price move">
-                    <TableHead>
-                        <TableRow>
-                            <TableCell sx={{ width: 40 }} />
-                            <TableCell>Sector</TableCell>
-                            <TableCell align="right">Avg Move</TableCell>
-                            <TableCell align="right">Top Mover</TableCell>
-                        </TableRow>
-                    </TableHead>
-                    <TableBody>
-                        {sortedSectors.map(row => (
-                            <SectorRow
-                                key={row.sector}
-                                sector={row.sector}
-                                data={row}
-                                isExpanded={expandedSector === row.sector}
-                                onToggle={() => setExpandedSector(expandedSector === row.sector ? null : row.sector)}
-                                flaggedStocks={flaggedStocks}
-                                onFlagChange={handleFlagChange}
-                                onStockClick={handleStockClick}
-                            />
-                        ))}
-                        {sortedSectors.length === 0 && (
-                            <TableRow>
-                                <TableCell colSpan={4} align="center">
-                                    <Typography variant="caption" color="text.secondary">
-                                        No price data available — waiting for live market data
-                                    </Typography>
-                                </TableCell>
+            <Paper elevation={0} sx={{ 
+                borderRadius: 3, 
+                border: '1px solid #e5e7eb',
+                overflow: 'hidden'
+            }}>
+                <TableContainer>
+                    <Table aria-label="sectors trending table" sx={{ minWidth: 600 }}>
+                        <TableHead>
+                            <TableRow sx={{ '& th': { borderBottom: '1px dashed #e5e7eb', py: 2, color: '#9ca3af', fontWeight: 600, fontSize: '0.8rem' } }}>
+                                <TableCell sx={{ pl: 4 }}>Sector</TableCell>
+                                <TableCell align="center">Gainers/Losers</TableCell>
+                                <TableCell align="right" sx={{ pr: 4 }}>1D price change</TableCell>
                             </TableRow>
-                        )}
-                    </TableBody>
-                </Table>
-            </TableContainer>
-        </Paper>
+                        </TableHead>
+                        <TableBody>
+                            {sectorData.map(row => (
+                                <SectorRow
+                                    key={row.sector}
+                                    sector={row.sector}
+                                    data={row}
+                                    isExpanded={expandedSector === row.sector}
+                                    onToggle={() => setExpandedSector(expandedSector === row.sector ? null : row.sector)}
+                                    flaggedStocks={flaggedStocks}
+                                    onFlagChange={handleFlagChange}
+                                    onStockClick={handleStockClick}
+                                />
+                            ))}
+                            {sectorData.length === 0 && (
+                                <TableRow>
+                                    <TableCell colSpan={3} align="center" sx={{ py: 6 }}>
+                                        <Typography variant="body2" color="text.secondary">
+                                            Waiting for live market data to compute sector moves...
+                                        </Typography>
+                                    </TableCell>
+                                </TableRow>
+                            )}
+                        </TableBody>
+                    </Table>
+                </TableContainer>
+            </Paper>
+        </Box>
     );
 }
