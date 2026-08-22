@@ -4,14 +4,13 @@ import {
     Box,
     Typography,
     Paper,
-    Collapse,
     Table,
     TableBody,
     TableCell,
     TableContainer,
     TableHead,
     TableRow,
-    IconButton,
+    Chip,
 } from '@mui/material';
 
 // Icons
@@ -31,8 +30,6 @@ import LocalShippingIcon from '@mui/icons-material/LocalShipping';
 import DeleteSweepIcon from '@mui/icons-material/DeleteSweep';
 import ScienceIcon from '@mui/icons-material/Science';
 import PrecisionManufacturingIcon from '@mui/icons-material/PrecisionManufacturing';
-import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
-import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 
 import universe from '../../../index/universe.json';
 import FlagMenu from '../../Watchlist/FlagMenu';
@@ -68,134 +65,8 @@ const getSectorIcon = (sectorName) => {
     return <BusinessIcon sx={{ color: '#757575', fontSize: '1.2rem' }} />;
 };
 
-const SectorRow = ({ sector, data, isExpanded, onToggle, flaggedStocks, onFlagChange, onStockClick }) => {
-    const { avgPriceChange, stocks, advancers, decliners } = data;
-    const isPositive = avgPriceChange >= 0;
-    const total = advancers + decliners;
-    const advRatio = total > 0 ? (advancers / total) * 100 : 50;
-
-    return (
-        <React.Fragment>
-            <TableRow 
-                hover
-                onClick={onToggle}
-                sx={{ 
-                    cursor: 'pointer',
-                    '& > td': { borderBottom: '1px solid #f9fafb', py: 2 },
-                }}
-            >
-                <TableCell>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                        <Box sx={{ 
-                            width: 36, 
-                            height: 36, 
-                            borderRadius: 1.5, 
-                            bgcolor: '#f3f4f6', 
-                            display: 'flex', 
-                            alignItems: 'center', 
-                            justifyContent: 'center' 
-                        }}>
-                            {getSectorIcon(sector)}
-                        </Box>
-                        <Typography variant="body2" sx={{ fontWeight: 600, color: '#374151' }}>
-                            {sector}
-                        </Typography>
-                    </Box>
-                </TableCell>
-                <TableCell>
-                    <Box sx={{ width: '100%', maxWidth: 220, mx: 'auto' }}>
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
-                            <Typography variant="caption" sx={{ color: '#6b7280', fontWeight: 600, fontSize: '0.75rem' }}>{advancers}</Typography>
-                            <Typography variant="caption" sx={{ color: '#6b7280', fontWeight: 600, fontSize: '0.75rem' }}>{decliners}</Typography>
-                        </Box>
-                        <Box sx={{ display: 'flex', height: 5, borderRadius: 2, overflow: 'hidden' }}>
-                            <Box sx={{ width: `${advRatio}%`, bgcolor: '#10b981', borderRight: '1px solid #fff' }} />
-                            <Box sx={{ width: `${100 - advRatio}%`, bgcolor: '#ef4444', borderLeft: '1px solid #fff' }} />
-                        </Box>
-                    </Box>
-                </TableCell>
-                <TableCell align="right">
-                    <Typography 
-                        variant="body2" 
-                        sx={{ 
-                            fontWeight: 700, 
-                            color: isPositive ? '#10b981' : '#ef4444' 
-                        }}
-                    >
-                        {fmt2(avgPriceChange)}
-                    </Typography>
-                </TableCell>
-            </TableRow>
-            <TableRow>
-                <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={3}>
-                    <Collapse in={isExpanded} timeout="auto" unmountOnExit>
-                        <Box sx={{ mx: 4, my: 2, p: 2, bgcolor: '#f9fafb', borderRadius: 2 }}>
-                            <Typography variant="caption" fontWeight={600} color="text.secondary" gutterBottom component="div">
-                                STOCKS IN {sector.toUpperCase()}
-                            </Typography>
-                            <Table size="small">
-                                <TableHead>
-                                    <TableRow>
-                                        <TableCell align="center" width={40}>Flag</TableCell>
-                                        <TableCell>Stock</TableCell>
-                                        <TableCell align="right">LTP</TableCell>
-                                        <TableCell align="right">Price Move</TableCell>
-                                        <TableCell align="right">Traded Value</TableCell>
-                                    </TableRow>
-                                </TableHead>
-                                <TableBody>
-                                    {stocks.map((stock) => (
-                                        <TableRow
-                                            key={stock.symbol}
-                                            hover
-                                            sx={{ cursor: 'pointer', '& > td': { borderBottom: '1px solid #f3f4f6' } }}
-                                            onClick={(e) => { e.stopPropagation(); onStockClick(stock); }}
-                                        >
-                                            <TableCell align="center" onClick={(e) => e.stopPropagation()}>
-                                                <FlagMenu
-                                                    currentFlags={flaggedStocks[stock.symbol] || []}
-                                                    onFlagChange={(color) => onFlagChange(stock.symbol, color)}
-                                                />
-                                            </TableCell>
-                                            <TableCell>
-                                                <Typography variant="caption" fontWeight={700}>{stock.symbol}</Typography>
-                                                <Typography variant="caption" color="text.secondary" display="block" noWrap sx={{ maxWidth: 160 }}>
-                                                    {stock.name}
-                                                </Typography>
-                                            </TableCell>
-                                            <TableCell align="right">
-                                                <Typography variant="caption" fontWeight={600}>
-                                                    ₹{fmtPrice(stock.ltp)}
-                                                </Typography>
-                                            </TableCell>
-                                            <TableCell align="right">
-                                                <Typography
-                                                    variant="caption"
-                                                    fontWeight={700}
-                                                    sx={{ color: stock.priceChangePct >= 0 ? '#10b981' : '#ef4444' }}
-                                                >
-                                                    {fmt2(stock.priceChangePct)}
-                                                </Typography>
-                                            </TableCell>
-                                            <TableCell align="right">
-                                                <Typography variant="caption" fontWeight={700} color="text.primary">
-                                                    {fmtCrore(stock.tradedValue)}
-                                                </Typography>
-                                            </TableCell>
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                        </Box>
-                    </Collapse>
-                </TableCell>
-            </TableRow>
-        </React.Fragment>
-    );
-};
-
 export default function SectorPriceMove() {
-    const [expandedSector, setExpandedSector] = useState(null);
+    const [selectedSector, setSelectedSector] = useState(null);
     const [flaggedStocks, setFlaggedStocks] = useState({});
 
     const { orderMetrics } = useSelector((state) => state.orders);
@@ -282,56 +153,240 @@ export default function SectorPriceMove() {
             };
         });
 
-        // Sort descending by avgPriceChange
         return arrayData.filter(s => s.stockCount > 0).sort((a, b) => b.avgPriceChange - a.avgPriceChange);
     }, [orderMetrics]);
 
+    // Select first sector initially
+    useEffect(() => {
+        if (sectorData.length > 0 && !selectedSector) {
+            setSelectedSector(sectorData[0].sector);
+        } else if (sectorData.length > 0 && selectedSector) {
+            // Verify if selectedSector still exists
+            const exists = sectorData.find(s => s.sector === selectedSector);
+            if (!exists) setSelectedSector(sectorData[0].sector);
+        }
+    }, [sectorData, selectedSector]);
+
+    const activeSectorData = useMemo(() => {
+        if (!selectedSector || !sectorData.length) return null;
+        return sectorData.find(s => s.sector === selectedSector);
+    }, [selectedSector, sectorData]);
+
     return (
-        <Box sx={{ px: { xs: 1, md: 4 }, pb: 4, pt: 2, maxWidth: 1000, mx: 'auto' }}>
+        <Box sx={{ px: { xs: 1, md: 4 }, pb: 4, pt: 2, maxWidth: 1200, mx: 'auto' }}>
             <Typography variant="h6" sx={{ fontWeight: 700, color: '#374151', mb: 3 }}>
                 Sectors trending today
             </Typography>
 
-            <Paper elevation={0} sx={{ 
-                borderRadius: 3, 
-                border: '1px solid #e5e7eb',
-                overflow: 'hidden'
-            }}>
-                <TableContainer>
-                    <Table aria-label="sectors trending table" sx={{ minWidth: 600 }}>
-                        <TableHead>
-                            <TableRow sx={{ '& th': { borderBottom: '1px dashed #e5e7eb', py: 2, color: '#9ca3af', fontWeight: 600, fontSize: '0.8rem' } }}>
-                                <TableCell sx={{ pl: 4 }}>Sector</TableCell>
-                                <TableCell align="center">Gainers/Losers</TableCell>
-                                <TableCell align="right" sx={{ pr: 4 }}>1D price change</TableCell>
-                            </TableRow>
-                        </TableHead>
-                        <TableBody>
-                            {sectorData.map(row => (
-                                <SectorRow
-                                    key={row.sector}
-                                    sector={row.sector}
-                                    data={row}
-                                    isExpanded={expandedSector === row.sector}
-                                    onToggle={() => setExpandedSector(expandedSector === row.sector ? null : row.sector)}
-                                    flaggedStocks={flaggedStocks}
-                                    onFlagChange={handleFlagChange}
-                                    onStockClick={handleStockClick}
-                                />
-                            ))}
-                            {sectorData.length === 0 && (
+            <Box sx={{ display: 'flex', gap: 3, height: 650, flexWrap: { xs: 'wrap', md: 'nowrap' } }}>
+                {/* Left Sidebar - Sectors */}
+                <Paper elevation={0} sx={{ 
+                    width: { xs: '100%', md: 380 }, 
+                    display: 'flex', 
+                    flexDirection: 'column', 
+                    borderRadius: 3, 
+                    border: '1px solid #e5e7eb',
+                    flexShrink: 0,
+                    overflow: 'hidden',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
+                }}>
+                    <Box sx={{ p: 1.5, borderBottom: '1px solid #e5e7eb', bgcolor: '#f9fafb', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <Typography variant="subtitle2" sx={{ fontWeight: 600, color: '#6b7280' }}>SECTORS</Typography>
+                        <Chip size="small" label={sectorData.length} sx={{ height: 20, fontSize: '0.7rem', fontWeight: 600 }} />
+                    </Box>
+                    <Box sx={{ flex: 1, overflowY: 'auto' }}>
+                        {sectorData.length === 0 ? (
+                            <Box sx={{ p: 4, textAlign: 'center' }}>
+                                <Typography variant="body2" color="text.secondary">
+                                    Waiting for live market data to compute sector moves...
+                                </Typography>
+                            </Box>
+                        ) : (
+                            <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+                                {sectorData.map((row) => {
+                                    const { sector, avgPriceChange, advancers, decliners } = row;
+                                    const isSelected = selectedSector === sector;
+                                    const isPositive = avgPriceChange >= 0;
+                                    const total = advancers + decliners;
+                                    const advRatio = total > 0 ? (advancers / total) * 100 : 50;
+
+                                    return (
+                                        <Box
+                                            key={sector}
+                                            onClick={() => setSelectedSector(sector)}
+                                            sx={{
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'space-between',
+                                                p: '12px 16px',
+                                                cursor: 'pointer',
+                                                borderBottom: '1px solid #e5e7eb',
+                                                bgcolor: isSelected ? 'rgba(59, 130, 246, 0.05)' : 'transparent',
+                                                '&:hover': { bgcolor: isSelected ? 'rgba(59, 130, 246, 0.08)' : '#f9fafb' },
+                                                transition: 'all 0.15s ease',
+                                                borderLeft: isSelected ? '4px solid #3b82f6' : '4px solid transparent'
+                                            }}
+                                        >
+                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flex: 1 }}>
+                                                <Box sx={{ 
+                                                    width: 32, 
+                                                    height: 32, 
+                                                    borderRadius: 1.5, 
+                                                    bgcolor: isSelected ? '#fff' : '#f3f4f6', 
+                                                    display: 'flex', 
+                                                    alignItems: 'center', 
+                                                    justifyContent: 'center',
+                                                    boxShadow: isSelected ? '0 1px 2px rgba(0,0,0,0.05)' : 'none'
+                                                }}>
+                                                    {getSectorIcon(sector)}
+                                                </Box>
+                                                <Box sx={{ flex: 1 }}>
+                                                    <Typography variant="body2" sx={{ fontSize: '0.8rem', fontWeight: isSelected ? 700 : 600, color: isSelected ? '#111827' : '#374151' }}>
+                                                        {sector}
+                                                    </Typography>
+                                                    <Box sx={{ width: '100%', mt: 0.5 }}>
+                                                        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.25 }}>
+                                                            <Typography variant="caption" sx={{ color: '#10b981', fontWeight: 700, fontSize: '0.65rem' }}>{advancers}</Typography>
+                                                            <Typography variant="caption" sx={{ color: '#ef4444', fontWeight: 700, fontSize: '0.65rem' }}>{decliners}</Typography>
+                                                        </Box>
+                                                        <Box sx={{ display: 'flex', height: 4, borderRadius: 2, overflow: 'hidden' }}>
+                                                            <Box sx={{ width: `${advRatio}%`, bgcolor: '#10b981', borderRight: '1px solid #fff' }} />
+                                                            <Box sx={{ width: `${100 - advRatio}%`, bgcolor: '#ef4444', borderLeft: '1px solid #fff' }} />
+                                                        </Box>
+                                                    </Box>
+                                                </Box>
+                                            </Box>
+                                            <Box sx={{ ml: 2, textAlign: 'right' }}>
+                                                <Typography 
+                                                    variant="body2" 
+                                                    sx={{ 
+                                                        fontWeight: 700, 
+                                                        fontSize: '0.85rem',
+                                                        color: isPositive ? '#10b981' : '#ef4444' 
+                                                    }}
+                                                >
+                                                    {fmt2(avgPriceChange)}
+                                                </Typography>
+                                            </Box>
+                                        </Box>
+                                    );
+                                })}
+                            </Box>
+                        )}
+                    </Box>
+                </Paper>
+
+                {/* Right Side - Stocks Table */}
+                <Paper elevation={0} sx={{ 
+                    flex: 1, 
+                    display: 'flex', 
+                    flexDirection: 'column', 
+                    minHeight: { xs: 400, md: 0 },
+                    bgcolor: '#fff', 
+                    borderRadius: 3, 
+                    overflow: 'hidden', 
+                    border: '1px solid #e5e7eb', 
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.04)' 
+                }}>
+                    <Box sx={{ p: 2, borderBottom: '1px solid #e5e7eb', bgcolor: '#f9fafb', display: 'flex', alignItems: 'center', gap: 2 }}>
+                        {activeSectorData ? (
+                            <>
+                                <Box sx={{ 
+                                    width: 40, 
+                                    height: 40, 
+                                    borderRadius: 2, 
+                                    bgcolor: '#fff', 
+                                    display: 'flex', 
+                                    alignItems: 'center', 
+                                    justifyContent: 'center',
+                                    border: '1px solid #e5e7eb'
+                                }}>
+                                    {getSectorIcon(activeSectorData.sector)}
+                                </Box>
+                                <Box>
+                                    <Typography variant="subtitle1" sx={{ fontWeight: 700, color: '#111827' }}>
+                                        {activeSectorData.sector}
+                                    </Typography>
+                                    <Typography variant="caption" sx={{ color: '#6b7280', fontWeight: 500 }}>
+                                        {activeSectorData.stocks.length} Stocks
+                                    </Typography>
+                                </Box>
+                            </>
+                        ) : (
+                            <Typography variant="subtitle1" sx={{ fontWeight: 700, color: '#111827' }}>
+                                No Sector Selected
+                            </Typography>
+                        )}
+                    </Box>
+
+                    <TableContainer sx={{ flex: 1, overflowY: 'auto' }}>
+                        <Table stickyHeader size="small">
+                            <TableHead>
                                 <TableRow>
-                                    <TableCell colSpan={3} align="center" sx={{ py: 6 }}>
-                                        <Typography variant="body2" color="text.secondary">
-                                            Waiting for live market data to compute sector moves...
-                                        </Typography>
-                                    </TableCell>
+                                    <TableCell sx={{ bgcolor: '#f9fafb', color: '#6b7280', fontWeight: 600, fontSize: '0.75rem', textTransform: 'uppercase' }} align="center" width={40}></TableCell>
+                                    <TableCell sx={{ bgcolor: '#f9fafb', color: '#6b7280', fontWeight: 600, fontSize: '0.75rem', textTransform: 'uppercase' }}>Stock</TableCell>
+                                    <TableCell sx={{ bgcolor: '#f9fafb', color: '#6b7280', fontWeight: 600, fontSize: '0.75rem', textTransform: 'uppercase' }} align="right">LTP</TableCell>
+                                    <TableCell sx={{ bgcolor: '#f9fafb', color: '#6b7280', fontWeight: 600, fontSize: '0.75rem', textTransform: 'uppercase' }} align="right">Price Move</TableCell>
+                                    <TableCell sx={{ bgcolor: '#f9fafb', color: '#6b7280', fontWeight: 600, fontSize: '0.75rem', textTransform: 'uppercase' }} align="right">Traded Value</TableCell>
                                 </TableRow>
-                            )}
-                        </TableBody>
-                    </Table>
-                </TableContainer>
-            </Paper>
+                            </TableHead>
+                            <TableBody>
+                                {activeSectorData?.stocks.map((stock) => (
+                                    <TableRow
+                                        key={stock.symbol}
+                                        hover
+                                        sx={{ cursor: 'pointer', '& > td': { borderBottom: '1px solid #f3f4f6', py: 1.5 } }}
+                                        onClick={(e) => { e.stopPropagation(); handleStockClick(stock); }}
+                                    >
+                                        <TableCell align="center" onClick={(e) => e.stopPropagation()}>
+                                            <FlagMenu
+                                                currentFlags={flaggedStocks[stock.symbol] || []}
+                                                onFlagChange={(color) => handleFlagChange(stock.symbol, color)}
+                                            />
+                                        </TableCell>
+                                        <TableCell>
+                                            <Typography variant="body2" sx={{ fontWeight: 700, color: '#1f2937' }}>{stock.symbol}</Typography>
+                                            <Typography variant="caption" sx={{ color: '#6b7280', display: 'block', noWrap: true, maxWidth: 200 }}>
+                                                {stock.name}
+                                            </Typography>
+                                        </TableCell>
+                                        <TableCell align="right">
+                                            <Typography variant="body2" sx={{ fontWeight: 600, color: '#374151' }}>
+                                                ₹{fmtPrice(stock.ltp)}
+                                            </Typography>
+                                        </TableCell>
+                                        <TableCell align="right">
+                                            <Typography
+                                                variant="body2"
+                                                sx={{ 
+                                                    fontWeight: 700, 
+                                                    color: stock.priceChangePct >= 0 ? '#10b981' : '#ef4444' 
+                                                }}
+                                            >
+                                                {fmt2(stock.priceChangePct)}
+                                            </Typography>
+                                        </TableCell>
+                                        <TableCell align="right">
+                                            <Typography variant="body2" sx={{ fontWeight: 600, color: '#374151' }}>
+                                                {fmtCrore(stock.tradedValue)}
+                                            </Typography>
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                                {(!activeSectorData || activeSectorData.stocks.length === 0) && sectorData.length > 0 && (
+                                    <TableRow>
+                                        <TableCell colSpan={5} align="center" sx={{ py: 6 }}>
+                                            <Typography variant="body2" color="text.secondary">
+                                                No stocks to display.
+                                            </Typography>
+                                        </TableCell>
+                                    </TableRow>
+                                )}
+                            </TableBody>
+                        </Table>
+                    </TableContainer>
+                </Paper>
+            </Box>
         </Box>
     );
 }

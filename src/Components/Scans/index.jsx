@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
-import { Box, TextField, MenuItem, Select, FormControl, InputLabel, Button, Typography, Paper, Chip, Snackbar, Alert, Popover, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import { Box, TextField, MenuItem, Select, FormControl, InputLabel, Button, Typography, Paper, Chip, Snackbar, Alert, Popover, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions, Tabs, Tab } from '@mui/material';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { StaticTimePicker } from '@mui/x-date-pickers/StaticTimePicker';
@@ -14,8 +14,11 @@ import { commonInputProps, commonSelectSx, commonInputLabelSx } from '../../util
 import FlagMenu from '../Watchlist/FlagMenu';
 import { useWatchlistFilter } from '../../hooks/useWatchlistFilter';
 import ScansTVChart from './ScansTVChart';
+import PerformanceDashboard from './PerformanceDashboard';
+import universe from '../../index/universe.json';
 
 const Scans = () => {
+    const [activeTab, setActiveTab] = useState(0);
     const [selectedDate, setSelectedDate] = useState(moment().format('YYYY-MM-DD'));
     const [anchorEl, setAnchorEl] = useState(null);
     const [startTime, setStartTime] = useState(null);
@@ -85,7 +88,7 @@ const Scans = () => {
 
     const getLastWorkingDay = (dateStr, holidaysData) => {
         let currentDate = moment(dateStr);
-        
+
         const isHoliday = (dStr) => holidaysData?.some(h => {
             if (h.date === dStr) {
                 const isNSEClosed = h.closed_exchanges.includes('NSE');
@@ -110,7 +113,7 @@ const Scans = () => {
 
     const fetchScans = async (forceRefresh = false) => {
         const validDate = getLastWorkingDay(selectedDate, holidays);
-        
+
         if (validDate !== selectedDate) {
             console.log(`Date ${selectedDate} is a weekend/holiday. Falling back to ${validDate}`);
             setSelectedDate(validDate); // Update UI state; useEffect will handle re-fetching
@@ -120,7 +123,7 @@ const Scans = () => {
         setLoading(true);
         let dbRows = [];
         const token = localStorage.getItem('token');
-        
+
         try {
             const response = await axios.get(`${BACKEND_URL}/api/scans`, {
                 params: {
@@ -137,7 +140,7 @@ const Scans = () => {
                     ...item
                 }));
             }
-            
+
             setScans(dbRows);
             setScanCount(dbRows.length);
         } catch (error) {
@@ -156,7 +159,7 @@ const Scans = () => {
                 localStorage.removeItem(storageKey);
             }
             const cachedData = localStorage.getItem(storageKey);
-            
+
             if (cachedData) {
                 computedScans = JSON.parse(cachedData);
             } else {
@@ -191,9 +194,12 @@ const Scans = () => {
                         addVirtual(moves.down8Pct5d || [], 'down8Pct5d');
                         addVirtual(moves.up20Pct5d || [], 'up20Pct5d');
                         addVirtual(moves.down20Pct5d || [], 'down20Pct5d');
-                        
+
                         computedScans = virtualScans;
                         localStorage.setItem(storageKey, JSON.stringify(virtualScans));
+                        if (moves.historicalHighs) {
+                            localStorage.setItem(`historicalHighs_${selectedDate}`, JSON.stringify(moves.historicalHighs));
+                        }
                     }
                 } catch (compErr) {
                     console.error("Failed to compute 5-day moves in background:", compErr);
@@ -224,7 +230,7 @@ const Scans = () => {
     const handleOpenTimeFilter = (event) => setAnchorEl(event.currentTarget);
     const handleCloseTimeFilter = () => setAnchorEl(null);
     const openTimeFilter = Boolean(anchorEl);
-    
+
     const handleClearTimeFilter = () => {
         setStartTime(null);
         setEndTime(null);
@@ -234,11 +240,11 @@ const Scans = () => {
         const dailyScanTypes = new Set(['up8Pct5d', 'down8Pct5d', 'up20Pct5d', 'down20Pct5d']);
         return scans.filter(scan => {
             if (dailyScanTypes.has(scan.scanType)) return true;
-            
+
             if (!startTime && !endTime) return true;
             const scanTime = moment(scan.createdAt || scan.currentTs);
             const scanTotalMins = scanTime.hours() * 60 + scanTime.minutes();
-            
+
             let match = true;
             if (startTime) {
                 const sTotal = startTime.hour() * 60 + startTime.minute();
@@ -256,7 +262,7 @@ const Scans = () => {
     const bearishScansSet = new Set(['dollarBD', '4PercentBD', 'sltbBD', 'down8Pct5d', 'down20Pct5d']);
 
     const getShortLabel = (val) => {
-        switch(val) {
+        switch (val) {
             case 'newHigh': return 'New High';
             case 'dollarBO': return '$ BO';
             case 'dollarBD': return '$ BD';
@@ -286,9 +292,9 @@ const Scans = () => {
         const transitions = {};
         Object.entries(symbolMap).forEach(([symbol, symbolScans]) => {
             if (symbolScans.length < 2) return;
-            
+
             const sorted = [...symbolScans].sort((a, b) => moment(a.createdAt || a.currentTs).valueOf() - moment(b.createdAt || b.currentTs).valueOf());
-            
+
             // Build chronological sequence of scan types collapsing consecutive duplicates
             const sequence = [];
             sorted.forEach(scan => {
@@ -299,18 +305,18 @@ const Scans = () => {
 
             // If the sequence has at least 2 distinct types, it's a transition!
             if (sequence.length >= 2) {
-                 const id = `transition_${sequence.join('_')}`;
-                 const details = sequence.map(getShortLabel).join(' → ');
-                 
-                 // The overall direction is determined by the last scan in the sequence
-                 const lastScanType = sequence[sequence.length - 1];
-                 const isBullish = bullishScansSet.has(lastScanType);
-                 const isBearish = bearishScansSet.has(lastScanType);
-                 let direction = 'neutral';
-                 if (isBullish) direction = 'bullish';
-                 else if (isBearish) direction = 'bearish';
+                const id = `transition_${sequence.join('_')}`;
+                const details = sequence.map(getShortLabel).join(' → ');
 
-                 transitions[symbol] = { id, details, direction, first: sequence[0], last: lastScanType };
+                // The overall direction is determined by the last scan in the sequence
+                const lastScanType = sequence[sequence.length - 1];
+                const isBullish = bullishScansSet.has(lastScanType);
+                const isBearish = bearishScansSet.has(lastScanType);
+                let direction = 'neutral';
+                if (isBullish) direction = 'bullish';
+                else if (isBearish) direction = 'bearish';
+
+                transitions[symbol] = { id, details, direction, first: sequence[0], last: lastScanType };
             }
         });
         return transitions;
@@ -320,13 +326,13 @@ const Scans = () => {
         const counts = {};
         const detailsMap = {};
         const directionMap = {};
-        
+
         Object.values(transitionData).forEach(t => {
             counts[t.id] = (counts[t.id] || 0) + 1;
             detailsMap[t.id] = t.details;
             directionMap[t.id] = t.direction;
         });
-        
+
         return Object.entries(counts)
             .map(([id, count]) => ({ id, count, details: detailsMap[id], direction: directionMap[id] }))
             .sort((a, b) => b.count - a.count);
@@ -411,12 +417,12 @@ const Scans = () => {
                             {params.value}
                         </Typography>
                         {turnData && (
-                            <Chip 
+                            <Chip
                                 size="small"
                                 label={turnData.details}
-                                sx={{ 
-                                    height: 20, 
-                                    fontSize: '0.65rem', 
+                                sx={{
+                                    height: 20,
+                                    fontSize: '0.65rem',
                                     fontWeight: 700,
                                     bgcolor: turnData.direction === 'bullish' ? 'rgba(38, 166, 154, 0.1)' : turnData.direction === 'bearish' ? 'rgba(239, 83, 80, 0.1)' : 'rgba(158, 158, 158, 0.1)',
                                     color: turnData.direction === 'bullish' ? '#26a69a' : turnData.direction === 'bearish' ? '#ef5350' : '#757575',
@@ -424,6 +430,28 @@ const Scans = () => {
                                 }}
                             />
                         )}
+                    </Box>
+                );
+            }
+        },
+        {
+            field: 'sector',
+            headerName: 'Sector/Industry',
+            flex: 1.2,
+            minWidth: 150,
+            renderCell: (params) => {
+                const symbol = params.row.tradingSymbol;
+                const scriptInfo = universe.find(s => s.tradingsymbol === symbol);
+                const sector = scriptInfo?.sector || '-';
+                const industry = scriptInfo?.industry || '-';
+                return (
+                    <Box sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', height: '100%' }}>
+                        <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.75rem', lineHeight: 1.2 }}>
+                            {sector}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem', lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {industry}
+                        </Typography>
                     </Box>
                 );
             }
@@ -624,20 +652,20 @@ const Scans = () => {
             }
         },
         { field: 'count', headerName: 'Count', width: 90 },
-        { 
-            field: 'symbols', 
-            headerName: 'Symbols', 
+        {
+            field: 'symbols',
+            headerName: 'Symbols',
             flex: 2,
             minWidth: 300,
             renderCell: (params) => (
                 <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', py: 1, alignItems: 'center', height: '100%' }}>
                     {params.value.map(sym => (
-                        <Chip 
-                            key={sym} 
-                            label={sym} 
-                            size="small" 
+                        <Chip
+                            key={sym}
+                            label={sym}
+                            size="small"
                             clickable
-                            onClick={() => { setScanType(params.row.id); setViewType('table'); }} 
+                            onClick={() => { setScanType(params.row.id); setViewType('table'); }}
                             sx={{ fontWeight: 600, fontSize: '0.75rem', height: 22 }}
                         />
                     ))}
@@ -650,17 +678,17 @@ const Scans = () => {
             width: 240,
             renderCell: (params) => (
                 <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', height: '100%' }}>
-                    <Button 
-                        size="small" 
-                        variant="outlined" 
+                    <Button
+                        size="small"
+                        variant="outlined"
                         onClick={() => { setScanType(params.row.id); setViewType('table'); }}
                         sx={{ textTransform: 'none', borderRadius: 1.5, fontWeight: 600, color: '#000', borderColor: '#cbd5e1', '&:hover': { bgcolor: '#f8fafc', borderColor: '#000' } }}
                     >
                         View Scans
                     </Button>
-                    <Button 
-                        size="small" 
-                        variant="outlined" 
+                    <Button
+                        size="small"
+                        variant="outlined"
                         onClick={() => handleOpenAddWl(params.row.symbols)}
                         sx={{ textTransform: 'none', borderRadius: 1.5, fontWeight: 600, color: '#000', borderColor: '#cbd5e1', '&:hover': { bgcolor: '#f8fafc', borderColor: '#000' } }}
                     >
@@ -733,74 +761,90 @@ const Scans = () => {
     return (
         <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', p: { xs: 2, md: 3 }, alignItems: 'center', bgcolor: 'var(--bg-secondary)' }}>
             <Box sx={{ width: '100%', maxWidth: 1200, display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
-                
+
                 {/* Tier 1: Title and Actions */}
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, width: '100%', flexWrap: 'wrap', gap: 2 }}>
-                    <Typography variant="h5" sx={{ fontWeight: 800, letterSpacing: '-0.02em' }}>
-                        Market Scans
-                    </Typography>
-                    
-                    <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center' }}>
-                        <Button
-                            variant="outlined"
-                            onClick={() => handleOpenAddWl(currentDisplayedSymbols)}
-                            disabled={loading || currentDisplayedSymbols.length === 0}
-                            sx={{
-                                height: 36,
-                                textTransform: 'none',
-                                fontWeight: 600,
-                                borderRadius: 1.5,
-                                borderColor: 'var(--border-color)',
-                                color: 'text.primary',
-                                '&:hover': {
-                                    borderColor: 'primary.main',
-                                    bgcolor: 'rgba(25, 118, 210, 0.04)'
-                                }
-                            }}
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                        <Typography variant="h5" sx={{ fontWeight: 800, letterSpacing: '-0.02em' }}>
+                            Market Scans
+                        </Typography>
+                        <Tabs
+                            value={activeTab}
+                            onChange={(e, newValue) => setActiveTab(newValue)}
+                            textColor="inherit"
+                            indicatorColor="primary"
+                            sx={{ minHeight: 36, '& .MuiTab-root': { minHeight: 36, textTransform: 'none', fontWeight: 600 } }}
                         >
-                            + Add View to WL
-                        </Button>
-                        <Button
-                            variant="outlined"
-                            onClick={handleCopySymbols}
-                            disabled={loading || displayedScans.length === 0}
-                            startIcon={<ContentCopy />}
-                            sx={{
-                                height: 36,
-                                textTransform: 'none',
-                                fontWeight: 600,
-                                borderRadius: 1.5,
-                                borderColor: 'var(--border-color)',
-                                color: 'text.primary',
-                                '&:hover': {
-                                    borderColor: 'primary.main',
-                                    bgcolor: 'rgba(25, 118, 210, 0.04)'
-                                }
-                            }}
-                        >
-                            Copy
-                        </Button>
-                        <Button
-                            variant="contained"
-                            onClick={() => fetchScans(true)}
-                            disabled={loading}
-                            sx={{
-                                bgcolor: '#000',
-                                color: '#fff',
-                                height: 36,
-                                px: 3,
-                                textTransform: 'none',
-                                fontWeight: 600,
-                                borderRadius: 1.5,
-                                '&:hover': { bgcolor: '#333' },
-                                boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-                            }}
-                        >
-                            Refresh
-                        </Button>
+                            <Tab label="Live Daily Scans" />
+                            <Tab label="Historical Performance" />
+                        </Tabs>
                     </Box>
+
+                    {activeTab === 0 && (
+                        <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center' }}>
+                            <Button
+                                variant="outlined"
+                                onClick={() => handleOpenAddWl(currentDisplayedSymbols)}
+                                disabled={loading || currentDisplayedSymbols.length === 0}
+                                sx={{
+                                    height: 36,
+                                    textTransform: 'none',
+                                    fontWeight: 600,
+                                    borderRadius: 1.5,
+                                    borderColor: 'var(--border-color)',
+                                    color: 'text.primary',
+                                    '&:hover': {
+                                        borderColor: 'primary.main',
+                                        bgcolor: 'rgba(25, 118, 210, 0.04)'
+                                    }
+                                }}
+                            >
+                                + Add View to WL
+                            </Button>
+                            <Button
+                                variant="outlined"
+                                onClick={handleCopySymbols}
+                                disabled={loading || displayedScans.length === 0}
+                                startIcon={<ContentCopy />}
+                                sx={{
+                                    height: 36,
+                                    textTransform: 'none',
+                                    fontWeight: 600,
+                                    borderRadius: 1.5,
+                                    borderColor: 'var(--border-color)',
+                                    color: 'text.primary',
+                                    '&:hover': {
+                                        borderColor: 'primary.main',
+                                        bgcolor: 'rgba(25, 118, 210, 0.04)'
+                                    }
+                                }}
+                            >
+                                Copy
+                            </Button>
+                            <Button
+                                variant="contained"
+                                onClick={() => fetchScans(true)}
+                                disabled={loading}
+                                sx={{
+                                    bgcolor: '#000',
+                                    color: '#fff',
+                                    height: 36,
+                                    px: 3,
+                                    textTransform: 'none',
+                                    fontWeight: 600,
+                                    borderRadius: 1.5,
+                                    '&:hover': { bgcolor: '#333' },
+                                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                                }}
+                            >
+                                Refresh
+                            </Button>
+                        </Box>
+                    )}
                 </Box>
 
+                {activeTab === 0 && (
+                <>
                 {/* Tier 2: Scan Filters Pills */}
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap', mb: 3, width: '100%' }}>
                     {renderFilterButton('all', 'All', baseFilteredScans.length)}
@@ -812,7 +856,7 @@ const Scans = () => {
                 {/* Tier 3: Configurations and Secondary Actions */}
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, width: '100%', flexWrap: 'wrap', gap: 2, p: 2, bgcolor: 'var(--bg-primary)', borderRadius: 2, border: '1px solid var(--border-color)' }}>
                     <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
-                        
+
                         {/* Transitions Dropdown with proper notched outline fix */}
                         <FormControl size="small" sx={{ minWidth: 160, bgcolor: 'var(--bg-primary)' }}>
                             <InputLabel id="transitions-select-label" sx={commonInputLabelSx}>Transitions</InputLabel>
@@ -892,8 +936,8 @@ const Scans = () => {
                             onClick={handleOpenTimeFilter}
                             sx={{ height: 40, borderColor: 'var(--border-color)', color: 'text.primary', '&:hover': { borderColor: 'primary.main' }, textTransform: 'none', borderRadius: 1.5 }}
                         >
-                            {startTime || endTime ? 
-                                `Time: ${startTime ? startTime.format('HH:mm') : 'Start'} - ${endTime ? endTime.format('HH:mm') : 'End'}` 
+                            {startTime || endTime ?
+                                `Time: ${startTime ? startTime.format('HH:mm') : 'Start'} - ${endTime ? endTime.format('HH:mm') : 'End'}`
                                 : 'Filter Time'
                             }
                         </Button>
@@ -908,7 +952,7 @@ const Scans = () => {
                                 <Box sx={{ display: 'flex', gap: 2, p: 2, bgcolor: 'var(--bg-primary)' }}>
                                     <Box>
                                         <Typography variant="subtitle2" sx={{ textAlign: 'center', mb: 1, fontWeight: 'bold' }}>From</Typography>
-                                        <StaticTimePicker 
+                                        <StaticTimePicker
                                             displayStaticWrapperAs="desktop"
                                             value={startTime}
                                             onChange={(newValue) => setStartTime(newValue)}
@@ -917,7 +961,7 @@ const Scans = () => {
                                     </Box>
                                     <Box>
                                         <Typography variant="subtitle2" sx={{ textAlign: 'center', mb: 1, fontWeight: 'bold' }}>To</Typography>
-                                        <StaticTimePicker 
+                                        <StaticTimePicker
                                             displayStaticWrapperAs="desktop"
                                             value={endTime}
                                             onChange={(newValue) => setEndTime(newValue)}
@@ -948,17 +992,17 @@ const Scans = () => {
                                     {availableTransitions.map(t => {
                                         const isActive = scanType === t.id;
                                         return (
-                                            <Box 
+                                            <Box
                                                 key={t.id}
                                                 onClick={() => {
                                                     setScanType(isActive ? 'all' : t.id);
                                                     if (viewType === 'transitions') setViewType('table');
                                                 }}
-                                                sx={{ 
-                                                    display: 'flex', 
-                                                    justifyContent: 'space-between', 
-                                                    alignItems: 'center', 
-                                                    p: '12px 16px', 
+                                                sx={{
+                                                    display: 'flex',
+                                                    justifyContent: 'space-between',
+                                                    alignItems: 'center',
+                                                    p: '12px 16px',
                                                     cursor: 'pointer',
                                                     borderBottom: '1px solid var(--border-color)',
                                                     bgcolor: isActive ? 'rgba(25, 118, 210, 0.08)' : 'transparent',
@@ -969,16 +1013,16 @@ const Scans = () => {
                                                 <Typography variant="body2" sx={{ fontSize: '0.8rem', fontWeight: isActive ? 600 : 500, color: isActive ? 'primary.main' : 'var(--text-primary)' }}>
                                                     {t.details}
                                                 </Typography>
-                                                <Chip 
-                                                    size="small" 
-                                                    label={t.count} 
-                                                    sx={{ 
-                                                        height: 20, 
-                                                        fontSize: '0.75rem', 
+                                                <Chip
+                                                    size="small"
+                                                    label={t.count}
+                                                    sx={{
+                                                        height: 20,
+                                                        fontSize: '0.75rem',
                                                         fontWeight: 600,
                                                         bgcolor: isActive ? 'primary.main' : 'var(--bg-secondary)',
                                                         color: isActive ? 'white' : 'inherit'
-                                                    }} 
+                                                    }}
                                                 />
                                             </Box>
                                         );
@@ -990,75 +1034,78 @@ const Scans = () => {
 
                     {/* Content Area */}
                     <Paper elevation={0} sx={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, bgcolor: 'var(--bg-primary)', borderRadius: 2, overflow: 'hidden', border: '1px solid var(--border-color)', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
-                    {viewType === 'table' ? (
-                        <DataGrid
-                            rows={displayedScans}
-                            columns={columns}
-                            loading={loading}
-                            pageSizeOptions={[10, 25, 50, 100]}
-                            initialState={{
-                                pagination: { paginationModel: { pageSize: 25 } },
-                            }}
-                            density="standard"
-                            sx={{
-                                flex: 1,
-                                border: 'none',
-                                fontSize: '0.85rem',
-                                '& .MuiDataGrid-cell': {
-                                    borderColor: 'var(--border-color)',
-                                    py: 1,
-                                },
-                                '& .MuiDataGrid-columnHeaders': {
-                                    backgroundColor: 'var(--bg-secondary)',
-                                    borderBottom: '1px solid var(--border-color)',
-                                    fontWeight: 600,
-                                    textTransform: 'uppercase',
-                                    fontSize: '0.75rem',
-                                    letterSpacing: '0.05em',
-                                    color: 'var(--text-secondary)'
-                                },
-                                '& .MuiDataGrid-row:hover': {
-                                    backgroundColor: 'rgba(0,0,0,0.02)',
-                                }
-                            }}
-                        />
-                    ) : viewType === 'chart' ? (
-                        <ScansTVChart scans={displayedScans} timeframe={timeframe} />
-                    ) : (
-                        <DataGrid
-                            rows={transitionRows}
-                            columns={transitionColumns}
-                            loading={loading}
-                            pageSizeOptions={[10, 25, 50]}
-                            initialState={{
-                                pagination: { paginationModel: { pageSize: 25 } },
-                            }}
-                            getRowHeight={() => 'auto'}
-                            sx={{
-                                flex: 1,
-                                border: 'none',
-                                fontSize: '0.85rem',
-                                '& .MuiDataGrid-cell': {
-                                    borderColor: 'var(--border-color)',
-                                    py: 1,
-                                },
-                                '& .MuiDataGrid-columnHeaders': {
-                                    backgroundColor: 'var(--bg-secondary)',
-                                    borderBottom: '1px solid var(--border-color)',
-                                    fontWeight: 600,
-                                    textTransform: 'uppercase',
-                                    fontSize: '0.75rem',
-                                    letterSpacing: '0.05em',
-                                    color: 'var(--text-secondary)'
-                                }
-                            }}
-                        />
-                    )}
-                </Paper>
+                        {viewType === 'table' ? (
+                            <DataGrid
+                                rows={displayedScans}
+                                columns={columns}
+                                loading={loading}
+                                pageSizeOptions={[10, 25, 50, 100]}
+                                initialState={{
+                                    pagination: { paginationModel: { pageSize: 25 } },
+                                }}
+                                density="standard"
+                                sx={{
+                                    flex: 1,
+                                    border: 'none',
+                                    fontSize: '0.85rem',
+                                    '& .MuiDataGrid-cell': {
+                                        borderColor: 'var(--border-color)',
+                                        py: 1,
+                                    },
+                                    '& .MuiDataGrid-columnHeaders': {
+                                        backgroundColor: 'var(--bg-secondary)',
+                                        borderBottom: '1px solid var(--border-color)',
+                                        fontWeight: 600,
+                                        textTransform: 'uppercase',
+                                        fontSize: '0.75rem',
+                                        letterSpacing: '0.05em',
+                                        color: 'var(--text-secondary)'
+                                    },
+                                    '& .MuiDataGrid-row:hover': {
+                                        backgroundColor: 'rgba(0,0,0,0.02)',
+                                    }
+                                }}
+                            />
+                        ) : viewType === 'chart' ? (
+                            <ScansTVChart scans={displayedScans} timeframe={timeframe} />
+                        ) : (
+                            <DataGrid
+                                rows={transitionRows}
+                                columns={transitionColumns}
+                                loading={loading}
+                                pageSizeOptions={[10, 25, 50]}
+                                initialState={{
+                                    pagination: { paginationModel: { pageSize: 25 } },
+                                }}
+                                getRowHeight={() => 'auto'}
+                                sx={{
+                                    flex: 1,
+                                    border: 'none',
+                                    fontSize: '0.85rem',
+                                    '& .MuiDataGrid-cell': {
+                                        borderColor: 'var(--border-color)',
+                                        py: 1,
+                                    },
+                                    '& .MuiDataGrid-columnHeaders': {
+                                        backgroundColor: 'var(--bg-secondary)',
+                                        borderBottom: '1px solid var(--border-color)',
+                                        fontWeight: 600,
+                                        textTransform: 'uppercase',
+                                        fontSize: '0.75rem',
+                                        letterSpacing: '0.05em',
+                                        color: 'var(--text-secondary)'
+                                    }
+                                }}
+                            />
+                        )}
+                    </Paper>
                 </Box>
-            </Box>
+            </>
+                )}
+            {activeTab === 1 && <PerformanceDashboard selectedDate={selectedDate} />}
+        </Box>
 
-            {/* Add to Watchlist Dialog */}
+            {/* Add to Watchlist Dialog */ }
             <Dialog open={wlDialogOpen} onClose={() => setWlDialogOpen(false)} fullWidth maxWidth="xs">
                 <DialogTitle sx={{ fontWeight: 700 }}>Add Symbols to Watchlist</DialogTitle>
                 <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, pt: 1.5 }}>
@@ -1122,7 +1169,7 @@ const Scans = () => {
                     {snackbarMessage}
                 </Alert>
             </Snackbar>
-        </Box>
+        </Box >
     );
 };
 

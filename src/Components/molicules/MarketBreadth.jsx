@@ -41,7 +41,7 @@ const getUpDown4Color = (params, type) => {
 
 const getStrongCloseColor = (params, type) => {
   let style = { width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' };
-  
+
   const poolSize = type === 'up' ? (params.row.up4Percent || 0) : (params.row.down4Percent || 0);
   const ratio = type === 'up' ? (params.row.strongCloseUpRatio || 0) : (params.row.strongCloseDownRatio || 0);
 
@@ -204,6 +204,16 @@ const columns = [
     headerAlign: 'center',
     renderCell: (params) => (
       <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{(params.value * 100).toFixed(2)}%</div>
+    )
+  },
+  {
+    field: 'dollarBOCount',
+    headerName: '$',
+    width: 120,
+    align: 'center',
+    headerAlign: 'center',
+    renderCell: (params) => (
+      <div style={getCellStyle(params.value, 1, 'up')}>{params.value}</div>
     )
   },
   {
@@ -588,7 +598,7 @@ const MarketBreadthTable = () => {
             columns={columns.map(c => ({
               ...c,
               headerClassName:
-                ['up4Percent', 'down4Percent', 'ratio5d', 'ratio10d', 'up25PctQuarter', 'down25PctQuarter'].includes(c.field) ? 'primary-header' :
+                ['up4Percent', 'down4Percent', 'ratio5d', 'ratio10d', 'up25PctQuarter', 'down25PctQuarter', 'bullishReversalCount', 'dollarBOCount'].includes(c.field) ? 'primary-header' :
                   ['up25PctMonth', 'down25PctMonth', 'up50PctMonth', 'down50PctMonth', 'up13Pct34d', 'down13Pct34d'].includes(c.field) ? 'secondary-header' :
                     'study-header' // Default to study-header for remaining
             }))}
@@ -597,12 +607,14 @@ const MarketBreadthTable = () => {
                 groupId: 'primary_group',
                 headerName: 'Primary Breadth Indicators',
                 headerClassName: 'primary-header-group',
+                headerAlign: 'center',
                 children: [
                   { field: 'up4Percent' },
                   { field: 'down4Percent' },
                   { field: 'ratio5d' },
                   { field: 'ratio10d' },
                   { field: 'bullishReversalCount' },
+                  { field: 'dollarBOCount' },
                   { field: 'strongCloseUpCount' },
                   { field: 'strongCloseUpRatio' },
                   { field: 'strongCloseDownCount' },
@@ -615,6 +627,7 @@ const MarketBreadthTable = () => {
                 groupId: 'secondary_group',
                 headerName: 'Secondary Breadth Indicators',
                 headerClassName: 'secondary-header-group',
+                headerAlign: 'center',
                 children: [
                   { field: 'up25PctMonth' },
                   { field: 'down25PctMonth' },
@@ -628,6 +641,7 @@ const MarketBreadthTable = () => {
                 groupId: 'study_group',
                 headerName: 'Study',
                 headerClassName: 'study-header-group',
+                headerAlign: 'center',
                 children: [
                   { field: 'up8Pct5d' },
                   { field: 'down8Pct5d' },
